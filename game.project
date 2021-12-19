@@ -1,0 +1,19 @@
+[bootstrap]
+main_collection = /main/main.collectionc
+render = /rendercam/rendercam.renderc
+
+[script]
+shared_state = 1
+
+[display]
+width = 960
+height = 640
+
+[android]
+input_method = HiddenInputField
+
+[project]
+title = defold-mesh-binary
+custom_resources = /blender, /textures
+dependencies#0 = https://github.com/rgrams/rendercam/archive/v1.0.1.zip
+

@@ -1,0 +1,110 @@
+local reader = require "def-mesh.reader"
+go.property('t1', resource.texture())
+go.property('t2', resource.texture())
+go.property('t3', resource.texture())
+go.property('t4', resource.texture())
+go.property('t5', resource.texture())
+go.property('t6', resource.texture())
+go.property('t7', resource.texture())
+go.property('t8', resource.texture())
+
+go.property("v1", resource.buffer("/def-mesh/buffers/dummy1.buffer"))
+go.property("v2", resource.buffer("/def-mesh/buffers/dummy2.buffer"))
+go.property("v3", resource.buffer("/def-mesh/buffers/dummy3.buffer"))
+go.property("v4", resource.buffer("/def-mesh/buffers/dummy4.buffer"))
+go.property("v5", resource.buffer("/def-mesh/buffers/dummy5.buffer"))
+go.property("v6", resource.buffer("/def-mesh/buffers/dummy6.buffer"))
+go.property("v7", resource.buffer("/def-mesh/buffers/dummy7.buffer"))
+go.property("v8", resource.buffer("/def-mesh/buffers/dummy8.buffer"))
+
+
+function init(self)
+	self.meshes = {}
+	if BUFFERS == nil then
+		BUFFERS = {self.v1, self.v2, self.v3, self.v4, self.v5, self.v6, self.v7, self.v8}
+	end
+end
+
+function final(self)
+	for _, id in ipairs(self.meshes) do
+		local mesh_url = msg.url(nil, id, "mesh")
+		table.insert(BUFFERS, go.get(mesh_url, "vertices"))
+	end
+end
+
+local function create_mesh_buffer(mesh)
+	local buf = buffer.create(#mesh.faces * 3, {
+		{name = hash("position"), type = buffer.VALUE_TYPE_FLOAT32, count = 3},
+		{name = hash("normal"), type = buffer.VALUE_TYPE_FLOAT32, count = 3},
+		{name = hash("texcoord0"), type = buffer.VALUE_TYPE_FLOAT32, count = 2}
+	})
+	local positions = buffer.get_stream(buf, "position")
+	local normals = buffer.get_stream(buf, "normal")
+
+	local count = 1
+	for i, face in ipairs(mesh.faces) do
+		for _, idx in ipairs(face.v) do
+			positions[count] = mesh.vertices[idx].p.x
+			positions[count + 1] = mesh.vertices[idx].p.y
+			positions[count + 2] = mesh.vertices[idx].p.z
+
+			local n = face.n or mesh.vertices[idx].n
+			normals[count] = n.x
+			normals[count + 1] = n.y
+			normals[count + 2] = n.z
+			count = count + 3
+		end
+	end
+
+	local texcords = buffer.get_stream(buf, "texcoord0")
+	for i, value in ipairs(mesh.texcords) do
+		texcords[i] = value
+	end
+
+	return buf
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("load_mesh") then
+		if #BUFFERS == 0 then
+			pprint("No more buffers")
+			return
+		end
+		
+		reader.init_from_resource(message.path)
+		while not reader.eof() do
+			local mesh = reader.read_mesh()
+			local buf = create_mesh_buffer(mesh)
+			local id = factory.create("#factory", mesh.position, mesh.rotation)
+			pprint(mesh.rotation)
+			local mesh_url = msg.url(nil, id, "mesh")
+			if mesh.parent then
+				--pprint(self.meshes[mesh.parent])
+				go.set_parent(id, self.meshes[mesh.parent], false)
+			else
+				go.set_parent(id, ".", false)
+			end
+
+			--go.set_rotation(mesh.rotation, id)
+			
+			local v = table.remove(BUFFERS)
+			resource.set_buffer(v, buf)
+			go.set(mesh_url, "vertices", v)
+
+			if mesh.texture then
+				--pprint(mesh.texture)
+				--local res = sys.load_resource("/textures/" .. mesh.texture)
+				--local img = image.load(res)
+				local texture = hash("/textures/" .. string.gsub(mesh.texture, ".png", ".texturec"))
+				go.set(mesh_url, "texture0", texture)
+				
+				--go.set(mesh_url, "tex0", buffer)
+			else
+				go.set(mesh_url, "options", vmath.vector4(1.0, 0, 0, 0))
+				go.set(mesh_url, "tint", mesh.color)
+			end
+	
+			self.meshes[mesh.name] = id
+		end
+	end
+end
