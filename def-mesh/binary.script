@@ -32,38 +32,6 @@ function final(self)
 	end
 end
 
-local function create_mesh_buffer(mesh)
-	local buf = buffer.create(#mesh.faces * 3, {
-		{name = hash("position"), type = buffer.VALUE_TYPE_FLOAT32, count = 3},
-		{name = hash("normal"), type = buffer.VALUE_TYPE_FLOAT32, count = 3},
-		{name = hash("texcoord0"), type = buffer.VALUE_TYPE_FLOAT32, count = 2}
-	})
-	local positions = buffer.get_stream(buf, "position")
-	local normals = buffer.get_stream(buf, "normal")
-
-	local count = 1
-	for i, face in ipairs(mesh.faces) do
-		for _, idx in ipairs(face.v) do
-			positions[count] = mesh.vertices[idx].p.x
-			positions[count + 1] = mesh.vertices[idx].p.y
-			positions[count + 2] = mesh.vertices[idx].p.z
-
-			local n = face.n or mesh.vertices[idx].n
-			normals[count] = n.x
-			normals[count + 1] = n.y
-			normals[count + 2] = n.z
-			count = count + 3
-		end
-	end
-
-	local texcords = buffer.get_stream(buf, "texcoord0")
-	for i, value in ipairs(mesh.texcords) do
-		texcords[i] = value
-	end
-
-	return buf
-end
-
 function on_message(self, message_id, message, sender)
 	if message_id == hash("load_mesh") then
 		if #BUFFERS == 0 then
@@ -72,35 +40,37 @@ function on_message(self, message_id, message, sender)
 		end
 		
 		reader.init_from_resource(message.path)
-		while not reader.eof() do
+		while not reader.eof() and #BUFFERS > 0 do
 			local mesh = reader.read_mesh()
-			local buf = create_mesh_buffer(mesh)
-			local id = factory.create("#factory", mesh.position, mesh.rotation)
-
+			pprint(mesh.name)
+			local buf = mesh.create_buffer()
+			local id = factory.create("#factory", mesh.position, mesh.rotation, {}, mesh.scale)
 			local mesh_url = msg.url(nil, id, "mesh")
-			if mesh.parent then
-				go.set_parent(id, self.meshes[mesh.parent], false)
-			else
-				go.set_parent(id, ".", false)
-			end
 			
 			local v = table.remove(BUFFERS)
 			resource.set_buffer(v, buf)
 			go.set(mesh_url, "vertices", v)
 
 			if mesh.texture then
-				--local res = sys.load_resource("/textures/" .. mesh.texture)
-				--local img = image.load(res)
 				local texture = hash("/textures/" .. string.gsub(mesh.texture, ".png", ".texturec"))
 				go.set(mesh_url, "texture0", texture)
-				
-				--go.set(mesh_url, "tex0", buffer)
 			else
-				go.set(mesh_url, "options", vmath.vector4(1.0, 0, 0, 0))
+				go.set(mesh_url, "options", vmath.vector4(1.0, 0, 0, 0)) --to ignore texture in shader
 				go.set(mesh_url, "tint", mesh.color)
 			end
-	
-			self.meshes[mesh.name] = id
+
+			self.meshes[mesh.name] = {id = id, parent = mesh.parent}
 		end
+
+		--set hierarchy
+		for key, mesh in pairs(self.meshes) do
+			if mesh.parent and self.meshes[mesh.parent] then
+				go.set_parent(mesh.id, self.meshes[mesh.parent].id, false)
+			else
+				go.set_parent(mesh.id, ".", false)
+			end
+		end
+
+		msg.post(sender, "meshes_loaded")
 	end
 end

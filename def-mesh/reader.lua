@@ -1,3 +1,4 @@
+local Mesh = require "def-mesh.mesh"
 local M = {}
 
 M.init_from_resource = function(path)
@@ -6,9 +7,10 @@ M.init_from_resource = function(path)
 end
 
 M.read_mesh = function()
-	local mesh = {color = vmath.vector4(1.0, 1.0, 1.0, 1.0)}
+	local mesh = Mesh.new()
 
 	mesh.name = M.read_string()
+	
 	local parent_flag = M.read_int()
 	if parent_flag > 0 then
 		mesh.parent =  M.read_string(parent_flag)
@@ -19,6 +21,8 @@ M.read_mesh = function()
 	local qy =  vmath.quat_rotation_y(M.read_float())
 	local qz =  vmath.quat_rotation_z(M.read_float())
 	mesh.rotation = qx * qy * qz
+
+	mesh.scale = vmath.vector3(M.read_float(), M.read_float(), M.read_float())
 
 	local vertex_count = M.read_int()
 	mesh.vertices = {}

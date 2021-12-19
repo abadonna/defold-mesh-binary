@@ -4,7 +4,7 @@ bl_info = {
     "name": "Defold Mesh Binary Export",
     "author": "",
     "version": (1, 0),
-    "blender": (3, 00, 0),
+    "blender": (3, 0, 0),
     "location": "File > Export > Defold Binary Mesh (.bin)",
     "description": "Export to Defold .mesh format",
     "warning": "",
@@ -19,40 +19,31 @@ from pathlib import Path
 
 def write_some_data(context, filepath):
     
-    obj = bpy.context.active_object
-
-    is_editmode = (obj.mode == 'EDIT')
-    if is_editmode:
-        bpy.ops.object.mode_set(mode='OBJECT', toggle=False)
-        
     f = open(filepath, 'wb')
-    
-    for mesh in bpy.data.meshes:
-        print(mesh.name)
+     
+    for obj in context.scene.objects:
+        if obj.type != 'MESH':
+            continue
         
-        f.write(struct.pack('i', len(mesh.name)))
-        f.write(bytes(mesh.name, "ascii"))
+        if obj.mode == 'EDIT':
+            obj.mode_set(mode='OBJECT', toggle=False)
         
-        for obj in bpy.data.objects:
-             if obj.name == mesh.name:
-                if obj.parent:
-                    f.write(struct.pack('i', len(obj.parent.name)))
-                    f.write(bytes(obj.parent.name, "ascii"))
-                else:
-                    f.write(struct.pack('i', 0)) #no parent flag
+        mesh = obj.data
+        print(obj.name)
+        
+        f.write(struct.pack('i', len(obj.name)))
+        f.write(bytes(obj.name, "ascii"))
+        
+        if obj.parent:
+            f.write(struct.pack('i', len(obj.parent.name)))
+            f.write(bytes(obj.parent.name, "ascii"))
+        else:
+            f.write(struct.pack('i', 0)) #no parent flag
                         
-                f.write(struct.pack('fff',obj.location[0], obj.location[2], -obj.location[1]))
-                #f.write(struct.pack('ffff',obj.rotation_quaternion[0], obj.rotation_quaternion[1], obj.rotation_quaternion[2], obj.rotation_quaternion[3]))
-                rot = obj.rotation_euler.copy()
-                #rot[1] = obj.rotation_euler[2]
-                #rot[2] = obj.rotation_euler[1]
-                #quat = rot.to_quaternion()
-                print(list(rot))
-                #print(obj.rotation_mode)
-                f.write(struct.pack('fff',rot[0], rot[2], -rot[1]))
-                #f.write(struct.pack('ffff',quat[0], quat[1], quat[2], quat[3]))
+        f.write(struct.pack('fff',obj.location[0], obj.location[2], -obj.location[1]))
+        f.write(struct.pack('fff',obj.rotation_euler[0], obj.rotation_euler[2], -obj.rotation_euler[1]))
+        f.write(struct.pack('fff',obj.scale[0], obj.scale[2], obj.scale[1]))
                  
-
         mesh.calc_loop_triangles()
         mesh.calc_normals_split()
         
@@ -76,11 +67,11 @@ def write_some_data(context, filepath):
         for face in mesh.loop_triangles:
             f.write(struct.pack('iii',face.vertices[0], face.vertices[1], face.vertices[2]))
             for loop_idx in face.loops:
-                uv_cords = mesh.uv_layers.active.data[loop_idx].uv
-                uv.extend((uv_cords.x, uv_cords.y))
+                uv_cords = mesh.uv_layers.active.data[loop_idx].uv if mesh.uv_layers.active else (0, 0)
+                uv.extend((uv_cords[0], uv_cords[1]))
             if not face.use_smooth:
                 flat_faces.append(face.index)
-                face_normals.extend((face.normal.x, face.normal.y, face.normal.z))
+                face_normals.extend((face.normal.x, face.normal.z, -face.normal.y))
         
         #f.write(struct.pack('i', len(uv)))
         f.write(struct.pack('f' * len(uv), *uv))

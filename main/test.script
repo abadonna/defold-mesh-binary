@@ -1,7 +1,7 @@
 
 function init(self)
 
-	msg.post("/model", "load_mesh", {path = "/blender/sample.bin"})
+	msg.post("/model", "load_mesh", {path = "/models/sample.bin"})
 	
 	msg.post(".", "acquire_input_focus")
 
@@ -14,9 +14,9 @@ end
 
 
 function on_message(self, message_id, message, sender)
-	-- Add message-handling code here
-	-- Learn more: https://defold.com/manuals/message-passing/
-	-- Remove this function if not needed
+	if message_id == hash("meshes_loaded") then
+		pprint("Success!")
+	end
 end
 
 function on_input(self, action_id, action)

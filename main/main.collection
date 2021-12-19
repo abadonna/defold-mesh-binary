@@ -27,12 +27,12 @@ instances {
     }
     properties {
       id: "farZ"
-      value: "50.0"
+      value: "10.0"
       type: PROPERTY_TYPE_NUMBER
     }
     properties {
       id: "viewDistance"
-      value: "500.0"
+      value: "700.0"
       type: PROPERTY_TYPE_NUMBER
     }
     properties {
