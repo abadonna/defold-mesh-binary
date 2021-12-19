@@ -76,23 +76,19 @@ function on_message(self, message_id, message, sender)
 			local mesh = reader.read_mesh()
 			local buf = create_mesh_buffer(mesh)
 			local id = factory.create("#factory", mesh.position, mesh.rotation)
-			pprint(mesh.rotation)
+
 			local mesh_url = msg.url(nil, id, "mesh")
 			if mesh.parent then
-				--pprint(self.meshes[mesh.parent])
 				go.set_parent(id, self.meshes[mesh.parent], false)
 			else
 				go.set_parent(id, ".", false)
 			end
-
-			--go.set_rotation(mesh.rotation, id)
 			
 			local v = table.remove(BUFFERS)
 			resource.set_buffer(v, buf)
 			go.set(mesh_url, "vertices", v)
 
 			if mesh.texture then
-				--pprint(mesh.texture)
 				--local res = sys.load_resource("/textures/" .. mesh.texture)
 				--local img = image.load(res)
 				local texture = hash("/textures/" .. string.gsub(mesh.texture, ".png", ".texturec"))

@@ -80,7 +80,6 @@ M.read_mesh = function()
 		local texture_flag = M.read_int()
 		if texture_flag > 0 then
 			mesh.texture = M.read_string(texture_flag)
-			--pprint(mesh.texture)
 		end
 	end
 	
