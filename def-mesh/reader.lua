@@ -88,6 +88,9 @@ M.read_mesh = function()
 
 	mesh.bones = {}
 	for i = 1, bone_count do
+		table.insert(mesh.bones, vmath.inv(lsm) * M.read_matrix() * lsm)
+		--[[ 
+		-- same data, but in translation\rotation\scale format
 		local tm = vmath.matrix4_translation(M.read_vec3())
 		local rm = vmath.matrix4_from_quat(M.read_quat())
 		
@@ -97,13 +100,9 @@ M.read_mesh = function()
 		sm.m11 = v.y
 		sm.m22 = v.z
 
-		local lsm = vmath.matrix4()
-		lsm.m00 = mesh.local_.scale.x
-		lsm.m11 = mesh.local_.scale.z
-		lsm.m22 = mesh.local_.scale.y
-
-		table.insert(mesh.bones,  vmath.inv(lsm) * tm * rm * sm * lsm)
-		--table.insert(mesh.bones, M.read_matrix())
+		table.insert(mesh.bones,  vmath.inv(lsm)* tm * rm * sm *lsm)
+		--]]
+		
 	end
 
 	for i = 1, vertex_count do

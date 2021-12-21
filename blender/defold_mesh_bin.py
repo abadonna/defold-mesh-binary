@@ -27,14 +27,13 @@ def write_some_data(context, filepath):
         
         if obj.mode == 'EDIT':
             obj.mode_set(mode='OBJECT', toggle=False)
-            
         
         mesh = obj.data
         print(obj.name)
         
         f.write(struct.pack('i', len(obj.name)))
         f.write(bytes(obj.name, "ascii"))
-        
+       
         if obj.parent:
             f.write(struct.pack('i', len(obj.parent.name)))
             f.write(bytes(obj.parent.name, "ascii"))
@@ -44,6 +43,13 @@ def write_some_data(context, filepath):
         f.write(struct.pack('fff', *obj.location))
         f.write(struct.pack('fff', *obj.rotation_euler))
         f.write(struct.pack('fff', *obj.scale))
+        
+        #keep world transform in case we won't export parent object (e.g. ARMATURE)
+        (translation, rotation, scale) = obj.matrix_world.decompose()
+        f.write(struct.pack('fff', *translation))
+        f.write(struct.pack('fff', *rotation.to_euler()))
+        f.write(struct.pack('fff', *scale))
+        
                  
         mesh.calc_loop_triangles()
         mesh.calc_normals_split()
@@ -117,22 +123,18 @@ def write_some_data(context, filepath):
             for pbone in pose.bones:
                 matrix = pbone.matrix @ pbone.bone.matrix_local.inverted()
                 
-                (translation, rotation, scale) = matrix.decompose()
+#                (translation, rotation, scale) = matrix.decompose()
+#                
+#                f.write(struct.pack('fff', *translation))
+#                f.write(struct.pack('ffff', *rotation))
+#                f.write(struct.pack('fff', *scale))
                 
-                f.write(struct.pack('fff', *translation))
-                f.write(struct.pack('ffff', *rotation))
-                f.write(struct.pack('fff', *scale))
+                matrix.transpose()
                 
-#                matrix.transpose()
-#                print(matrix[0])
-#                print(matrix[1])
-#                print(matrix[2])
-#                print(matrix[3])
-                 
-#                f.write(struct.pack('ffff', *matrix[0]))
-#                f.write(struct.pack('ffff', *matrix[1]))
-#                f.write(struct.pack('ffff', *matrix[2]))
-#                f.write(struct.pack('ffff', *matrix[3]))
+                f.write(struct.pack('ffff', *matrix[0]))
+                f.write(struct.pack('ffff', *matrix[1]))
+                f.write(struct.pack('ffff', *matrix[2]))
+                f.write(struct.pack('ffff', *matrix[3]))
 
                
             bones_map = {bone.name: i for i, bone in enumerate(pose.bones)}
