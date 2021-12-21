@@ -9,6 +9,7 @@ in development, proof of concept
 ## Features
 * Exports all the meshes
 * Binary format
+* Armatures (skinning)
 
 ## Drawbacks (Defold 190)
 * Impossible to create vertex buffer in runtime, so we have to keep buffers pool
@@ -16,7 +17,7 @@ in development, proof of concept
 * Meshes are not visible in Editor, only in runtime
 
 ## TODO
-* Animations, bones
+* Animations, better armature support
 
 
 ---
