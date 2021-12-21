@@ -121,7 +121,7 @@ def write_some_data(context, filepath):
             
             f.write(struct.pack('i', len(pose.bones)))
             for pbone in pose.bones:
-                matrix = pbone.matrix @ pbone.bone.matrix_local.inverted()
+                matrix = obj.matrix_local.inverted() @ pbone.matrix @ pbone.bone.matrix_local.inverted() @ obj.matrix_local
                 
 #                (translation, rotation, scale) = matrix.decompose()
 #                
