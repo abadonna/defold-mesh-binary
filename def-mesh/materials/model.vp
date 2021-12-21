@@ -21,7 +21,9 @@ varying mediump vec4 var_light;
 
 void main()
 {
-    vec4 p = mtx_worldview * vec4(position.xyz, 1.0);
+    vec4 p = vec4(position.x, position.z, -position.y, 1.0); //to fix blender coordinates
+    p = mtx_worldview * p;
+   
     var_light = mtx_view * vec4(light.xyz, 1.0);
     var_position = p;
     var_texcoord0 = texcoord0;

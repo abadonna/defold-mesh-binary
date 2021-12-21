@@ -1,6 +1,5 @@
 
 function init(self)
-
 	msg.post("/model", "load_mesh", {path = "/models/sample.bin"})
 	
 	msg.post(".", "acquire_input_focus")

@@ -27,6 +27,7 @@ def write_some_data(context, filepath):
         
         if obj.mode == 'EDIT':
             obj.mode_set(mode='OBJECT', toggle=False)
+            
         
         mesh = obj.data
         print(obj.name)
@@ -40,9 +41,9 @@ def write_some_data(context, filepath):
         else:
             f.write(struct.pack('i', 0)) #no parent flag
                         
-        f.write(struct.pack('fff',obj.location[0], obj.location[2], -obj.location[1]))
-        f.write(struct.pack('fff',obj.rotation_euler[0], obj.rotation_euler[2], -obj.rotation_euler[1]))
-        f.write(struct.pack('fff',obj.scale[0], obj.scale[2], obj.scale[1]))
+        f.write(struct.pack('fff', *obj.location))
+        f.write(struct.pack('fff', *obj.rotation_euler))
+        f.write(struct.pack('fff', *obj.scale))
                  
         mesh.calc_loop_triangles()
         mesh.calc_normals_split()
@@ -50,11 +51,9 @@ def write_some_data(context, filepath):
         f.write(struct.pack('i', len(mesh.vertices)))
         
         for vert in mesh.vertices:
-            f.write(struct.pack('fff',vert.co.x, vert.co.z, -vert.co.y))
-        
-        for vert in mesh.vertices:
-            f.write(struct.pack('fff',vert.normal.x, vert.normal.z, -vert.normal.y,))
-       
+            f.write(struct.pack('fff', *vert.co))
+            f.write(struct.pack('fff', *vert.normal))
+           
         #vertices = [(vert.co.x, vert.co.y, vert.co.z) for vert in mesh.vertices]
         #normals = [(vert.normal.x, vert.normal.y, vert.normal.z) for vert in mesh.vertices]
         #faces = [(face.vertices[0], face.vertices[1], face.vertices[2]) for face in mesh.loop_triangles]
@@ -65,15 +64,14 @@ def write_some_data(context, filepath):
         face_normals = []
         uv = []
         for face in mesh.loop_triangles:
-            f.write(struct.pack('iii',face.vertices[0], face.vertices[1], face.vertices[2]))
+            f.write(struct.pack('iii', *face.vertices))
             for loop_idx in face.loops:
                 uv_cords = mesh.uv_layers.active.data[loop_idx].uv if mesh.uv_layers.active else (0, 0)
-                uv.extend((uv_cords[0], uv_cords[1]))
+                uv.extend(uv_cords)
             if not face.use_smooth:
                 flat_faces.append(face.index)
-                face_normals.extend((face.normal.x, face.normal.z, -face.normal.y))
+                face_normals.extend(face.normal)
         
-        #f.write(struct.pack('i', len(uv)))
         f.write(struct.pack('f' * len(uv), *uv))
         
         f.write(struct.pack('i', len(flat_faces)))
@@ -89,7 +87,7 @@ def write_some_data(context, filepath):
                     if node.bl_static_type == "BSDF_PRINCIPLED":
                         col = node.inputs[0].default_value
           
-            f.write(struct.pack('ffff',col[0],col[1],col[2],col[3]))
+            f.write(struct.pack('ffff', *col))
             has_texture = False
             if material.node_tree:
                 for node in material.node_tree.nodes:
@@ -105,8 +103,49 @@ def write_some_data(context, filepath):
         else:
             f.write(struct.pack('i', 0)) #no material flag
         
-        
-    #f.write("Hello World")
+        armature = obj.find_armature()
+                
+        if armature:
+            pose = armature.pose
+            world = armature.matrix_world
+            #local = armature.matrix_local
+            #armature = armature.data
+            
+            #TODO: armature object transform?
+            
+            f.write(struct.pack('i', len(pose.bones)))
+            for pbone in pose.bones:
+                matrix = pbone.matrix @ pbone.bone.matrix_local.inverted()
+                
+                (translation, rotation, scale) = matrix.decompose()
+                
+                f.write(struct.pack('fff', *translation))
+                f.write(struct.pack('ffff', *rotation))
+                f.write(struct.pack('fff', *scale))
+                
+#                matrix.transpose()
+#                print(matrix[0])
+#                print(matrix[1])
+#                print(matrix[2])
+#                print(matrix[3])
+                 
+#                f.write(struct.pack('ffff', *matrix[0]))
+#                f.write(struct.pack('ffff', *matrix[1]))
+#                f.write(struct.pack('ffff', *matrix[2]))
+#                f.write(struct.pack('ffff', *matrix[3]))
+
+               
+            bones_map = {bone.name: i for i, bone in enumerate(pose.bones)}
+            for vert in mesh.vertices:
+                f.write(struct.pack('i', len(vert.groups)))
+                for wgrp in vert.groups:
+                    group = obj.vertex_groups[wgrp.group]
+                    bone_idx = bones_map[group.name]
+                    f.write(struct.pack('i', bone_idx))
+                    f.write(struct.pack('f', wgrp.weight))
+        else:
+            f.write(struct.pack('i', 0)) #no bones flag
+                
     f.close()
 
     return {'FINISHED'}

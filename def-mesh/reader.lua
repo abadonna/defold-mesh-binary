@@ -15,35 +15,27 @@ M.read_mesh = function()
 	if parent_flag > 0 then
 		mesh.parent =  M.read_string(parent_flag)
 	end
-	mesh.position = vmath.vector3(M.read_float(), M.read_float(), M.read_float())
+	
+	local v = M.read_vec3()
+	mesh.position = vmath.vector3(v.x, v.z, -v.y)-- blender coords fix
 
-	local qx =  vmath.quat_rotation_x(M.read_float())
-	local qy =  vmath.quat_rotation_y(M.read_float())
-	local qz =  vmath.quat_rotation_z(M.read_float())
-	mesh.rotation = qx * qy * qz
+	local euler = M.read_vec3()
+	local qx =  vmath.quat_rotation_x(euler.x)
+	local qy =  vmath.quat_rotation_y(euler.z) -- blender coords fix
+	local qz =  vmath.quat_rotation_z(-euler.y) -- blender coords fix
+	mesh.rotation = qx * qz * qy
 
-	mesh.scale = vmath.vector3(M.read_float(), M.read_float(), M.read_float())
+	v = M.read_vec3()
+	mesh.scale = vmath.vector3(v.x, v.z, v.y)-- blender coords fix
 
 	local vertex_count = M.read_int()
 	mesh.vertices = {}
 	for i = 1, vertex_count do
 		table.insert(mesh.vertices, 
-		{
-			p = {
-				x = M.read_float(), 
-				y = M.read_float(), 
-				z = M.read_float()
-			}
+		{ 
+			p = M.read_vec3(),
+			n = M.read_vec3()
 		})
-	end
-
-	for i = 1, vertex_count do
-		mesh.vertices[i].n = 
-		{
-			x = M.read_float(), 
-			y = M.read_float(), 
-			z = M.read_float()
-		}
 	end
 
 	local face_count = M.read_int()
@@ -71,19 +63,50 @@ M.read_mesh = function()
 	end
 
 	for i = 1, flat_face_count do
-		mesh.faces[flat_faces[i]].n = {
-			x = M.read_float(), 
-			y = M.read_float(), 
-			z = M.read_float()
-		}
+		mesh.faces[flat_faces[i]].n = M.read_vec3()
 	end
 
 	local material_flag = M.read_int()
 	if material_flag == 1 then
-		mesh.color = vmath.vector4(M.read_float(), M.read_float(), M.read_float(), M.read_float())
+		mesh.color = M.read_vec4()
 		local texture_flag = M.read_int()
 		if texture_flag > 0 then
 			mesh.texture = M.read_string(texture_flag)
+		end
+	end
+
+	local bone_count = M.read_int()
+	if bone_count == 0 then
+		return mesh
+	end
+
+	--reading armature
+	mesh.bones = {}
+	for i = 1, bone_count do
+		local tm = vmath.matrix4_translation(M.read_vec3())
+		local v = M.read_vec4() 
+		local q = vmath.quat(v.y, v.z, v.w, v.x)  -- to match Blender quaternion format
+		local rm = vmath.matrix4_from_quat(q)
+		
+		v = M.read_vec3()
+		local sm = vmath.matrix4()
+		sm.m00 = v.x
+		sm.m11 = v.y
+		sm.m22 = v.z
+		
+		table.insert(mesh.bones, tm * rm * sm)
+		--table.insert(mesh.bones, M.read_matrix())
+	end
+
+	for i = 1, vertex_count do
+		mesh.vertices[i].w = {}
+		local weight_count = M.read_int()
+		for j = 1, weight_count do
+			table.insert(mesh.vertices[i].w, 
+			{
+				bone_idx = M.read_int() + 1,
+				weight = M.read_float()
+			})
 		end
 	end
 	
@@ -132,5 +155,21 @@ M.read_float = function()
 	return math.ldexp(mantissa, exponent - 127)
 end
 
+M.read_vec3 = function()
+	return vmath.vector3(M.read_float(), M.read_float(), M.read_float())
+end
+
+M.read_vec4 = function()
+	return vmath.vector4(M.read_float(), M.read_float(), M.read_float(), M.read_float())
+end
+
+M.read_matrix = function()
+	local m = vmath.matrix4()
+	m.c0 = M.read_vec4()
+	m.c1 = M.read_vec4()
+	m.c2 = M.read_vec4()
+	m.c3 = M.read_vec4()
+	return m
+end
 
 return M
