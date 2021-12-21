@@ -62,8 +62,8 @@ function on_message(self, message_id, message, sender)
 				go.set(mesh_url, "options", vmath.vector4(1.0, 0, 0, 0)) --to ignore texture in shader
 				go.set(mesh_url, "tint", mesh.color)
 			end
-
-			self.meshes[mesh.name] = {id = id, parent = mesh.parent}
+			mesh.id = id
+			self.meshes[mesh.name] = mesh
 		end
 
 		--set hierarchy
@@ -72,6 +72,11 @@ function on_message(self, message_id, message, sender)
 				go.set_parent(mesh.id, self.meshes[mesh.parent].id, false)
 			else
 				go.set_parent(mesh.id, ".", false)
+				if mesh.parent then
+					go.set_position(mesh.world_.position, mesh.id)
+					go.set_scale(mesh.world_.scale, mesh.id)
+					go.set_rotation(mesh.world_.rotation, mesh.id)
+				end
 			end
 		end
 

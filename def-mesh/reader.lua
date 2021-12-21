@@ -15,19 +15,10 @@ M.read_mesh = function()
 	if parent_flag > 0 then
 		mesh.parent =  M.read_string(parent_flag)
 	end
+
+	mesh.local_ = M.read_transform()
+	mesh.world_ = M.read_transform()
 	
-	local v = M.read_vec3()
-	mesh.position = vmath.vector3(v.x, v.z, -v.y)-- blender coords fix
-
-	local euler = M.read_vec3()
-	local qx =  vmath.quat_rotation_x(euler.x)
-	local qy =  vmath.quat_rotation_y(euler.z) -- blender coords fix
-	local qz =  vmath.quat_rotation_z(-euler.y) -- blender coords fix
-	mesh.rotation = qx * qz * qy
-
-	v = M.read_vec3()
-	mesh.scale = vmath.vector3(v.x, v.z, v.y)-- blender coords fix
-
 	local vertex_count = M.read_int()
 	mesh.vertices = {}
 	for i = 1, vertex_count do
@@ -77,24 +68,41 @@ M.read_mesh = function()
 
 	local bone_count = M.read_int()
 	if bone_count == 0 then
+		mesh.position = mesh.local_.position
+		mesh.rotation = mesh.local_.rotation
+		mesh.scale = mesh.local_.scale
 		return mesh
 	end
 
+	mesh.position = mesh.world_.position
+	mesh.rotation = mesh.world_.rotation
+	mesh.scale = mesh.world_.scale
+
 	--reading armature
+
+	--prepare local scale matrix
+	local lsm = vmath.matrix4()
+	lsm.m00 = mesh.local_.scale.x
+	lsm.m11 = mesh.local_.scale.z
+	lsm.m22 = mesh.local_.scale.y
+
 	mesh.bones = {}
 	for i = 1, bone_count do
 		local tm = vmath.matrix4_translation(M.read_vec3())
-		local v = M.read_vec4() 
-		local q = vmath.quat(v.y, v.z, v.w, v.x)  -- to match Blender quaternion format
-		local rm = vmath.matrix4_from_quat(q)
+		local rm = vmath.matrix4_from_quat(M.read_quat())
 		
-		v = M.read_vec3()
+		local v = M.read_vec3()
 		local sm = vmath.matrix4()
 		sm.m00 = v.x
 		sm.m11 = v.y
 		sm.m22 = v.z
-		
-		table.insert(mesh.bones, tm * rm * sm)
+
+		local lsm = vmath.matrix4()
+		lsm.m00 = mesh.local_.scale.x
+		lsm.m11 = mesh.local_.scale.z
+		lsm.m22 = mesh.local_.scale.y
+
+		table.insert(mesh.bones,  vmath.inv(lsm) * tm * rm * sm * lsm)
 		--table.insert(mesh.bones, M.read_matrix())
 	end
 
@@ -163,6 +171,11 @@ M.read_vec4 = function()
 	return vmath.vector4(M.read_float(), M.read_float(), M.read_float(), M.read_float())
 end
 
+M.read_quat = function()
+	local v = M.read_vec4() 
+	return vmath.quat(v.y, v.z, v.w, v.x) --Blender quat
+end
+
 M.read_matrix = function()
 	local m = vmath.matrix4()
 	m.c0 = M.read_vec4()
@@ -170,6 +183,23 @@ M.read_matrix = function()
 	m.c2 = M.read_vec4()
 	m.c3 = M.read_vec4()
 	return m
+end
+
+--read position, rotation and scale in Defold coordinates 
+M.read_transform = function()
+	local res = {}
+	local v = M.read_vec3()
+	res.position = vmath.vector3(v.x, v.z, -v.y)-- blender coords fix
+
+	local euler = M.read_vec3()
+	local qx = vmath.quat_rotation_x(euler.x)
+	local qy = vmath.quat_rotation_y(euler.z) -- blender coords fix
+	local qz = vmath.quat_rotation_z(-euler.y) -- blender coords fix
+	res.rotation = qx * qz * qy
+
+	v = M.read_vec3()
+	res.scale = vmath.vector3(v.x, v.z, v.y)-- blender coords fix
+	return res
 end
 
 return M
