@@ -9,12 +9,8 @@ M.new = function()
 			return
 		end
 
-		for i, bone in ipairs(mesh.bones) do
-			local idx = (i - 1) * 4
-			go.set(url, "bones", bone.c0, {index = idx + 1})
-			go.set(url, "bones", bone.c1, {index = idx + 2})
-			go.set(url, "bones", bone.c2, {index = idx + 3})
-			go.set(url, "bones", bone.c3, {index = idx + 4})	
+		for i, v in ipairs(mesh.bones) do
+			go.set(url, "bones", v, {index = i})
 		end
 	end
 

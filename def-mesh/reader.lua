@@ -79,11 +79,6 @@ M.read_mesh = function()
 	mesh.scale = mesh.world_.scale
 
 	--reading armature
-	
-	mesh.bones = {}
-	for i = 1, bone_count do
-		table.insert(mesh.bones, M.read_matrix())
-	end
 
 	local sort_f = function(a,b) return a.weight > b.weight end
 
@@ -114,19 +109,16 @@ M.read_mesh = function()
 	end
 
 	local frame_count = M.read_int()
-	if frame_count == 0 then
-		return mesh
-	end
-
 	mesh.frames = {}
-	for i = 0, frame_count do
+	for i = 1, frame_count do
 		local bones = {}
-		for j = 1, bone_count do
-			table.insert(bones, M.read_matrix())
+		for j = 1, bone_count * 4 do
+			table.insert(bones, M.read_vec4()) -- read matrices per column as vectors for simplicity
 		end
 		table.insert(mesh.frames, bones)
 	end
 	
+	mesh.bones = mesh.frames[1]
 	return mesh
 end
 

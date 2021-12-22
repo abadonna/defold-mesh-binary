@@ -16,6 +16,14 @@ bl_info = {
 import bpy, sys, struct
 from pathlib import Path
 
+def write_frame_data(pose, matrix_local, f):
+    for pbone in pose.bones:
+        matrix = matrix_local.inverted() @ pbone.matrix @ pbone.bone.matrix_local.inverted() @ matrix_local
+        matrix.transpose()
+        f.write(struct.pack('ffff', *matrix[0]))
+        f.write(struct.pack('ffff', *matrix[1]))
+        f.write(struct.pack('ffff', *matrix[2]))
+        f.write(struct.pack('ffff', *matrix[3]))
 
 def write_some_data(context, filepath, export_anim_setting):
     
@@ -120,22 +128,6 @@ def write_some_data(context, filepath, export_anim_setting):
             #TODO: armature object transform?
             
             f.write(struct.pack('i', len(pose.bones)))
-            for pbone in pose.bones:
-                matrix = obj.matrix_local.inverted() @ pbone.matrix @ pbone.bone.matrix_local.inverted() @ obj.matrix_local
-                
-#                (translation, rotation, scale) = matrix.decompose()
-#                
-#                f.write(struct.pack('fff', *translation))
-#                f.write(struct.pack('ffff', *rotation))
-#                f.write(struct.pack('fff', *scale))
-                
-                matrix.transpose()
-                
-                f.write(struct.pack('ffff', *matrix[0]))
-                f.write(struct.pack('ffff', *matrix[1]))
-                f.write(struct.pack('ffff', *matrix[2]))
-                f.write(struct.pack('ffff', *matrix[3]))
-
                
             bones_map = {bone.name: i for i, bone in enumerate(pose.bones)}
             for vert in mesh.vertices:
@@ -148,21 +140,17 @@ def write_some_data(context, filepath, export_anim_setting):
                     
             if export_anim_setting:
                 f.write(struct.pack('i', context.scene.frame_end))
-                for frame in range(context.scene.frame_end + 1):
+                for frame in range(context.scene.frame_end):
                     context.scene.frame_set(frame)
-                    for pbone in pose.bones:
-                        matrix = obj.matrix_local.inverted() @ pbone.matrix @ pbone.bone.matrix_local.inverted() @ obj.matrix_local
-                        matrix.transpose()
-                        f.write(struct.pack('ffff', *matrix[0]))
-                        f.write(struct.pack('ffff', *matrix[1]))
-                        f.write(struct.pack('ffff', *matrix[2]))
-                        f.write(struct.pack('ffff', *matrix[3]))
+                    write_frame_data(pose, obj.matrix_local, f)
+                    print(frame)
 
             else:
-                f.write(struct.pack('i', 0)) #no frames flag
+                f.write(struct.pack('i', 1)) #single frame flag
+                write_frame_data(pose, obj.matrix_local, f)
         else:
             f.write(struct.pack('i', 0)) #no bones flag
-                
+
     f.close()
 
     return {'FINISHED'}
