@@ -1,5 +1,5 @@
 # defold-mesh-binary
-in development, proof of concept
+proof of concept
 
 ## Usage
 1. Use defold_mesh_bin.py to export scene from Blender (tested only in 3.0.0)
@@ -7,17 +7,16 @@ in development, proof of concept
 3. Send "load_mesh" message with path to binary file in custom resources
 
 ## Features
-* Exports all the meshes
 * Binary format
-* Armatures (skinning)
+* Exports all the meshes
+* Material's color and texture
+* Bones
+* Bone animations on GPU
 
 ## Drawbacks (Defold 190)
 * Impossible to create vertex buffer in runtime, so we have to keep buffers pool
 * Impossible to create texture in runtime
 * Meshes are not visible in Editor, only in runtime
-
-## TODO
-* Animations, better armature support
 
 
 ---
