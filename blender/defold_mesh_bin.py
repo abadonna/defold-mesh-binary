@@ -17,7 +17,7 @@ import bpy, sys, struct
 from pathlib import Path
 
 
-def write_some_data(context, filepath):
+def write_some_data(context, filepath, export_anim_setting):
     
     f = open(filepath, 'wb')
      
@@ -145,6 +145,21 @@ def write_some_data(context, filepath):
                     bone_idx = bones_map[group.name]
                     f.write(struct.pack('i', bone_idx))
                     f.write(struct.pack('f', wgrp.weight))
+                    
+            if export_anim_setting:
+                f.write(struct.pack('i', context.scene.frame_end))
+                for frame in range(context.scene.frame_end + 1):
+                    context.scene.frame_set(frame)
+                    for pbone in pose.bones:
+                        matrix = obj.matrix_local.inverted() @ pbone.matrix @ pbone.bone.matrix_local.inverted() @ obj.matrix_local
+                        matrix.transpose()
+                        f.write(struct.pack('ffff', *matrix[0]))
+                        f.write(struct.pack('ffff', *matrix[1]))
+                        f.write(struct.pack('ffff', *matrix[2]))
+                        f.write(struct.pack('ffff', *matrix[3]))
+
+            else:
+                f.write(struct.pack('i', 0)) #no frames flag
         else:
             f.write(struct.pack('i', 0)) #no bones flag
                 
@@ -173,10 +188,16 @@ class DefoldExport(Operator, ExportHelper):
         options={'HIDDEN'},
         maxlen=255,  # Max internal buffer length, longer would be clamped.
     )
+    
+    export_anim: BoolProperty(
+        name="Export animations",
+        description="Only for armatures",
+        default=True,
+    )
 
 
     def execute(self, context):
-        return write_some_data(context, self.filepath)
+        return write_some_data(context, self.filepath, self.export_anim)
 
 
 # Only needed if you want to add into a dynamic menu

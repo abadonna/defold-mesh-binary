@@ -16,19 +16,22 @@ go.property("v5", resource.buffer("/def-mesh/buffers/dummy5.buffer"))
 go.property("v6", resource.buffer("/def-mesh/buffers/dummy6.buffer"))
 go.property("v7", resource.buffer("/def-mesh/buffers/dummy7.buffer"))
 go.property("v8", resource.buffer("/def-mesh/buffers/dummy8.buffer"))
+go.property("v9", resource.buffer("/def-mesh/buffers/dummy9.buffer"))
+go.property("v10", resource.buffer("/def-mesh/buffers/dummy10.buffer"))
 
 
 function init(self)
 	self.meshes = {}
+	self.total_frames = 0
 	if BUFFERS == nil then
-		BUFFERS = {self.v1, self.v2, self.v3, self.v4, self.v5, self.v6, self.v7, self.v8}
+		BUFFERS = {self.v1, self.v2, self.v3, self.v4, self.v5, self.v6, self.v7, self.v8, self.v9, self.v10}
 	end
 end
 
 function final(self)
 	for _, id in ipairs(self.meshes) do
 		local mesh_url = msg.url(nil, id, "mesh")
-		table.insert(BUFFERS, go.get(mesh_url, "vertices"))
+		table.insert(BUFFERS, go.get(mesh_url, "vertices")) --return buffer to pool
 	end
 end
 
@@ -38,11 +41,16 @@ function on_message(self, message_id, message, sender)
 			pprint("No more buffers")
 			return
 		end
-		
+
 		reader.init_from_resource(message.path)
 		while not reader.eof() and #BUFFERS > 0 do
 			local mesh = reader.read_mesh()
-			pprint(mesh.name)
+			pprint(mesh.name .. " " .. #mesh.faces .. " triangles")
+
+			if mesh.frames then
+				self.total_frames = #mesh.frames
+			end
+			
 			local buf = mesh.create_buffer()
 			local id = factory.create("#factory", mesh.position, mesh.rotation, {}, mesh.scale)
 			local mesh_url = msg.url(nil, id, "mesh")
@@ -50,6 +58,8 @@ function on_message(self, message_id, message, sender)
 			local v = table.remove(BUFFERS)
 			resource.set_buffer(v, buf)
 			go.set(mesh_url, "vertices", v)
+
+			mesh.apply_armature(mesh_url)
 
 			if mesh.texture then
 				if not pcall(function()
@@ -80,6 +90,12 @@ function on_message(self, message_id, message, sender)
 			end
 		end
 
-		msg.post(sender, "meshes_loaded")
+		msg.post(sender, "meshes_loaded", {frames = self.total_frames})
+		
+	elseif message_id == hash("set_frame") then
+		for _, mesh in pairs(self.meshes) do
+			local mesh_url = msg.url(nil, mesh.id, "mesh")
+			mesh.set_frame(message.frame, mesh_url)
+		end
 	end
 end

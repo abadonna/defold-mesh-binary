@@ -16,5 +16,17 @@
     "type": "float32",
     "count": 2,
     "data": []
+  },
+  {
+    "name": "weight",
+    "type": "float32",
+    "count": 4,
+    "data": []
+  },
+  {
+    "name": "bone",
+    "type": "uint8",
+    "count": 4,
+    "data": []
   }
 ]

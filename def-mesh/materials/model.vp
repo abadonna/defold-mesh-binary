@@ -7,21 +7,47 @@
 attribute highp vec4 position;
 attribute mediump vec2 texcoord0;
 attribute mediump vec3 normal;
+attribute mediump vec4 weight;
+attribute mediump vec4 bone;
 
 uniform mediump mat4 mtx_worldview;
 uniform mediump mat4 mtx_view;
 uniform mediump mat4 mtx_proj;
 uniform mediump mat4 mtx_normal;
 uniform mediump vec4 light;
+uniform mediump vec4 bones[400];
 
 varying highp vec4 var_position;
 varying mediump vec3 var_normal;
 varying mediump vec2 var_texcoord0;
 varying mediump vec4 var_light;
 
+mat4 get_bone_matrix(int idx) {
+    mat4 mtx_bone;
+    int offset = idx * 4;
+    mtx_bone[0] = bones[offset];
+    mtx_bone[1] = bones[offset + 1];
+    mtx_bone[2] = bones[offset + 2];
+    mtx_bone[3] = bones[offset + 3];
+    return mtx_bone;
+}
 void main()
 {
-    vec4 p = vec4(position.x, position.z, -position.y, 1.0); //to fix blender coordinates
+   vec4 p = vec4(position.xyz, 1.0);
+    
+    if (weight.x == 0.0) { //no skinning
+        p = vec4(position.x, position.z, -position.y, 1.0); //to fix blender coordinates
+    } else { //apply bones
+        p = vec4(0.0);
+        for (int i = 0; i < 4; i++) {
+            if (weight[i] == 0.0) {break;}
+            mat4 m = get_bone_matrix(int(bone[i]));
+            vec4 v =  m * vec4(position.x, position.y, position.z, 1.0);
+            p = p + v * weight[i];
+        }
+        p = vec4(p.x, p.z, -p.y, 1.0);
+    }
+   
     p = mtx_worldview * p;
    
     var_light = mtx_view * vec4(light.xyz, 1.0);

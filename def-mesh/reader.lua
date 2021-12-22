@@ -85,16 +85,46 @@ M.read_mesh = function()
 		table.insert(mesh.bones, M.read_matrix())
 	end
 
+	local sort_f = function(a,b) return a.weight > b.weight end
+
+	mesh.skin = {}
 	for i = 1, vertex_count do
-		mesh.vertices[i].w = {}
+		data = {}
 		local weight_count = M.read_int()
-		for j = 1, weight_count do
-			table.insert(mesh.vertices[i].w, 
+		for j = 1, weight_count do -- TODO check limit of 4
+			table.insert(data, 
 			{
-				bone_idx = M.read_int() + 1,
+				idx = M.read_int(),
 				weight = M.read_float()
 			})
 		end
+		table.sort(data, sort_f)
+
+		if #data > 4 then
+			while #data > 4 do
+				table.remove(data)
+			end
+			local total = 0
+			for _, w in ipairs(data) do
+				total = total + w.weight
+			end
+			data[1].weight = data[1].weight + 1 - total
+		end
+		table.insert(mesh.skin, data)
+	end
+
+	local frame_count = M.read_int()
+	if frame_count == 0 then
+		return mesh
+	end
+
+	mesh.frames = {}
+	for i = 0, frame_count do
+		local bones = {}
+		for j = 1, bone_count do
+			table.insert(bones, M.read_matrix())
+		end
+		table.insert(mesh.frames, bones)
 	end
 	
 	return mesh
@@ -180,5 +210,7 @@ M.read_transform = function()
 	res.scale = vmath.vector3(v.x, v.z, v.y)-- blender coords fix
 	return res
 end
+
+
 
 return M
