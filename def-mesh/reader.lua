@@ -67,6 +67,7 @@ M.read_mesh = function()
 	end
 
 	local bone_count = M.read_int()
+	
 	if bone_count == 0 then
 		mesh.position = mesh.local_.position
 		mesh.rotation = mesh.local_.rotation
@@ -86,13 +87,16 @@ M.read_mesh = function()
 	for i = 1, vertex_count do
 		data = {}
 		local weight_count = M.read_int()
-		for j = 1, weight_count do -- TODO check limit of 4
+		
+		for j = 1, weight_count do
 			table.insert(data, 
 			{
 				idx = M.read_int(),
 				weight = M.read_float()
 			})
 		end
+
+		--[[ -- already done while exporting
 		table.sort(data, sort_f)
 
 		if #data > 4 then
@@ -105,6 +109,7 @@ M.read_mesh = function()
 			end
 			data[1].weight = data[1].weight + 1 - total
 		end
+		--]]
 		table.insert(mesh.skin, data)
 	end
 

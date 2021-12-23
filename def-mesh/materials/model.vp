@@ -15,7 +15,7 @@ uniform mediump mat4 mtx_view;
 uniform mediump mat4 mtx_proj;
 uniform mediump mat4 mtx_normal;
 uniform mediump vec4 light;
-uniform mediump vec4 bones[400];
+uniform mediump vec4 bones[800];
 
 varying highp vec4 var_position;
 varying mediump vec3 var_normal;

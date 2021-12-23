@@ -16,14 +16,45 @@ bl_info = {
 import bpy, sys, struct
 from pathlib import Path
 
-def write_frame_data(pose, matrix_local, f):
-    for pbone in pose.bones:
+def write_frame_data(bones, matrix_local, f):
+    for pbone in bones:
         matrix = matrix_local.inverted() @ pbone.matrix @ pbone.bone.matrix_local.inverted() @ matrix_local
         matrix.transpose()
         f.write(struct.pack('ffff', *matrix[0]))
         f.write(struct.pack('ffff', *matrix[1]))
         f.write(struct.pack('ffff', *matrix[2]))
         f.write(struct.pack('ffff', *matrix[3]))
+        
+     
+def optimize(bones, vertices, vertex_groups, limit_per_vertex):
+          
+    def sort_weights(vg):
+        return -vg.weight
+               
+    bones_map = {bone.name: False for bone in bones}
+    vertex_groups_per_vertex = []
+    for vert in vertices:
+        fixed_groups = []
+        for wgrp in vert.groups:
+            group = vertex_groups[wgrp.group]
+            if wgrp.weight > 0 and group.name in bones_map:
+                fixed_groups.append(wgrp)
+                bones_map[group.name] = True
+            
+        fixed_groups.sort(key = sort_weights)
+        fixed_groups = fixed_groups[:limit_per_vertex]
+        total = 0
+        for vg in fixed_groups:
+            total = total + vg.weight
+        for vg in fixed_groups:
+            vg.weight = vg.weight / total
+        vertex_groups_per_vertex.append(fixed_groups)
+            
+        used_bones = []
+        for bone in bones:
+            if bones_map[bone.name]:
+                used_bones.append(bone)
+    return used_bones, vertex_groups_per_vertex
 
 def write_some_data(context, filepath, export_anim_setting):
     
@@ -35,9 +66,16 @@ def write_some_data(context, filepath, export_anim_setting):
         
         if obj.mode == 'EDIT':
             obj.mode_set(mode='OBJECT', toggle=False)
-        
+            
         mesh = obj.data
         print(obj.name)
+        
+        mesh.calc_loop_triangles()
+        mesh.calc_normals_split()
+        
+        if len(mesh.loop_triangles) == 0:
+            #print("skip this shit")
+            continue
         
         f.write(struct.pack('i', len(obj.name)))
         f.write(bytes(obj.name, "ascii"))
@@ -58,9 +96,6 @@ def write_some_data(context, filepath, export_anim_setting):
         f.write(struct.pack('fff', *rotation.to_euler()))
         f.write(struct.pack('fff', *scale))
         
-                 
-        mesh.calc_loop_triangles()
-        mesh.calc_normals_split()
         
         f.write(struct.pack('i', len(mesh.vertices)))
         
@@ -68,10 +103,6 @@ def write_some_data(context, filepath, export_anim_setting):
             f.write(struct.pack('fff', *vert.co))
             f.write(struct.pack('fff', *vert.normal))
            
-        #vertices = [(vert.co.x, vert.co.y, vert.co.z) for vert in mesh.vertices]
-        #normals = [(vert.normal.x, vert.normal.y, vert.normal.z) for vert in mesh.vertices]
-        #faces = [(face.vertices[0], face.vertices[1], face.vertices[2]) for face in mesh.loop_triangles]
-        
         f.write(struct.pack('i', len(mesh.loop_triangles)))
         
         flat_faces = []
@@ -122,32 +153,34 @@ def write_some_data(context, filepath, export_anim_setting):
         if armature:
             pose = armature.pose
             world = armature.matrix_world
-            #local = armature.matrix_local
-            #armature = armature.data
             
-            #TODO: armature object transform?
+            #optimizing bones, checking empty bones, etc
+            #set limit to 4 bones per vertex
             
-            f.write(struct.pack('i', len(pose.bones)))
-               
-            bones_map = {bone.name: i for i, bone in enumerate(pose.bones)}
-            for vert in mesh.vertices:
-                f.write(struct.pack('i', len(vert.groups)))
-                for wgrp in vert.groups:
+            used_bones, vertex_groups_per_vertex = optimize(pose.bones, mesh.vertices, obj.vertex_groups, 4)  
+            
+            print("USED BONES: ", len(used_bones))
+            bones_map = {bone.name: i for i, bone in enumerate(used_bones)}
+            f.write(struct.pack('i', len(used_bones)))
+                
+            for groups in vertex_groups_per_vertex:
+                f.write(struct.pack('i', len(groups)))
+                for wgrp in groups:
                     group = obj.vertex_groups[wgrp.group]
                     bone_idx = bones_map[group.name]
                     f.write(struct.pack('i', bone_idx))
                     f.write(struct.pack('f', wgrp.weight))
+                   
                     
             if export_anim_setting:
                 f.write(struct.pack('i', context.scene.frame_end))
                 for frame in range(context.scene.frame_end):
                     context.scene.frame_set(frame)
-                    write_frame_data(pose, obj.matrix_local, f)
-                    print(frame)
+                    write_frame_data(used_bones, obj.matrix_local, f)
 
             else:
                 f.write(struct.pack('i', 1)) #single frame flag
-                write_frame_data(pose, obj.matrix_local, f)
+                write_frame_data(used_bones, obj.matrix_local, f)
         else:
             f.write(struct.pack('i', 0)) #no bones flag
 
