@@ -9,7 +9,8 @@ proof of concept
 ## Features
 * Binary format
 * Exports all the meshes
-* Material's color and texture
+* Base color and texture for every material (so far only "Principled BSDF")
+* Multiple materials per mesh, up to 8 textures per mesh
 * Bones
 * Bone animations on GPU
 
@@ -18,5 +19,6 @@ proof of concept
 * Impossible to create texture in runtime
 * Meshes are not visible in Editor, only in runtime
 
-
+## TODO
+* More advanced materials, search deeper links for textures
 ---

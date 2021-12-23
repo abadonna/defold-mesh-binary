@@ -38,7 +38,8 @@ M.read_mesh = function()
 				M.read_int() + 1, 
 				M.read_int() + 1, 
 				M.read_int() + 1
-			}
+			},
+			mi = M.read_int() + 1
 		})
 	end
 
@@ -57,13 +58,25 @@ M.read_mesh = function()
 		mesh.faces[flat_faces[i]].n = M.read_vec3()
 	end
 
-	local material_flag = M.read_int()
-	if material_flag == 1 then
-		mesh.color = M.read_vec4()
+	
+	local material_count = M.read_int()
+	mesh.materials = {}
+	mesh.textures = {}
+	local tex_map = {}
+	for i = 1, material_count do
+		local material = {color = M.read_vec4()}
 		local texture_flag = M.read_int()
 		if texture_flag > 0 then
-			mesh.texture = M.read_string(texture_flag)
+			local texture = M.read_string(texture_flag)
+			if tex_map[texture] then
+				material.tex_id = tex_map[texture]
+			else
+				table.insert(mesh.textures, texture)
+				tex_map[texture] = #mesh.textures
+				material.tex_id = tex_map[texture]
+			end
 		end
+		table.insert(mesh.materials, material)
 	end
 
 	local bone_count = M.read_int()

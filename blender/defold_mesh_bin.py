@@ -68,7 +68,6 @@ def write_some_data(context, filepath, export_anim_setting):
             obj.mode_set(mode='OBJECT', toggle=False)
             
         mesh = obj.data
-        print(obj.name)
         
         mesh.calc_loop_triangles()
         mesh.calc_normals_split()
@@ -76,6 +75,8 @@ def write_some_data(context, filepath, export_anim_setting):
         if len(mesh.loop_triangles) == 0:
             #print("skip this shit")
             continue
+        
+        print(obj.name)
         
         f.write(struct.pack('i', len(obj.name)))
         f.write(bytes(obj.name, "ascii"))
@@ -110,6 +111,8 @@ def write_some_data(context, filepath, export_anim_setting):
         uv = []
         for face in mesh.loop_triangles:
             f.write(struct.pack('iii', *face.vertices))
+            f.write(struct.pack('i', face.material_index))
+            
             for loop_idx in face.loops:
                 uv_cords = mesh.uv_layers.active.data[loop_idx].uv if mesh.uv_layers.active else (0, 0)
                 uv.extend(uv_cords)
@@ -123,30 +126,39 @@ def write_some_data(context, filepath, export_anim_setting):
         f.write(struct.pack('i' * len(flat_faces), *flat_faces))
         f.write(struct.pack('f' * len(face_normals), *face_normals))
         
-        if len(mesh.materials) > 0:
-            f.write(struct.pack('i', 1)) #material flag
-            material = mesh.materials[0] #only first material
+        f.write(struct.pack('i', len(mesh.materials)))
+            
+        for material in mesh.materials:
+            print("--------------------------")
+            print("material", material.name)
+            texture = None
             col = material.diffuse_color
             if material.node_tree:
-                for node in material.node_tree.nodes:
-                    if node.bl_static_type == "BSDF_PRINCIPLED":
-                        col = node.inputs[0].default_value
+     
+                for principled in material.node_tree.nodes:
+                    if principled.bl_static_type != 'BSDF_PRINCIPLED':
+                        continue
+
+                    base_color = principled.inputs['Base Color']
+                    col = base_color.default_value
+                
+                    for link in base_color.links:
+                        node = link.from_node
+                        if node.bl_static_type == "TEX_IMAGE":
+                            texture = Path(node.image.filepath).name
+                            print(texture)
+                            break
+                       
           
             f.write(struct.pack('ffff', *col))
-            has_texture = False
-            if material.node_tree:
-                for node in material.node_tree.nodes:
-                    if node.bl_static_type == "TEX_IMAGE":
-                        texture = Path(node.image.filepath).name
-                        f.write(struct.pack('i', len(texture)))
-                        f.write(bytes(texture, "ascii"))
-                        has_texture = True
-                        #print(texture)
-                        break
-            if not has_texture:
+            if texture == None:
                 f.write(struct.pack('i', 0)) #no texture flag
-        else:
-            f.write(struct.pack('i', 0)) #no material flag
+            else:
+                f.write(struct.pack('i', len(texture)))
+                f.write(bytes(texture, "ascii"))
+            
+        #f.close()
+        #return {'FINISHED'}
         
         armature = obj.find_armature()
                 
@@ -213,7 +225,7 @@ class DefoldExport(Operator, ExportHelper):
     export_anim: BoolProperty(
         name="Export animations",
         description="Only for armatures",
-        default=True,
+        default=False,
     )
 
 

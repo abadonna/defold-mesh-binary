@@ -61,17 +61,16 @@ function on_message(self, message_id, message, sender)
 
 			mesh.apply_armature(mesh_url)
 
-			if mesh.texture then
+			for i, texture in ipairs(mesh.textures) do
 				if not pcall(function()
-					local texture = hash("/textures/" .. string.gsub(mesh.texture, ".png", ".texturec"))
-					go.set(mesh_url, "texture0", texture)
+					local texture = hash("/textures/" .. string.gsub(texture, ".png", ".texturec"))
+					go.set(mesh_url, "texture" .. (i-1), texture)
 				end) then
-					pprint(mesh.texture .. " not found")
+					pprint(texture .. " not found")
+					go.set(mesh_url, "texture" .. (i-1), self.t1)
 				end
-			else
-				go.set(mesh_url, "options", vmath.vector4(1.0, 0, 0, 0)) --to ignore texture in shader
-				go.set(mesh_url, "tint", mesh.color)
 			end
+			
 			mesh.id = id
 			self.meshes[mesh.name] = mesh
 		end
