@@ -1,4 +1,5 @@
 local reader = require "def-mesh.reader"
+
 go.property('t1', resource.texture())
 go.property('t2', resource.texture())
 go.property('t3', resource.texture())
@@ -54,26 +55,25 @@ function on_message(self, message_id, message, sender)
 			end
 			
 			local buf = mesh.create_buffer()
-			local id = factory.create("#factory", mesh.position, mesh.rotation, {}, mesh.scale)
-			local mesh_url = msg.url(nil, id, "mesh")
-			
+			mesh.id = factory.create("#factory", mesh.position, mesh.rotation, {}, mesh.scale)
+			mesh.url = msg.url(nil, mesh.id, "mesh")
+
 			local v = table.remove(BUFFERS)
 			resource.set_buffer(v, buf)
-			go.set(mesh_url, "vertices", v)
+			go.set(mesh.url, "vertices", v)
 
-			mesh.apply_armature(mesh_url)
+			mesh.apply_armature()
 
 			for i, texture in ipairs(mesh.textures) do
 				if not pcall(function()
 					local texture = hash("/textures/" .. string.gsub(texture, ".png", ".texturec"))
-					go.set(mesh_url, "texture" .. (i-1), texture)
+					go.set(mesh.url, "texture" .. (i-1), texture)
 				end) then
 					pprint(texture .. " not found")
-					go.set(mesh_url, "texture" .. (i-1), self.t1)
+					go.set(mesh.url, "texture" .. (i-1), self.t1)
 				end
 			end
-			
-			mesh.id = id
+
 			self.meshes[mesh.name] = mesh
 		end
 
@@ -95,14 +95,12 @@ function on_message(self, message_id, message, sender)
 		
 	elseif message_id == hash("set_frame") then
 		for _, mesh in pairs(self.meshes) do
-			local mesh_url = msg.url(nil, mesh.id, "mesh")
-			mesh.set_frame(message.frame, mesh_url)
+			mesh.set_frame(message.frame, mesh.url)
 		end
 		
 	elseif message_id == hash("reset") then
 		for _, mesh in pairs(self.meshes) do
-			local mesh_url = msg.url(nil, mesh.id, "mesh")
-			go.set(mesh_url, "vertices", self.v1)
+			go.set(mesh.url, "vertices", self.v1)
 		end
 	end
 end

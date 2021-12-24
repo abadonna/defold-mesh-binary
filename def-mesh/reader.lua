@@ -64,7 +64,7 @@ M.read_mesh = function()
 	mesh.textures = {}
 	local tex_map = {}
 	for i = 1, material_count do
-		local material = {color = M.read_vec4()}
+		local material = {color = M.read_vec4(), specular =  M.read_float()}
 		local texture_flag = M.read_int()
 		if texture_flag > 0 then
 			local texture = M.read_string(texture_flag)

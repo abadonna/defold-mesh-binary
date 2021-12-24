@@ -20,8 +20,9 @@ proof of concept
 * Meshes are not visible in Editor, only in runtime
 
 ## ISSUES
-[6281](https://github.com/defold/defold/issues/6281)
+[6281](https://github.com/defold/defold/issues/6281), [6283](https://github.com/defold/defold/issues/6283)
 
 ## TODO
 * More advanced materials, search deeper links for textures
+* Text mesh buffer for geometry, to make it visible in Editor (?)
 ---

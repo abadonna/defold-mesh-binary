@@ -1,9 +1,4 @@
 
-// Positions can be world or local space, since world and normal
-// matrices are identity for world vertex space materials.
-// If world vertex space is selected, you can remove the
-// normal matrix multiplication for optimal performance.
-
 attribute highp vec4 position;
 attribute mediump vec2 texcoord0;
 attribute mediump vec3 normal;
@@ -22,9 +17,10 @@ uniform mediump vec4 bones[800];
 varying highp vec4 var_position;
 varying mediump vec3 var_normal;
 varying mediump vec2 var_texcoord0;
-varying mediump vec4 var_light;
+varying mediump vec3 var_light_dir;
 varying highp vec4 var_material;
 varying highp vec4 var_color;
+varying highp vec3 var_vh;
 
 mat4 get_bone_matrix(int idx) {
     mat4 mtx_bone;
@@ -54,12 +50,17 @@ void main()
    
     p = mtx_worldview * p;
    
-    var_light = mtx_view * vec4(light.xyz, 1.0);
+    vec4 view_light = mtx_view * vec4(light.xyz, 1.0);
+    var_light_dir = normalize(view_light.xyz - p.xyz);
+    vec3 eye_dir = normalize(-p.xyz);
+    var_vh = normalize(var_light_dir + eye_dir);   
+    
     var_position = p;
     var_texcoord0 = texcoord0;
     var_material = material;
     var_color = color;
-    var_normal = normalize((mtx_normal * vec4(normal, 0.0)).xyz);
+    
+    var_normal = normalize((mtx_normal * vec4(normal.x, normal.z, -normal.y, 0.0)).xyz);
     gl_Position = mtx_proj * p;
 }
 

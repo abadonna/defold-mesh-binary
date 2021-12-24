@@ -1,9 +1,11 @@
 varying highp vec4 var_position;
 varying mediump vec3 var_normal;
 varying mediump vec2 var_texcoord0;
-varying mediump vec4 var_light;
-varying mediump vec4 var_material;
+varying mediump vec4 var_material; //x - texture index, w -specular power
 varying mediump vec4 var_color;
+
+varying mediump vec3 var_light_dir;
+varying mediump vec3 var_vh;
 
 uniform lowp sampler2D tex0;
 uniform lowp sampler2D tex1;
@@ -35,11 +37,13 @@ void main()
     if(color.a < 0.6) {discard;} //TODO multiple render passes
     
     // Diffuse light calculations
-    vec3 ambient_light = vec3(0.2);
-    vec3 diff_light = vec3(normalize(var_light.xyz - var_position.xyz));
-    diff_light = max(dot(var_normal,diff_light), 0.0) + ambient_light;
-    diff_light = clamp(diff_light, 0.0, 1.0);
+    vec3 ambient = vec3(0.2);
+    const int hardness = 32;
+    vec3 specular = vec3(var_material.w * pow(max(dot(var_normal, normalize(var_vh)), 0.0), hardness));
 
-    gl_FragColor = vec4(color.xyz * diff_light, color.w);
+    vec3 light = max(dot(var_normal, var_light_dir), 0.0) + ambient + specular;
+    light = clamp(light, 0.0, 1.0);
+
+    gl_FragColor = vec4(color.xyz * light, color.w);
 }
 

@@ -14,7 +14,7 @@ end
 
 function init(self)
 	
-	local data, error = sys.load_resource("/textures/Montserrat-Regular.ttf")
+	local data, error = sys.load_resource("/assets/Montserrat-Regular.ttf")
 	self.font = imgui.font_add_ttf_data(data, #data, 32, 32)
 	imgui.set_ini_filename()
 

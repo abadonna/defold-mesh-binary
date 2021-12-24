@@ -1,3 +1,3 @@
 function init(self)
-	msg.post("/model", "load_mesh", {path = "/models/joy.bin"})
+	msg.post("/model", "load_mesh", {path = "/assets/joy.bin"})
 end

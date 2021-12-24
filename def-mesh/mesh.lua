@@ -4,13 +4,13 @@ M.new = function()
 	local mesh = {}
 	mesh.color = vmath.vector4(1.0, 1.0, 1.0, 1.0)
 
-	mesh.apply_armature = function(url)
+	mesh.apply_armature = function()
 		if not mesh.bones then
 			return
 		end
 
 		for i, v in ipairs(mesh.bones) do
-			go.set(url, "bones", v, {index = i})
+			go.set(mesh.url, "bones", v, {index = i})
 		end
 	end
 
@@ -70,7 +70,6 @@ M.new = function()
 
 				local m = mesh.materials[face.mi]
 				
-			
 				color[bcount] = m and m.color.x or 0.8
 				color[bcount + 1] = m and m.color.y or 0.8
 				color[bcount + 2] = m and m.color.z or 0.8
@@ -83,7 +82,7 @@ M.new = function()
 				end
 				material[bcount + 1] = 0
 				material[bcount + 2] = 0
-				material[bcount + 3] = 0
+				material[bcount + 3] = m.specular
 				
 					
 				bcount = bcount + 4

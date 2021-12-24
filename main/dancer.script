@@ -1,6 +1,6 @@
 
 function init(self)
-	msg.post("/model", "load_mesh", {path = "/models/dancer.bin"})
+	msg.post("/model", "load_mesh", {path = "/assets/dancer.bin"})
 	
 	self.count = 1
 	self.time = 0
