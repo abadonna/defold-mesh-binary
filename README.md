@@ -19,6 +19,9 @@ proof of concept
 * Impossible to create texture in runtime
 * Meshes are not visible in Editor, only in runtime
 
+## ISSUES
+[6281](https://github.com/defold/defold/issues/6281)
+
 ## TODO
 * More advanced materials, search deeper links for textures
 ---
