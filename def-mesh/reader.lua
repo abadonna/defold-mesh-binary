@@ -79,6 +79,7 @@ M.read_mesh = function()
 		table.insert(mesh.materials, material)
 	end
 
+
 	local bone_count = M.read_int()
 	
 	if bone_count == 0 then
@@ -109,20 +110,6 @@ M.read_mesh = function()
 			})
 		end
 
-		--[[ -- already done while exporting
-		table.sort(data, sort_f)
-
-		if #data > 4 then
-			while #data > 4 do
-				table.remove(data)
-			end
-			local total = 0
-			for _, w in ipairs(data) do
-				total = total + w.weight
-			end
-			data[1].weight = data[1].weight + 1 - total
-		end
-		--]]
 		table.insert(mesh.skin, data)
 	end
 

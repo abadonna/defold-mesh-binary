@@ -7,6 +7,8 @@ go.property('t5', resource.texture())
 go.property('t6', resource.texture())
 go.property('t7', resource.texture())
 go.property('t8', resource.texture())
+go.property('t9', resource.texture())
+go.property('t10', resource.texture())
 
 go.property("v1", resource.buffer("/def-mesh/buffers/dummy1.buffer"))
 go.property("v2", resource.buffer("/def-mesh/buffers/dummy2.buffer"))
@@ -95,6 +97,12 @@ function on_message(self, message_id, message, sender)
 		for _, mesh in pairs(self.meshes) do
 			local mesh_url = msg.url(nil, mesh.id, "mesh")
 			mesh.set_frame(message.frame, mesh_url)
+		end
+		
+	elseif message_id == hash("reset") then
+		for _, mesh in pairs(self.meshes) do
+			local mesh_url = msg.url(nil, mesh.id, "mesh")
+			go.set(mesh_url, "vertices", self.v1)
 		end
 	end
 end

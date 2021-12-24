@@ -1,0 +1,3 @@
+function init(self)
+	msg.post("/model", "load_mesh", {path = "/models/joy.bin"})
+end

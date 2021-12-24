@@ -1,0 +1,121 @@
+name: "complex"
+instances {
+  id: "model"
+  prototype: "/def-mesh/binary.go"
+  position {
+    x: 0.0
+    y: -12.0
+    z: 0.0
+  }
+  rotation {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+  }
+  component_properties {
+    id: "binary"
+    properties {
+      id: "t1"
+      value: "/textures/checker_256_32.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t2"
+      value: "/textures/body_d.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t3"
+      value: "/textures/eye_d.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t4"
+      value: "/textures/eyelash.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t5"
+      value: "/textures/leg_d.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t6"
+      value: "/textures/arm_d.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t7"
+      value: "/textures/head_d.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t8"
+      value: "/textures/gen_d.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t9"
+      value: "/textures/hair_d.png"
+      type: PROPERTY_TYPE_HASH
+    }
+  }
+  scale3 {
+    x: 8.0
+    y: 8.0
+    z: 8.0
+  }
+}
+scale_along_z: 1
+embedded_instances {
+  id: "go"
+  children: "model"
+  data: "components {\n"
+  "  id: \"demo\"\n"
+  "  component: \"/main/demo.script\"\n"
+  "  position {\n"
+  "    x: 0.0\n"
+  "    y: 0.0\n"
+  "    z: 0.0\n"
+  "  }\n"
+  "  rotation {\n"
+  "    x: 0.0\n"
+  "    y: 0.0\n"
+  "    z: 0.0\n"
+  "    w: 1.0\n"
+  "  }\n"
+  "}\n"
+  "components {\n"
+  "  id: \"complex\"\n"
+  "  component: \"/main/complex.script\"\n"
+  "  position {\n"
+  "    x: 0.0\n"
+  "    y: 0.0\n"
+  "    z: 0.0\n"
+  "  }\n"
+  "  rotation {\n"
+  "    x: 0.0\n"
+  "    y: 0.0\n"
+  "    z: 0.0\n"
+  "    w: 1.0\n"
+  "  }\n"
+  "}\n"
+  ""
+  position {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  }
+  rotation {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+  }
+  scale3 {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+}

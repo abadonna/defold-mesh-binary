@@ -69,6 +69,7 @@ M.new = function()
 				bones[bcount + 3] = bone_count > 3 and skin[4].idx or 0
 
 				local m = mesh.materials[face.mi]
+				
 			
 				color[bcount] = m and m.color.x or 0.8
 				color[bcount + 1] = m and m.color.y or 0.8
