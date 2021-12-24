@@ -144,23 +144,26 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                     
             
         for material in mesh.materials:
-            #if material.name != 'lips':
+            #if material.name != 'bikini':
             #    continue
             print("--------------------------")
             print("material", material.name, material.blend_method)
             texture = None
             col = material.diffuse_color
+            spec_power = 0.0
             if material.node_tree:
      
                 for principled in material.node_tree.nodes:
                     if principled.bl_static_type != 'BSDF_PRINCIPLED':
                         continue
 
+                    specular = principled.inputs['Specular']
+                    spec_power = specular.default_value
+                    
                     base_color = principled.inputs['Base Color']
                     value = base_color.default_value
 
                     col = [value[0], value[1], value[2], principled.inputs['Alpha'].default_value]
-                    print("inter:",list(col))
                     
                     texture = find_texture(base_color)
                     if texture:
@@ -173,7 +176,10 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                         break #TODO objects with combined shaders
                        
             print(col)
+            print("spec", spec_power)
             f.write(struct.pack('ffff', *col))
+            f.write(struct.pack('f', spec_power))
+            
             if texture == None:
                 f.write(struct.pack('i', 0)) #no texture flag
             else:
