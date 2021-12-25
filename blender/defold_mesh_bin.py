@@ -177,6 +177,8 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                        
             print(col)
             print("spec", spec_power)
+            
+            f.write(struct.pack('i', 0 if material.blend_method == 'OPAQUE' else 1))
             f.write(struct.pack('ffff', *col))
             f.write(struct.pack('f', spec_power))
             

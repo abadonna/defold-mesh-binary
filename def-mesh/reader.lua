@@ -1,4 +1,102 @@
 local Mesh = require "def-mesh.mesh"
+
+local function decompose(src)
+	local trans_materials = {}
+	local trans_material_map = {}
+
+	local materials = {}
+	local material_map = {}
+
+	local trans_texture_indxs = {}
+	local texture_indxs = {}
+	
+	for i, material in ipairs(src.materials) do
+		if material.type > 0 then
+			table.insert(trans_materials, material)
+			trans_material_map[i] = #trans_materials
+			if material.tex_id then
+				trans_texture_indxs[material.tex_id] = true
+			end
+		else
+			table.insert(materials, material)
+			material_map[i] = #materials
+			if material.tex_id then
+				texture_indxs[material.tex_id] = true
+			end
+		end
+	end
+
+	if #trans_materials == 0 or #materials == 0 then
+		return {src}
+	end
+
+	local mesh = Mesh.new()
+
+	local tex_map = {}
+	mesh.textures = {}
+
+	for key in pairs(trans_texture_indxs) do
+		table.insert(mesh.textures, src.textures[key])
+		tex_map[key] = #mesh.textures
+	end
+	
+	for _, material in ipairs(trans_materials) do
+		if material.tex_id then
+			material.tex_id = tex_map[material.tex_id]
+		end
+	end
+	
+	mesh.name = src.name .. "_trans"
+	mesh.materials = trans_materials
+	mesh.local_ = src.local_
+	mesh.world_ = src.world_
+	mesh.vertices = src.vertices
+	mesh.faces = {}
+	mesh.texcords = {}
+	mesh.position = src.position
+	mesh.rotation = src.rotation
+	mesh.scale = src.scale
+	mesh.skin = src.skin
+	mesh.frames = src.frames
+	mesh.bones = src.bones
+
+	for i = #src.faces, 1, -1 do
+		local face = src.faces[i]
+		if trans_material_map[face.mi] then
+			table.remove(src.faces, i)
+			face.mi = trans_material_map[face.mi]
+			table.insert(mesh.faces, face)
+			for j = 1, 3 do
+				table.insert(mesh.texcords, table.remove(src.texcords, (i-1) * 6 + 1))
+				table.insert(mesh.texcords, table.remove(src.texcords, (i-1) * 6 + 1))
+			end
+		else
+			face.mi = material_map[face.mi]
+		end
+	end
+
+
+	tex_map = {}
+	local textures = {}
+
+	for key in pairs(texture_indxs) do
+		table.insert(textures, src.textures[key])
+		tex_map[key] = #textures
+	end
+
+	for _, material in ipairs(materials) do
+		if material.tex_id then
+			material.tex_id = tex_map[material.tex_id]
+		end
+	end
+
+	src.materials = materials
+	src.textures = textures
+	
+	return {src, mesh}
+end
+
+
 local M = {}
 
 M.init_from_resource = function(path)
@@ -64,7 +162,10 @@ M.read_mesh = function()
 	mesh.textures = {}
 	local tex_map = {}
 	for i = 1, material_count do
-		local material = {color = M.read_vec4(), specular =  M.read_float()}
+		local material = {
+			type = M.read_int(), -- 0 - opaque, 1 - transparent
+			color = M.read_vec4(), 
+			specular =  M.read_float()}
 		local texture_flag = M.read_int()
 		if texture_flag > 0 then
 			local texture = M.read_string(texture_flag)
@@ -124,7 +225,8 @@ M.read_mesh = function()
 	end
 	
 	mesh.bones = mesh.frames[1]
-	return mesh
+
+	return decompose(mesh)
 end
 
 M.eof = function()

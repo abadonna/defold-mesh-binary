@@ -47,34 +47,42 @@ function on_message(self, message_id, message, sender)
 
 		reader.init_from_resource(message.path)
 		while not reader.eof() and #BUFFERS > 0 do
-			local mesh = reader.read_mesh()
-			pprint(mesh.name .. " " .. #mesh.faces .. " triangles")
+			for _, mesh in ipairs(reader.read_mesh()) do --can be multiple meshes if mesh was decomposed
+				pprint(mesh.name .. " " .. #mesh.faces .. " triangles")
 
-			if mesh.frames then
-				self.total_frames = #mesh.frames
-			end
-			
-			local buf = mesh.create_buffer()
-			mesh.id = factory.create("#factory", mesh.position, mesh.rotation, {}, mesh.scale)
-			mesh.url = msg.url(nil, mesh.id, "mesh")
-
-			local v = table.remove(BUFFERS)
-			resource.set_buffer(v, buf)
-			go.set(mesh.url, "vertices", v)
-
-			mesh.apply_armature()
-
-			for i, texture in ipairs(mesh.textures) do
-				if not pcall(function()
-					local texture = hash("/textures/" .. string.gsub(texture, ".png", ".texturec"))
-					go.set(mesh.url, "texture" .. (i-1), texture)
-				end) then
-					pprint(texture .. " not found")
-					go.set(mesh.url, "texture" .. (i-1), self.t1)
+				if mesh.frames then
+					self.total_frames = #mesh.frames
 				end
-			end
+				
+				local buf = mesh.create_buffer()
+				local f = "#factory"
+				if mesh.materials[1].type == 1 then
+					pprint("transparent!")
+					f = "#factory_trans"
+				end
+				
+				mesh.id = factory.create(f, mesh.position, mesh.rotation, {}, mesh.scale)
+				mesh.url = msg.url(nil, mesh.id, "mesh")
+				
 
-			self.meshes[mesh.name] = mesh
+				local v = table.remove(BUFFERS)
+				resource.set_buffer(v, buf)
+				go.set(mesh.url, "vertices", v)
+
+				mesh.apply_armature()
+
+				for i, texture in ipairs(mesh.textures) do
+					if not pcall(function()
+						local texture = hash("/textures/" .. string.gsub(texture, ".png", ".texturec"))
+						go.set(mesh.url, "texture" .. (i-1), texture)
+					end) then
+						pprint(texture .. " not found")
+						go.set(mesh.url, "texture" .. (i-1), self.t1)
+					end
+				end
+
+				self.meshes[mesh.name] = mesh
+			end
 		end
 
 		--set hierarchy

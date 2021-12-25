@@ -21,7 +21,7 @@ uniform lowp vec4 tint;
 
 void main()
 {
-    vec4 color = vec4(var_color.xyz * var_color.w, var_color.w);
+    vec4 color = var_color; //vec4(var_color.xyz * var_color.w, var_color.w);
 
     int idx = int(var_material.x);
   
@@ -33,8 +33,6 @@ void main()
     else if (idx == 6) {color = color * texture2D(tex5, var_texcoord0.xy);}
     else if (idx == 7) {color = color * texture2D(tex6, var_texcoord0.xy);}
     else if (idx == 8) {color = color * texture2D(tex7, var_texcoord0.xy);}
-
-    if(color.a < 0.6) {discard;} //TODO multiple render passes
     
     // Diffuse light calculations
     vec3 ambient = vec3(0.2);
@@ -45,5 +43,6 @@ void main()
     light = clamp(light, 0.0, 1.0);
 
     gl_FragColor = vec4(color.xyz * light, color.w);
+
 }
 
