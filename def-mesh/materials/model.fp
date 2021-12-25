@@ -25,24 +25,30 @@ void main()
 
     int idx = int(var_material.x);
   
-    if (idx == 1) {color = color * texture2D(tex0, var_texcoord0.xy);}
-    else if (idx == 2) {color = color * texture2D(tex1, var_texcoord0.xy);}
-    else if (idx == 3) {color = color * texture2D(tex2, var_texcoord0.xy);}
-    else if (idx == 4) {color = color * texture2D(tex3, var_texcoord0.xy);}
-    else if (idx == 5) {color = color * texture2D(tex4, var_texcoord0.xy);}
-    else if (idx == 6) {color = color * texture2D(tex5, var_texcoord0.xy);}
-    else if (idx == 7) {color = color * texture2D(tex6, var_texcoord0.xy);}
-    else if (idx == 8) {color = color * texture2D(tex7, var_texcoord0.xy);}
+    if (idx == 1) {color = texture2D(tex0, var_texcoord0.xy);}
+    else if (idx == 2) {color = texture2D(tex1, var_texcoord0.xy);}
+    else if (idx == 3) {color = texture2D(tex2, var_texcoord0.xy);}
+    else if (idx == 4) {color = texture2D(tex3, var_texcoord0.xy);}
+    else if (idx == 5) {color = texture2D(tex4, var_texcoord0.xy);}
+    else if (idx == 6) {color = texture2D(tex5, var_texcoord0.xy);}
+    else if (idx == 7) {color = texture2D(tex6, var_texcoord0.xy);}
+    else if (idx == 8) {color = texture2D(tex7, var_texcoord0.xy);}
     
     // Diffuse light calculations
     vec3 ambient = vec3(0.2);
     const int hardness = 32;
-    vec3 specular = vec3(var_material.w * pow(max(dot(var_normal, normalize(var_vh)), 0.0), hardness));
+    vec3 specular = vec3(0.0);
+    vec3 n = normalize(var_normal);
 
-    vec3 light = max(dot(var_normal, var_light_dir), 0.0) + ambient;
-    light = clamp(light, 0.0, 1.0);
+    float light = max(dot(n, var_light_dir), 0.0);
+    if (light > 0.0) {
+        specular = vec3(var_material.w * pow(max(dot(n, var_vh), 0.0), hardness));
+    }
 
-    gl_FragColor = vec4(color.xyz * light + specular, color.w);
+    vec3 diffuse = light + ambient;
+    diffuse = clamp(diffuse, 0.0, 1.0);
+
+    gl_FragColor = vec4(color.xyz * diffuse + specular, color.w);
 
 }
 
