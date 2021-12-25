@@ -180,7 +180,6 @@ M.read_mesh = function()
 		table.insert(mesh.materials, material)
 	end
 
-
 	local bone_count = M.read_int()
 	
 	if bone_count == 0 then

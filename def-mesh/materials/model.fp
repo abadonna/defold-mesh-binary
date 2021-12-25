@@ -39,10 +39,10 @@ void main()
     const int hardness = 32;
     vec3 specular = vec3(var_material.w * pow(max(dot(var_normal, normalize(var_vh)), 0.0), hardness));
 
-    vec3 light = max(dot(var_normal, var_light_dir), 0.0) + ambient + specular;
+    vec3 light = max(dot(var_normal, var_light_dir), 0.0) + ambient;
     light = clamp(light, 0.0, 1.0);
 
-    gl_FragColor = vec4(color.xyz * light, color.w);
+    gl_FragColor = vec4(color.xyz * light + specular, color.w);
 
 }
 
