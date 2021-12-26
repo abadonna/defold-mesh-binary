@@ -1,101 +1,30 @@
 local Mesh = require "def-mesh.mesh"
 
-local function decompose(src)
-	local trans_materials = {}
-	local trans_material_map = {}
 
-	local materials = {}
-	local material_map = {}
+local function copy_data(meshes)
+	if #meshes < 2 then
+		return meshes
+	end
 
-	local trans_texture_indxs = {}
-	local texture_indxs = {}
-	
-	for i, material in ipairs(src.materials) do
-		if material.type > 0 then
-			table.insert(trans_materials, material)
-			trans_material_map[i] = #trans_materials
-			if material.tex_id then
-				trans_texture_indxs[material.tex_id] = true
-			end
+	local mesh = meshes[1]
+	for i = #meshes, 2, -1 do
+		local m = meshes[i]
+		if #m.faces == 0 then
+			table.remove(meshes, i)
 		else
-			table.insert(materials, material)
-			material_map[i] = #materials
-			if material.tex_id then
-				texture_indxs[material.tex_id] = true
-			end
+			m.local_ = mesh.local_
+			m.world_ = mesh.world_
+			m.vertices = mesh.vertices
+			m.position = mesh.position
+			m.rotation = mesh.rotation
+			m.scale = mesh.scale
+			m.skin = mesh.skin
+			m.frames = mesh.frames
+			m.bones = mesh.bones
 		end
 	end
-
-	if #trans_materials == 0 or #materials == 0 then
-		return {src}
-	end
-
-	local mesh = Mesh.new()
-
-	local tex_map = {}
-	mesh.textures = {}
-
-	for key in pairs(trans_texture_indxs) do
-		table.insert(mesh.textures, src.textures[key])
-		tex_map[key] = #mesh.textures
-	end
-	
-	for _, material in ipairs(trans_materials) do
-		if material.tex_id then
-			material.tex_id = tex_map[material.tex_id]
-		end
-	end
-	
-	mesh.name = src.name .. "_trans"
-	mesh.materials = trans_materials
-	mesh.local_ = src.local_
-	mesh.world_ = src.world_
-	mesh.vertices = src.vertices
-	mesh.faces = {}
-	mesh.texcords = {}
-	mesh.position = src.position
-	mesh.rotation = src.rotation
-	mesh.scale = src.scale
-	mesh.skin = src.skin
-	mesh.frames = src.frames
-	mesh.bones = src.bones
-
-	for i = #src.faces, 1, -1 do
-		local face = src.faces[i]
-		if trans_material_map[face.mi] then
-			table.remove(src.faces, i)
-			face.mi = trans_material_map[face.mi]
-			table.insert(mesh.faces, face)
-			for j = 1, 3 do
-				table.insert(mesh.texcords, table.remove(src.texcords, (i-1) * 6 + 1))
-				table.insert(mesh.texcords, table.remove(src.texcords, (i-1) * 6 + 1))
-			end
-		else
-			face.mi = material_map[face.mi]
-		end
-	end
-
-
-	tex_map = {}
-	local textures = {}
-
-	for key in pairs(texture_indxs) do
-		table.insert(textures, src.textures[key])
-		tex_map[key] = #textures
-	end
-
-	for _, material in ipairs(materials) do
-		if material.tex_id then
-			material.tex_id = tex_map[material.tex_id]
-		end
-	end
-
-	src.materials = materials
-	src.textures = textures
-	
-	return {src, mesh}
+	return meshes
 end
-
 
 local M = {}
 
@@ -106,7 +35,8 @@ end
 
 M.read_mesh = function()
 	local mesh = Mesh.new()
-
+	local meshes = {mesh}
+	
 	mesh.name = M.read_string()
 	
 	local parent_flag = M.read_int()
@@ -127,57 +57,86 @@ M.read_mesh = function()
 		})
 	end
 
+	local face_map = {}
 	local face_count = M.read_int()
 	mesh.faces = {}
 	for i = 1, face_count do
-		table.insert(mesh.faces, 
-		{
+		local face = {
 			v = {
 				M.read_int() + 1, 
 				M.read_int() + 1, 
 				M.read_int() + 1
-			},
-			mi = M.read_int() + 1
-		})
+			}
+		}
+		local mi = M.read_int() + 1
+		table.insert(face_map, mi)
+
+		local flat_flag = M.read_int()
+		if flat_flag == 1 then
+			face.n = M.read_vec3()
+		end
+		
+		while #meshes < mi do
+			local m = Mesh.new()
+			m.name = mesh.name .. "_" .. #meshes
+			m.faces = {}
+			m.texcords = {}
+			m.tangents = {}
+			m.bitangents = {}
+			table.insert(meshes, m)
+		end
+		table.insert(meshes[mi].faces, face)
 	end
 
 	mesh.texcords = {}
-	for i = 1, face_count * 6 do
-		table.insert(mesh.texcords, M.read_float())
+	for i = 1, face_count do
+		local m = meshes[face_map[i]]
+		for j = 1, 6 do
+			table.insert(m.texcords, M.read_float())
+		end
 	end
 
-	local flat_face_count = M.read_int()
-	local flat_faces = {}
-	for i = 1, flat_face_count do
-		table.insert(flat_faces, M.read_int() + 1)
+	mesh.tangents = {}
+	mesh.bitangents = {}
+	
+	if M.read_int() == 1 then
+		for i = 1, face_count do
+			local m = meshes[face_map[i]]
+			for j = 1, 9 do
+				table.insert(m.tangents, M.read_float())
+			end
+		end
+		for i = 1, face_count do
+			local m = meshes[face_map[i]]
+			for j = 1, 9 do
+				table.insert(m.bitangents, M.read_float())
+			end
+		end
 	end
-
-	for i = 1, flat_face_count do
-		mesh.faces[flat_faces[i]].n = M.read_vec3()
-	end
-
 	
 	local material_count = M.read_int()
-	mesh.materials = {}
-	mesh.textures = {}
-	local tex_map = {}
+	
 	for i = 1, material_count do
-		local material = {
+		local m = meshes[i] or {} --not used material
+		
+		m.material = {
 			type = M.read_int(), -- 0 - opaque, 1 - transparent
 			color = M.read_vec4(), 
 			specular =  M.read_float()}
 		local texture_flag = M.read_int()
 		if texture_flag > 0 then
-			local texture = M.read_string(texture_flag)
-			if tex_map[texture] then
-				material.tex_id = tex_map[texture]
-			else
-				table.insert(mesh.textures, texture)
-				tex_map[texture] = #mesh.textures
-				material.tex_id = tex_map[texture]
-			end
+			m.material.texture = M.read_string(texture_flag)
 		end
-		table.insert(mesh.materials, material)
+		texture_flag = M.read_int() --normal texture
+		if texture_flag > 0 then
+			m.material.texture_normal = M.read_string(texture_flag)
+			m.material.normal_strength = M.read_float()
+		end
+		texture_flag = M.read_int() --specular texture
+		if texture_flag > 0 then
+			m.material.texture_specular = M.read_string(texture_flag)
+			m.material.specular_invert = M.read_int()
+		end
 	end
 
 	local bone_count = M.read_int()
@@ -186,7 +145,7 @@ M.read_mesh = function()
 		mesh.position = mesh.local_.position
 		mesh.rotation = mesh.local_.rotation
 		mesh.scale = mesh.local_.scale
-		return mesh
+		return copy_data(meshes)
 	end
 
 	mesh.position = mesh.world_.position
@@ -225,7 +184,7 @@ M.read_mesh = function()
 	
 	mesh.bones = mesh.frames[1]
 
-	return decompose(mesh)
+	return copy_data(meshes)
 end
 
 M.eof = function()

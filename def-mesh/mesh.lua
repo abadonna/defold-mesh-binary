@@ -28,14 +28,14 @@ M.new = function()
 			{name = hash("texcoord0"), type = buffer.VALUE_TYPE_FLOAT32, count = 2},
 			{name = hash("weight"), type = buffer.VALUE_TYPE_FLOAT32, count = 4},
 			{name = hash("bone"), type = buffer.VALUE_TYPE_UINT8, count = 4},
-			{name = hash("material"), type = buffer.VALUE_TYPE_FLOAT32, count = 4},
 			{name = hash("color"), type = buffer.VALUE_TYPE_FLOAT32, count = 4},
+			{name = hash("tangent"), type = buffer.VALUE_TYPE_FLOAT32, count = 3},
+			{name = hash("bitangent"), type = buffer.VALUE_TYPE_FLOAT32, count = 3},
 		})
 		local positions = buffer.get_stream(buf, "position")
 		local normals = buffer.get_stream(buf, "normal")
 		local weights = buffer.get_stream(buf, "weight")
 		local bones = buffer.get_stream(buf, "bone")
-		local material = buffer.get_stream(buf, "material")
 		local color = buffer.get_stream(buf, "color")
 
 		local count = 1
@@ -68,23 +68,11 @@ M.new = function()
 				bones[bcount + 2] = bone_count > 2 and skin[3].idx or 0
 				bones[bcount + 3] = bone_count > 3 and skin[4].idx or 0
 
-				local m = mesh.materials[face.mi]
-				
-				color[bcount] = m and m.color.x or 0.8
-				color[bcount + 1] = m and m.color.y or 0.8
-				color[bcount + 2] = m and m.color.z or 0.8
-				color[bcount + 3] = m and m.color.w or 1.0
+				color[bcount] = mesh.material and mesh.material.color.x or 0.8
+				color[bcount + 1] = mesh.material and mesh.material.color.y or 0.8
+				color[bcount + 2] = mesh.material and mesh.material.color.z or 0.8
+				color[bcount + 3] = mesh.material and mesh.material.color.w or 1.0
 
-				if m and m.tex_id then
-					material[bcount] = m.tex_id
-				else
-					material[bcount] = 0
-				end
-				material[bcount + 1] = 0
-				material[bcount + 2] = 0
-				material[bcount + 3] = m.specular
-				
-					
 				bcount = bcount + 4
 			end
 		end
@@ -92,6 +80,16 @@ M.new = function()
 		local texcords = buffer.get_stream(buf, "texcoord0")
 		for i, value in ipairs(mesh.texcords) do
 			texcords[i] = value
+		end
+
+		local tangents = buffer.get_stream(buf, "tangent")
+		for i, value in ipairs(mesh.tangents) do
+			tangents[i] = value
+		end
+
+		local bitangents = buffer.get_stream(buf, "bitangent")
+		for i, value in ipairs(mesh.bitangents) do
+			bitangents[i] = value
 		end
 
 		return buf

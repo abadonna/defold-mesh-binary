@@ -4,8 +4,9 @@ attribute mediump vec2 texcoord0;
 attribute mediump vec3 normal;
 attribute mediump vec4 weight;
 attribute mediump vec4 bone;
-attribute mediump vec4 material;
 attribute mediump vec4 color;
+attribute mediump vec3 tangent;
+attribute mediump vec3 bitangent;
 
 uniform mediump mat4 mtx_worldview;
 uniform mediump mat4 mtx_view;
@@ -15,12 +16,12 @@ uniform mediump vec4 light;
 uniform mediump vec4 bones[800];
 
 varying highp vec4 var_position;
-varying mediump vec3 var_normal;
+varying highp vec3 var_normal;
 varying mediump vec2 var_texcoord0;
 varying mediump vec3 var_light_dir;
-varying highp vec4 var_material;
-varying highp vec4 var_color;
-varying highp vec3 var_vh;
+varying mediump vec4 var_color;
+varying mediump vec3 var_vh;
+varying mediump mat3 var_tbn;
 
 mat4 get_bone_matrix(int idx) {
     mat4 mtx_bone;
@@ -57,8 +58,12 @@ void main()
     
     var_position = p;
     var_texcoord0 = texcoord0;
-    var_material = material;
     var_color = color;
+
+    vec3 T = normalize(vec3(mtx_worldview * vec4(tangent.x,tangent.z,-tangent.y, 0.0)));
+    vec3 B = normalize(vec3(mtx_worldview * vec4(bitangent.x, bitangent.z, -bitangent.y, 0.0)));
+    vec3 N = normalize(vec3(mtx_worldview * vec4(normal.x, normal.z, -normal.y, 0.0)));
+    var_tbn = mat3(T, B, N);
     
     var_normal = normalize((mtx_normal * vec4(normal.x, normal.z, -normal.y, 0.0)).xyz);
     gl_Position = mtx_proj * p;

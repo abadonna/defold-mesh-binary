@@ -10,6 +10,16 @@ go.property('t7', resource.texture())
 go.property('t8', resource.texture())
 go.property('t9', resource.texture())
 go.property('t10', resource.texture())
+go.property('t11', resource.texture())
+go.property('t12', resource.texture())
+go.property('t13', resource.texture())
+go.property('t14', resource.texture())
+go.property('t15', resource.texture())
+go.property('t16', resource.texture())
+go.property('t17', resource.texture())
+go.property('t18', resource.texture())
+go.property('t19', resource.texture())
+go.property('t20', resource.texture())
 
 go.property("v1", resource.buffer("/def-mesh/buffers/dummy1.buffer"))
 go.property("v2", resource.buffer("/def-mesh/buffers/dummy2.buffer"))
@@ -21,13 +31,24 @@ go.property("v7", resource.buffer("/def-mesh/buffers/dummy7.buffer"))
 go.property("v8", resource.buffer("/def-mesh/buffers/dummy8.buffer"))
 go.property("v9", resource.buffer("/def-mesh/buffers/dummy9.buffer"))
 go.property("v10", resource.buffer("/def-mesh/buffers/dummy10.buffer"))
+go.property("v11", resource.buffer("/def-mesh/buffers/dummy11.buffer"))
+go.property("v12", resource.buffer("/def-mesh/buffers/dummy12.buffer"))
+go.property("v13", resource.buffer("/def-mesh/buffers/dummy13.buffer"))
+go.property("v14", resource.buffer("/def-mesh/buffers/dummy14.buffer"))
+go.property("v15", resource.buffer("/def-mesh/buffers/dummy15.buffer"))
+go.property("v16", resource.buffer("/def-mesh/buffers/dummy16.buffer"))
+go.property("v17", resource.buffer("/def-mesh/buffers/dummy17.buffer"))
+go.property("v18", resource.buffer("/def-mesh/buffers/dummy18.buffer"))
+go.property("v19", resource.buffer("/def-mesh/buffers/dummy19.buffer"))
+go.property("v20", resource.buffer("/def-mesh/buffers/dummy20.buffer"))
 
 
 function init(self)
 	self.meshes = {}
 	self.total_frames = 0
 	if BUFFERS == nil then
-		BUFFERS = {self.v1, self.v2, self.v3, self.v4, self.v5, self.v6, self.v7, self.v8, self.v9, self.v10}
+		BUFFERS = {self.v1, self.v2, self.v3, self.v4, self.v5, self.v6, self.v7, self.v8, self.v9, self.v10,
+		self.v11, self.v12, self.v13, self.v14, self.v15, self.v16, self.v17, self.v18, self.v19, self.v20}
 	end
 end
 
@@ -40,26 +61,23 @@ end
 
 function on_message(self, message_id, message, sender)
 	if message_id == hash("load_mesh") then
-		if #BUFFERS == 0 then
-			pprint("No more buffers")
-			return
-		end
 
 		reader.init_from_resource(message.path)
 		while not reader.eof() and #BUFFERS > 0 do
-			for _, mesh in ipairs(reader.read_mesh()) do --can be multiple meshes if mesh was decomposed
+			for _, mesh in ipairs(reader.read_mesh()) do --can be multiple meshes if initial mesh contains multiple materials
 				pprint(mesh.name .. " " .. #mesh.faces .. " triangles")
+
+				if #BUFFERS == 0 then
+					pprint("No more buffers")
+					return
+				end
 
 				if mesh.frames then
 					self.total_frames = #mesh.frames
 				end
 				
 				local buf = mesh.create_buffer()
-				local f = "#factory"
-				if mesh.materials[1].type == 1 then
-					pprint("transparent!")
-					f = "#factory_trans"
-				end
+				local f = mesh.material.type == 0 and "#factory" or "#factory_trans"
 				
 				mesh.id = factory.create(f, mesh.position, mesh.rotation, {}, mesh.scale)
 				mesh.url = msg.url(nil, mesh.id, "mesh")
@@ -70,17 +88,42 @@ function on_message(self, message_id, message, sender)
 				go.set(mesh.url, "vertices", v)
 
 				mesh.apply_armature()
+				local options = vmath.vector4(0.0)
+				options.w = mesh.material.specular
 
-				for i, texture in ipairs(mesh.textures) do
+				if mesh.material.texture then
+					options.x = 1.0
 					if not pcall(function()
-						local texture = hash("/textures/" .. string.gsub(texture, ".png", ".texturec"))
-						go.set(mesh.url, "texture" .. (i-1), texture)
+						local texture = hash("/textures/" .. string.gsub(mesh.material.texture, ".png", ".texturec"))
+						go.set(mesh.url, "texture0", texture)
+						options.x = 1.0
 					end) then
-						pprint(texture .. " not found")
-						go.set(mesh.url, "texture" .. (i-1), self.t1)
+						pprint(mesh.material.texture .. " not found")
 					end
 				end
 
+				if mesh.material.texture_normal then
+					if not pcall(function()
+						local texture = hash("/textures/" .. string.gsub(mesh.material.texture_normal, ".png", ".texturec"))
+						go.set(mesh.url, "texture1", texture)
+						options.y = mesh.material.normal_strength
+					end) then
+						pprint(mesh.material.texture_normal .. " not found")
+					end
+				end
+
+				if mesh.material.texture_specular then
+					if not pcall(function()
+						local texture = hash("/textures/" .. string.gsub(mesh.material.texture_specular, ".png", ".texturec"))
+						go.set(mesh.url, "texture2", texture)
+						options.z = 1.0 + mesh.material.specular_invert
+					end) then
+						pprint(mesh.material.texture_specular .. " not found")
+					end
+				end
+
+				go.set(mesh.url, "options", options)
+				
 				self.meshes[mesh.name] = mesh
 			end
 		end

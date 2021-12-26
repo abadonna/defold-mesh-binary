@@ -72,6 +72,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         mesh.calc_loop_triangles()
         mesh.calc_normals_split()
         
+        
         if len(mesh.loop_triangles) == 0:
             continue
         
@@ -99,6 +100,83 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         f.write(struct.pack('fff', *rotation.to_euler()))
         f.write(struct.pack('fff', *scale))
         
+        #---------------------read-materials-----------------------
+        def find_nodes_to(socket, type):
+            for link in socket.links:
+                node = link.from_node
+                if node.bl_static_type == type:
+                    return [node]
+                else:
+                    for input in node.inputs:
+                        n = find_nodes_to(input, type)
+                        if n:
+                            n.append(node)
+                            return n
+            return None
+        
+        def find_node(socket, type):
+            nodes = find_nodes_to(socket, type)
+            if nodes:
+                #print([n.bl_static_type for n in nodes])
+                return nodes[0]
+            return None
+                
+        def find_texture(socket):
+            node = find_node(socket, 'TEX_IMAGE')
+            if node != None:
+                texture = Path(node.image.filepath).name
+                return texture
+                
+            return None
+        
+        need_tangents = False
+        materials = []
+        for m in mesh.materials:
+            print("--------------------------")
+            print("material", m.name, m.blend_method)
+            
+            material = {'col':  m.diffuse_color, 'blend': m.blend_method, 'spec_power': 0.0, 'normal_strength': 1.0}
+            materials.append(material)
+            
+            if m.node_tree:
+     
+                for principled in m.node_tree.nodes:
+                    if principled.bl_static_type != 'BSDF_PRINCIPLED':
+                        continue
+
+                    specular = principled.inputs['Specular']
+                    material['spec_power'] = specular.default_value
+                    material['specular'] = find_texture(specular)
+                   
+                    if material.get('specular'):
+                        material['specular_invert'] = 1 if find_node(specular, 'INVERT') else 0 
+                        print("invert", material['specular_invert'])
+                        
+                    
+                    normal_map = find_node(principled.inputs['Normal'], 'NORMAL_MAP')
+                    if normal_map:
+                        material['normal'] = find_texture(normal_map.inputs['Color'])
+                        need_tangents = material.get('normal') != None
+                        material['normal_strength'] = normal_map.inputs['Strength'].default_value
+                    
+                    base_color = principled.inputs['Base Color']
+                    value = base_color.default_value
+
+                    material['col'] = [value[0], value[1], value[2], principled.inputs['Alpha'].default_value]
+                    
+                    material['texture'] = find_texture(base_color)
+                    
+                    if material.get('texture') != None:
+                        print(material['texture'])
+#                        col[0] = 1.0
+#                        col[1] = 1.0
+#                        col[2] = 1.0
+                        break #TODO objects with combined shaders
+        
+        #---------------------write-geometry------------------------
+        
+        if need_tangents:
+            mesh.calc_tangents(uvmap=mesh.uv_layers.active.name)
         
         f.write(struct.pack('i', len(mesh.vertices)))
         
@@ -108,89 +186,75 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
            
         f.write(struct.pack('i', len(mesh.loop_triangles)))
         
-        flat_faces = []
-        face_normals = []
         uv = []
+        tangents = []
+        bitangents = []
         for face in mesh.loop_triangles:
             f.write(struct.pack('iii', *face.vertices))
             f.write(struct.pack('i', face.material_index))
             
+            if need_tangents:
+                for vert in [mesh.loops[i] for i in face.loops]:
+                    tangent = vert.tangent
+                    bitangent = vert.bitangent_sign * vert.normal.cross(tangent)
+                    tangents.extend(tangent)
+                    bitangents.extend(bitangent)
+            
             for loop_idx in face.loops:
                 uv_cords = mesh.uv_layers.active.data[loop_idx].uv if mesh.uv_layers.active else (0, 0)
                 uv.extend(uv_cords)
+                
             if not face.use_smooth:
-                flat_faces.append(face.index)
-                face_normals.extend(face.normal)
-        
+                f.write(struct.pack('i', 1))
+                f.write(struct.pack('fff', *face.normal))
+            else:
+                 f.write(struct.pack('i', 0))
+                
+        print("tangents", need_tangents)
         f.write(struct.pack('f' * len(uv), *uv))
         
-        f.write(struct.pack('i', len(flat_faces)))
-        f.write(struct.pack('i' * len(flat_faces), *flat_faces))
-        f.write(struct.pack('f' * len(face_normals), *face_normals))
+        if need_tangents:
+            f.write(struct.pack('i', 1))
+            f.write(struct.pack('f' * len(tangents), *tangents))
+            f.write(struct.pack('f' * len(bitangents), *bitangents))
+        else:
+             f.write(struct.pack('i', 0)) #no tangents flag
         
         f.write(struct.pack('i', len(mesh.materials)))
         
-        def find_texture(socket):
-            for link in socket.links:
-                node = link.from_node
-                print ("link", node.bl_static_type)
-                
-                if node.bl_static_type == "TEX_IMAGE":
-                    texture = Path(node.image.filepath).name
-                    return texture
-                if node.bl_static_type == "MIX_RGB":
-                    input = node.inputs["Color1"]
-                    return find_texture(input)
-                    
+        #---------------------write-materials------------------------
+        for material in materials:
             
-        for material in mesh.materials:
-            #if material.name != 'bikini':
-            #    continue
-            print("--------------------------")
-            print("material", material.name, material.blend_method)
-            texture = None
-            col = material.diffuse_color
-            spec_power = 0.0
-            if material.node_tree:
-     
-                for principled in material.node_tree.nodes:
-                    if principled.bl_static_type != 'BSDF_PRINCIPLED':
-                        continue
-
-                    specular = principled.inputs['Specular']
-                    spec_power = specular.default_value
-                    
-                    base_color = principled.inputs['Base Color']
-                    value = base_color.default_value
-
-                    col = [value[0], value[1], value[2], principled.inputs['Alpha'].default_value]
-                    
-                    texture = find_texture(base_color)
-                    if texture:
-                        col[0] = 1.0
-                        col[1] = 1.0
-                        col[2] = 1.0
-                        print(texture)
-                        
-                    if texture != None:
-                        break #TODO objects with combined shaders
-                       
-            print(col)
-            print("spec", spec_power)
+            f.write(struct.pack('i', 0 if material['blend'] == 'OPAQUE' else 1))
+            f.write(struct.pack('ffff', *material['col']))
+            f.write(struct.pack('f', material['spec_power']))
             
-            f.write(struct.pack('i', 0 if material.blend_method == 'OPAQUE' else 1))
-            f.write(struct.pack('ffff', *col))
-            f.write(struct.pack('f', spec_power))
-            
-            if texture == None:
+            if material.get('texture') == None:
                 f.write(struct.pack('i', 0)) #no texture flag
             else:
-                f.write(struct.pack('i', len(texture)))
-                f.write(bytes(texture, "ascii"))
+                f.write(struct.pack('i', len(material['texture'])))
+                f.write(bytes(material['texture'], "ascii"))
+                
+            if material.get('normal') == None:
+                f.write(struct.pack('i', 0)) #no normal texture flag
+            else:
+                print(material['normal'], material['normal_strength'])
+                f.write(struct.pack('i', len(material['normal'])))
+                f.write(bytes(material['normal'], "ascii"))
+                f.write(struct.pack('f', material['normal_strength']))
+                
+            if material.get('specular') == None:
+                f.write(struct.pack('i', 0)) #no texture flag
+            else:
+                f.write(struct.pack('i', len(material['specular'])))
+                f.write(bytes(material['specular'], "ascii"))
+                f.write(struct.pack('i', material['specular_invert']))
             
         #f.close()
         #return {'FINISHED'}
         
+        #---------------------write-bones------------------------
+         
         armature = obj.find_armature()
                 
         if armature:

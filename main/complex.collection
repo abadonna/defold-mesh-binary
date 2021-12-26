@@ -60,6 +60,61 @@ instances {
       value: "/textures/hair_d.png"
       type: PROPERTY_TYPE_HASH
     }
+    properties {
+      id: "t10"
+      value: "/textures/bikini_n.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t11"
+      value: "/textures/hair_n.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t12"
+      value: "/textures/head_n.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t13"
+      value: "/textures/body_n.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t14"
+      value: "/textures/arm_n.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t15"
+      value: "/textures/eye_n.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t16"
+      value: "/textures/gen_n.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t17"
+      value: "/textures/leg_n.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t18"
+      value: "/textures/head_r.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t19"
+      value: "/textures/body_r.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t20"
+      value: "/textures/bikini_r.png"
+      type: PROPERTY_TYPE_HASH
+    }
   }
   scale3 {
     x: 8.0
