@@ -52,18 +52,19 @@ void main()
     if (light > 0.0) {
         float roughness = options_specular.w > 0.0 ? texture2D(tex2, var_texcoord0.xy).x : options_specular.z;
        
-        float k = mix(1.0, 0.4, roughness);
-        roughness = 1.999 / (roughness * roughness);
+        float k = mix(1.0, 0.1, roughness);
+        roughness = 32. / (roughness * roughness);
         roughness = min(200.0, roughness);
         vec3 spec_power = options_specular.x > 0.0 ? texture2D(tex2, var_texcoord0.xy).xyz : vec3(options_specular.y);
         if (options_specular.x > 1.0) {spec_power = 1.0 - spec_power;} ///invert flag
 
-        specular = k * k * k * spec_power * pow(max(dot(n, var_vh), 0.0), roughness);
+        specular =  k * k * spec_power * pow(max(dot(n, var_vh), 0.0), roughness);
     }
 
     vec3 diffuse = light + ambient;
-    //diffuse = clamp(diffuse, 0.0, 1.0);
+    diffuse = clamp(diffuse, 0.0, 1.0);
 
     gl_FragColor = vec4(color.xyz * diffuse + specular, color.w);
+    //gl_FragColor = vec4(specular.xyz,color.w); 
 }
 
