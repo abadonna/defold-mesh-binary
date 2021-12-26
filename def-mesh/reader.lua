@@ -122,7 +122,8 @@ M.read_mesh = function()
 		m.material = {
 			type = M.read_int(), -- 0 - opaque, 1 - transparent
 			color = M.read_vec4(), 
-			specular =  M.read_float()}
+			specular =  M.read_float(),
+			roughness =  M.read_float()}
 		local texture_flag = M.read_int()
 		if texture_flag > 0 then
 			m.material.texture = M.read_string(texture_flag)
@@ -136,6 +137,10 @@ M.read_mesh = function()
 		if texture_flag > 0 then
 			m.material.texture_specular = M.read_string(texture_flag)
 			m.material.specular_invert = M.read_int()
+		end
+		texture_flag = M.read_int() --roughness texture
+		if texture_flag > 0 then
+			m.material.texture_roughness = M.read_string(texture_flag)
 		end
 	end
 

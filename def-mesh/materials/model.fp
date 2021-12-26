@@ -19,8 +19,15 @@ uniform lowp sampler2D tex7;
 
 
 uniform lowp vec4 tint;
-uniform lowp vec4 options; //x - texture, y - normal map strength, w -specular power
+uniform lowp vec4 options; 
+//x - texture, 
+//y - normal map strength, 
 
+uniform lowp vec4 options_specular; 
+//x - 1: specular map, 2: specular map inverted
+//y - specular power
+//z - roughness
+//w - roughness map
 
 void main()
 {
@@ -30,7 +37,6 @@ void main()
  
     // Diffuse light calculations
     vec3 ambient = vec3(0.2);
-    const int hardness = 32;
     vec3 specular = vec3(0.0);
     vec3 n = var_normal;
 
@@ -43,16 +49,21 @@ void main()
     n = normalize(n);
 
     float light = max(dot(n, var_light_dir), 0.0);
-    if (light > 0.0 && options.w > 0.0) {
-        vec3 spec_power = options.z > 0.0 ? texture2D(tex2, var_texcoord0.xy).xyz : vec3(options.w);
-        if (options.z > 1.0) {spec_power = 1.0 - spec_power;} ///invert flag
-        specular = spec_power * pow(max(dot(n, var_vh), 0.0), hardness);
+    if (light > 0.0) {
+        float roughness = options_specular.w > 0.0 ? texture2D(tex2, var_texcoord0.xy).x : options_specular.z;
+       
+        float k = mix(1.0, 0.4, roughness);
+        roughness = 1.999 / (roughness * roughness);
+        roughness = min(200.0, roughness);
+        vec3 spec_power = options_specular.x > 0.0 ? texture2D(tex2, var_texcoord0.xy).xyz : vec3(options_specular.y);
+        if (options_specular.x > 1.0) {spec_power = 1.0 - spec_power;} ///invert flag
+
+        specular = k * k * k * spec_power * pow(max(dot(n, var_vh), 0.0), roughness);
     }
 
     vec3 diffuse = light + ambient;
-    diffuse = clamp(diffuse, 0.0, 1.0);
+    //diffuse = clamp(diffuse, 0.0, 1.0);
 
     gl_FragColor = vec4(color.xyz * diffuse + specular, color.w);
-
 }
 

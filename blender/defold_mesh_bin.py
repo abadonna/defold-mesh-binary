@@ -152,6 +152,11 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                         material['specular_invert'] = 1 if find_node(specular, 'INVERT') else 0 
                         print("invert", material['specular_invert'])
                         
+                    roughness = principled.inputs['Roughness']
+                    material['roughness'] = roughness.default_value
+                    material['roughness_tex'] = find_texture(roughness)
+                   
+                    print("roughness", material['roughness'], material.get('roughness_tex'))
                     
                     normal_map = find_node(principled.inputs['Normal'], 'NORMAL_MAP')
                     if normal_map:
@@ -228,6 +233,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
             f.write(struct.pack('i', 0 if material['blend'] == 'OPAQUE' else 1))
             f.write(struct.pack('ffff', *material['col']))
             f.write(struct.pack('f', material['spec_power']))
+            f.write(struct.pack('f', material['roughness']))
             
             if material.get('texture') == None:
                 f.write(struct.pack('i', 0)) #no texture flag
@@ -249,6 +255,13 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                 f.write(struct.pack('i', len(material['specular'])))
                 f.write(bytes(material['specular'], "ascii"))
                 f.write(struct.pack('i', material['specular_invert']))
+                
+            if material.get('roughness_tex') == None:
+                f.write(struct.pack('i', 0)) #no roughbess texture flag
+            else:
+                f.write(struct.pack('i', len(material['roughness_tex'])))
+                f.write(bytes(material['roughness_tex'], "ascii"))
+                        
             
         #f.close()
         #return {'FINISHED'}

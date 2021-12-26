@@ -89,7 +89,10 @@ function on_message(self, message_id, message, sender)
 
 				mesh.apply_armature()
 				local options = vmath.vector4(0.0)
-				options.w = mesh.material.specular
+				local options_specular = vmath.vector4(0.0)
+				options_specular.y = mesh.material.specular
+				options_specular.z = mesh.material.roughness
+				
 
 				if mesh.material.texture then
 					options.x = 1.0
@@ -116,13 +119,24 @@ function on_message(self, message_id, message, sender)
 					if not pcall(function()
 						local texture = hash("/textures/" .. string.gsub(mesh.material.texture_specular, ".png", ".texturec"))
 						go.set(mesh.url, "texture2", texture)
-						options.z = 1.0 + mesh.material.specular_invert
+						options_specular.x = 1.0 + mesh.material.specular_invert
 					end) then
 						pprint(mesh.material.texture_specular .. " not found")
 					end
 				end
 
+				if mesh.material.texture_roughness then
+					if not pcall(function()
+						local texture = hash("/textures/" .. string.gsub(mesh.material.texture_roughness, ".png", ".texturec"))
+						go.set(mesh.url, "texture2", texture) -- roughness and specular are usually the same?
+						options_specular.w = 1.0
+					end) then
+						pprint(mesh.material.texture_roughness .. " not found")
+					end
+				end
+
 				go.set(mesh.url, "options", options)
+				go.set(mesh.url, "options_specular", options_specular)
 				
 				self.meshes[mesh.name] = mesh
 			end

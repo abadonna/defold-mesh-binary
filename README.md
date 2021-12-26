@@ -16,7 +16,8 @@ proof of concept
 ## Features
 * Binary format
 * Exports all the meshes
-* Base color and texture for every material (so far only "Principled BSDF")
+* Base color, specular power, roughness and texture for every material (so far only "Principled BSDF")
+* Normal map, reflection map, roughness map
 * Multiple materials per mesh, up to 8 textures per mesh
 * Bones
 * Bone animations on GPU
@@ -31,6 +32,6 @@ proof of concept
 [6281](https://github.com/defold/defold/issues/6281), [6283](https://github.com/defold/defold/issues/6283)
 
 ## TODO
-* More advanced materials, search deeper links for textures
+* More advanced materials, with combined shader nodes
 * Text mesh buffer for geometry, to make it visible in Editor (?)
 ---
