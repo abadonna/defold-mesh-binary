@@ -59,8 +59,8 @@ void main()
     var_position = p;
     var_texcoord0 = texcoord0;
     var_color = color;
-
-    vec3 T = normalize(vec3(mtx_worldview * vec4(tangent.x,tangent.z,-tangent.y, 0.0)));
+    
+    vec3 T = normalize(vec3(mtx_worldview * vec4(tangent.x, tangent.z, -tangent.y, 0.0)));
     vec3 B = normalize(vec3(mtx_worldview * vec4(bitangent.x, bitangent.z, -bitangent.y, 0.0)));
     vec3 N = normalize(vec3(mtx_worldview * vec4(normal.x, normal.z, -normal.y, 0.0)));
     var_tbn = mat3(T, B, N);

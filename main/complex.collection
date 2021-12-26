@@ -37,7 +37,7 @@ instances {
     }
     properties {
       id: "t5"
-      value: "/textures/leg_d.png"
+      value: "/textures/bikini_r.png"
       type: PROPERTY_TYPE_HASH
     }
     properties {
@@ -52,7 +52,7 @@ instances {
     }
     properties {
       id: "t8"
-      value: "/textures/gen_d.png"
+      value: "/textures/body_r.png"
       type: PROPERTY_TYPE_HASH
     }
     properties {
@@ -92,27 +92,22 @@ instances {
     }
     properties {
       id: "t16"
-      value: "/textures/gen_n.png"
-      type: PROPERTY_TYPE_HASH
-    }
-    properties {
-      id: "t17"
-      value: "/textures/leg_n.png"
-      type: PROPERTY_TYPE_HASH
-    }
-    properties {
-      id: "t18"
       value: "/textures/head_r.png"
       type: PROPERTY_TYPE_HASH
     }
     properties {
+      id: "t18"
+      value: ""
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
       id: "t19"
-      value: "/textures/body_r.png"
+      value: ""
       type: PROPERTY_TYPE_HASH
     }
     properties {
       id: "t20"
-      value: "/textures/bikini_r.png"
+      value: ""
       type: PROPERTY_TYPE_HASH
     }
   }

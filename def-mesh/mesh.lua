@@ -13,15 +13,14 @@ M.new = function()
 	
 		for i = 1, #mesh.faces do
 			local face = mesh.faces[i]
-			local v1 = mesh.vertices[face.v[1]].p
-			local v2 = mesh.vertices[face.v[2]].p
-			local v3 = mesh.vertices[face.v[3]].p
+			local v = {mesh.vertices[face.v[1]], mesh.vertices[face.v[2]], mesh.vertices[face.v[3]]}
+			
 			local uv1 = vmath.vector3(mesh.texcords[(i-1) * 6 + 1], mesh.texcords[(i-1) * 6 + 2], 0)
 			local uv2 = vmath.vector3(mesh.texcords[(i-1) * 6 + 3], mesh.texcords[(i-1) * 6 + 4], 0)
 			local uv3 = vmath.vector3(mesh.texcords[(i-1) * 6 + 5], mesh.texcords[(i-1) * 6 + 6], 0)
 
-			local delta_pos1 = v2 - v1;
-			local delta_pos2 = v3 - v1;
+			local delta_pos1 = v[2].p - v[1].p;
+			local delta_pos2 = v[3].p - v[1].p;
 
 			local delta_uv1 = uv2 - uv1;
 			local delta_uv2 = uv3 - uv1;
@@ -31,10 +30,16 @@ M.new = function()
 			local bitangent = (delta_pos2 * delta_uv1.x - delta_pos1 * delta_uv2.x) * r;
 
 			for j = 1, 3 do
-				table.insert(mesh.tangents, tangent.x)
-				table.insert(mesh.tangents, tangent.y)
-				table.insert(mesh.tangents, tangent.z)
-
+				if vmath.dot(vmath.cross(v[j].n, tangent), bitangent) < 0.0 then
+					table.insert(mesh.tangents, -tangent.x)
+					table.insert(mesh.tangents, -tangent.y)
+					table.insert(mesh.tangents, -tangent.z)
+				else
+					table.insert(mesh.tangents, tangent.x)
+					table.insert(mesh.tangents, tangent.y)
+					table.insert(mesh.tangents, tangent.z)
+				end
+				
 				table.insert(mesh.bitangents, bitangent.x)
 				table.insert(mesh.bitangents, bitangent.y)
 				table.insert(mesh.bitangents, bitangent.z)
