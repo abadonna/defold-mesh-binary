@@ -173,15 +173,12 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                     
                     if material.get('texture') != None:
                         print(material['texture'])
-#                        col[0] = 1.0
-#                        col[1] = 1.0
-#                        col[2] = 1.0
                         break #TODO objects with combined shaders
         
         #---------------------write-geometry------------------------
         
-        if need_tangents:
-            mesh.calc_tangents(uvmap=mesh.uv_layers.active.name)
+        #if need_tangents:
+        #    mesh.calc_tangents(uvmap=mesh.uv_layers.active.name)
         
         f.write(struct.pack('i', len(mesh.vertices)))
         
@@ -192,18 +189,18 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         f.write(struct.pack('i', len(mesh.loop_triangles)))
         
         uv = []
-        tangents = []
-        bitangents = []
+#        tangents = []
+#        bitangents = []
         for face in mesh.loop_triangles:
             f.write(struct.pack('iii', *face.vertices))
             f.write(struct.pack('i', face.material_index))
             
-            if need_tangents:
-                for vert in [mesh.loops[i] for i in face.loops]:
-                    tangent = vert.tangent
-                    bitangent = vert.bitangent_sign * vert.normal.cross(tangent)
-                    tangents.extend(tangent)
-                    bitangents.extend(bitangent)
+#            if need_tangents:
+#                for vert in [mesh.loops[i] for i in face.loops]:
+#                    tangent = vert.tangent
+#                    bitangent = vert.bitangent_sign * vert.normal.cross(tangent)
+#                    tangents.extend(tangent)
+#                    bitangents.extend(bitangent)
             
             for loop_idx in face.loops:
                 uv_cords = mesh.uv_layers.active.data[loop_idx].uv if mesh.uv_layers.active else (0, 0)
@@ -215,15 +212,14 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
             else:
                  f.write(struct.pack('i', 0))
                 
-        print("tangents", need_tangents)
         f.write(struct.pack('f' * len(uv), *uv))
         
-        if need_tangents:
-            f.write(struct.pack('i', 1))
-            f.write(struct.pack('f' * len(tangents), *tangents))
-            f.write(struct.pack('f' * len(bitangents), *bitangents))
-        else:
-             f.write(struct.pack('i', 0)) #no tangents flag
+#        if need_tangents:
+#            f.write(struct.pack('i', 1))
+#            f.write(struct.pack('f' * len(tangents), *tangents))
+#            f.write(struct.pack('f' * len(bitangents), *bitangents))
+#        else:
+#             f.write(struct.pack('i', 0)) #no tangents flag
         
         f.write(struct.pack('i', len(mesh.materials)))
         

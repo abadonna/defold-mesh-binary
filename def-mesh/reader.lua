@@ -1,12 +1,14 @@
 local Mesh = require "def-mesh.mesh"
 
 
-local function copy_data(meshes)
+local function prepare_submeshes(meshes)
+	local mesh = meshes[1]
+	mesh.calc_tangents()
+	
 	if #meshes < 2 then
 		return meshes
 	end
 
-	local mesh = meshes[1]
 	for i = #meshes, 2, -1 do
 		local m = meshes[i]
 		if #m.faces == 0 then
@@ -21,6 +23,7 @@ local function copy_data(meshes)
 			m.skin = mesh.skin
 			m.frames = mesh.frames
 			m.bones = mesh.bones
+			m.calc_tangents()
 		end
 	end
 	return meshes
@@ -93,24 +96,6 @@ M.read_mesh = function()
 		local m = meshes[face_map[i]]
 		for j = 1, 6 do
 			table.insert(m.texcords, M.read_float())
-		end
-	end
-
-	mesh.tangents = {}
-	mesh.bitangents = {}
-	
-	if M.read_int() == 1 then
-		for i = 1, face_count do
-			local m = meshes[face_map[i]]
-			for j = 1, 9 do
-				table.insert(m.tangents, M.read_float())
-			end
-		end
-		for i = 1, face_count do
-			local m = meshes[face_map[i]]
-			for j = 1, 9 do
-				table.insert(m.bitangents, M.read_float())
-			end
 		end
 	end
 	
@@ -189,7 +174,7 @@ M.read_mesh = function()
 	
 	mesh.bones = mesh.frames[1]
 
-	return copy_data(meshes)
+	return prepare_submeshes(meshes)
 end
 
 M.eof = function()

@@ -61,7 +61,6 @@ end
 
 function on_message(self, message_id, message, sender)
 	if message_id == hash("load_mesh") then
-
 		reader.init_from_resource(message.path)
 		while not reader.eof() and #BUFFERS > 0 do
 			for _, mesh in ipairs(reader.read_mesh()) do --can be multiple meshes if initial mesh contains multiple materials
