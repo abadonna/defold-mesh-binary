@@ -14,6 +14,7 @@ uniform mediump mat4 mtx_proj;
 uniform mediump mat4 mtx_normal;
 uniform mediump vec4 light;
 uniform mediump vec4 bones[800];
+uniform lowp vec4 options; 
 
 varying highp vec4 var_position;
 varying highp vec3 var_normal;
@@ -32,23 +33,35 @@ mat4 get_bone_matrix(int idx) {
     mtx_bone[3] = bones[offset + 3];
     return mtx_bone;
 }
+
+vec4 apply_bones_transform(vec3 pos) {
+    vec4 result = vec4(0.0);
+    for (int i = 0; i < 4; i++) {
+        if (weight[i] == 0.0) {break;}
+        mat4 m = get_bone_matrix(int(bone[i]));
+        vec4 v =  m * vec4(pos.x, pos.y, pos.z, 1.0);
+        result = result + v * weight[i];
+    }
+    return vec4(result.x, result.z, -result.y, 1.0); //to fix blender coordinates
+}
+
+
 void main()
 {
-   vec4 p = vec4(position.xyz, 1.0);
+    vec4 p = vec4(position.x, position.z, -position.y, 1.0);
+    vec4 n = vec4(normal.x, normal.z, -normal.y, 1.0);
+    vec3 t = vec3(tangent.x, tangent.z, -tangent.y);
+    vec3 b = vec3(bitangent.x, bitangent.z, -bitangent.y);
     
-    if (weight.x == 0.0) { //no skinning
-        p = vec4(position.x, position.z, -position.y, 1.0); //to fix blender coordinates
-    } else { //apply bones
-        p = vec4(0.0);
-        for (int i = 0; i < 4; i++) {
-            if (weight[i] == 0.0) {break;}
-            mat4 m = get_bone_matrix(int(bone[i]));
-            vec4 v =  m * vec4(position.x, position.y, position.z, 1.0);
-            p = p + v * weight[i];
+    if (weight.x > 0.0) {
+        p = apply_bones_transform(position.xyz);
+        n = apply_bones_transform(normal);
+        if (options.y > 0.0) {
+            t = apply_bones_transform(tangent).xyz;
+            b = apply_bones_transform(bitangent).xyz;
         }
-        p = vec4(p.x, p.z, -p.y, 1.0);
     }
-   
+    
     p = mtx_worldview * p;
    
     vec4 view_light = mtx_view * vec4(light.xyz, 1.0);
@@ -60,12 +73,12 @@ void main()
     var_texcoord0 = texcoord0;
     var_color = color;
     
-    vec3 T = normalize(vec3(mtx_worldview * vec4(tangent.x, tangent.z, -tangent.y, 0.0)));
-    vec3 B = normalize(vec3(mtx_worldview * vec4(bitangent.x, bitangent.z, -bitangent.y, 0.0)));
-    vec3 N = normalize(vec3(mtx_worldview * vec4(normal.x, normal.z, -normal.y, 0.0)));
+    vec3 T = normalize(vec3(mtx_worldview * vec4(t, 0.0)));
+    vec3 B = normalize(vec3(mtx_worldview * vec4(b, 0.0)));
+    vec3 N = normalize(vec3(mtx_worldview * vec4(n.xyz, 0.0)));
     var_tbn = mat3(T, B, N);
     
-    var_normal = normalize((mtx_normal * vec4(normal.x, normal.z, -normal.y, 0.0)).xyz);
+    var_normal = normalize((mtx_normal * n).xyz);
     gl_Position = mtx_proj * p;
 }
 
