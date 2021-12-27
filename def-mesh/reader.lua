@@ -135,7 +135,7 @@ M.read_mesh = function()
 		mesh.position = mesh.local_.position
 		mesh.rotation = mesh.local_.rotation
 		mesh.scale = mesh.local_.scale
-		return copy_data(meshes)
+		return prepare_submeshes(meshes)
 	end
 
 	mesh.position = mesh.world_.position

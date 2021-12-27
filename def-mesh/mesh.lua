@@ -3,7 +3,6 @@ local M = {}
 M.new = function()
 	local mesh = {}
 	mesh.color = vmath.vector4(1.0, 1.0, 1.0, 1.0)
-
 	mesh.calc_tangents = function()
 		mesh.tangents = {}
 		mesh.bitangents = {}
@@ -52,9 +51,18 @@ M.new = function()
 			return
 		end
 
+		--[[
 		for i, v in ipairs(mesh.bones) do
 			go.set(mesh.url, "bones", v, {index = i})
+		end --]]
+
+		for idx, _ in pairs(mesh.used_bones_idx) do -- set only used bones, critical for performance
+			local offset = idx * 4;
+			for i = 1, 4 do
+				go.set(mesh.url, "bones", mesh.bones[offset + i], {index = offset + i})
+			end
 		end
+		
 	end
 
 	mesh.set_frame = function(idx, url)
@@ -83,6 +91,8 @@ M.new = function()
 
 		local count = 1
 		local bcount = 1
+
+		mesh.used_bones_idx = {}
 		for i, face in ipairs(mesh.faces) do
 			for _, idx in ipairs(face.v) do
 				local vertex = mesh.vertices[idx]
@@ -100,6 +110,10 @@ M.new = function()
 
 				local skin = mesh.skin and mesh.skin[idx] or nil
 				local bone_count = skin and #skin or 0
+
+				for j = 1, bone_count do
+					mesh.used_bones_idx[skin[j].idx] = true
+				end
 				
 				weights[bcount] = bone_count > 0 and skin[1].weight or 0
 				weights[bcount + 1] = bone_count > 1 and skin[2].weight or 0
