@@ -9,7 +9,7 @@ M.new = function()
 		if not mesh.material.texture_normal then
 			return
 		end
-	
+
 		for i = 1, #mesh.faces do
 			local face = mesh.faces[i]
 			local v = {mesh.vertices[face.v[1]], mesh.vertices[face.v[2]], mesh.vertices[face.v[3]]}
@@ -29,7 +29,7 @@ M.new = function()
 			local bitangent = (delta_pos2 * delta_uv1.x - delta_pos1 * delta_uv2.x) * r;
 
 			for j = 1, 3 do
-				if vmath.dot(vmath.cross(v[j].n, tangent), bitangent) < 0.0 then
+				if r ~= math.huge and vmath.dot(vmath.cross(v[j].n, tangent), bitangent) < 0.0 then
 					table.insert(mesh.tangents, -tangent.x)
 					table.insert(mesh.tangents, -tangent.y)
 					table.insert(mesh.tangents, -tangent.z)
