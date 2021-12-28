@@ -61,7 +61,7 @@ end
 
 local function set_frame(self, frame)
 	for _, mesh in pairs(self.meshes) do
-		mesh.set_frame(frame, mesh.url)
+		mesh.set_frame(frame)
 	end
 end
 

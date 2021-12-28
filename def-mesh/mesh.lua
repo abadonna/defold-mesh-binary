@@ -65,10 +65,10 @@ M.new = function()
 		
 	end
 
-	mesh.set_frame = function(idx, url)
+	mesh.set_frame = function(idx)
 		if mesh.frames then
 			mesh.bones = mesh.frames[idx]
-			mesh.apply_armature(url)
+			mesh.apply_armature()
 		end
 	end
 	

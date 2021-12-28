@@ -144,8 +144,6 @@ M.read_mesh = function()
 
 	--reading armature
 
-	local sort_f = function(a,b) return a.weight > b.weight end
-
 	mesh.skin = {}
 	for i = 1, vertex_count do
 		data = {}
