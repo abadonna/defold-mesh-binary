@@ -16,8 +16,6 @@ uniform lowp sampler2D tex5;
 uniform lowp sampler2D tex6;
 uniform lowp sampler2D tex7;
 
-
-
 uniform lowp vec4 tint;
 uniform lowp vec4 options; 
 //x - texture, 

@@ -34,7 +34,7 @@ mat4 get_bone_matrix(int idx) {
     return mtx_bone;
 }
 
-vec4 apply_bones_transform(vec3 pos) {
+vec4 apply_bones(vec3 pos) {
     vec4 result = vec4(0.0);
     for (int i = 0; i < 4; i++) {
         if (weight[i] == 0.0) {break;}
@@ -45,20 +45,31 @@ vec4 apply_bones_transform(vec3 pos) {
     return vec4(result.x, result.z, -result.y, 1.0); //to fix blender coordinates
 }
 
+vec3 apply_bones_no_trans(vec3 pos) {
+    vec3 result = vec3(0.0);
+    for (int i = 0; i < 4; i++) {
+        if (weight[i] == 0.0) {break;}
+        mat3 m = mat3(get_bone_matrix(int(bone[i])));
+        vec3 v =  m * pos;
+        result = result + v * weight[i];
+    }
+    return vec3(result.x, result.z, -result.y); //to fix blender
+}
 
 void main()
 {
     vec4 p = vec4(position.x, position.z, -position.y, 1.0);
-    vec4 n = vec4(normal.x, normal.z, -normal.y, 1.0);
+    vec3 n = vec3(normal.x, normal.z, -normal.y);
     vec3 t = vec3(tangent.x, tangent.z, -tangent.y);
     vec3 b = vec3(bitangent.x, bitangent.z, -bitangent.y);
     
     if (weight.x > 0.0) {
-        p = apply_bones_transform(position.xyz);
-        n = apply_bones_transform(normal);
+        p = apply_bones(position.xyz);
+        n = apply_bones_no_trans(normal); 
+        //need to fix scales on normal as well, but for simplicity let's keep it as is.
         if (options.y > 0.0) {
-            t = apply_bones_transform(tangent).xyz;
-            b = apply_bones_transform(bitangent).xyz;
+            t = apply_bones_no_trans(tangent);
+            b = apply_bones_no_trans(bitangent);
         }
     }
     
@@ -75,10 +86,10 @@ void main()
     
     vec3 T = normalize(vec3(mtx_worldview * vec4(t, 0.0)));
     vec3 B = normalize(vec3(mtx_worldview * vec4(b, 0.0)));
-    vec3 N = normalize(vec3(mtx_worldview * vec4(n.xyz, 0.0)));
+    vec3 N = normalize(vec3(mtx_worldview * vec4(n, 0.0)));
     var_tbn = mat3(T, B, N);
     
-    var_normal = normalize((mtx_normal * n).xyz);
+    var_normal = normalize((mtx_normal * vec4(n, 1.0)).xyz);
     gl_Position = mtx_proj * p;
 }
 
