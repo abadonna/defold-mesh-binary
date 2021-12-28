@@ -44,6 +44,7 @@ go.property("v20", resource.buffer("/def-mesh/buffers/dummy20.buffer"))
 
 
 function init(self)
+	self.time = 0
 	self.meshes = {}
 	self.total_frames = 0
 	if BUFFERS == nil then
@@ -53,9 +54,14 @@ function init(self)
 end
 
 function final(self)
-	for _, id in ipairs(self.meshes) do
-		local mesh_url = msg.url(nil, id, "mesh")
-		table.insert(BUFFERS, go.get(mesh_url, "vertices")) --return buffer to pool
+	for _, mesh in pairs(self.meshes) do
+		table.insert(BUFFERS, go.get(mesh.url, "vertices")) --return buffer to pool
+	end
+end
+
+local function set_frame(self, frame)
+	for _, mesh in pairs(self.meshes) do
+		mesh.set_frame(frame, mesh.url)
 	end
 end
 
@@ -155,16 +161,46 @@ function on_message(self, message_id, message, sender)
 			end
 		end
 
+		if message.animations then
+			local res = sys.load_resource(message.animations)
+			if res then
+				self.animations = loadstring(res)()
+			end
+		end
+		
 		msg.post(sender, "meshes_loaded", {frames = self.total_frames})
 		
 	elseif message_id == hash("set_frame") then
-		for _, mesh in pairs(self.meshes) do
-			mesh.set_frame(message.frame, mesh.url)
-		end
+		set_frame(self, message.frame)
+
+	elseif message_id == hash("play") then
+		self.animation = self.animations[message.anim]
+		self.frame = self.animation.start
+		set_frame(self, self.frame)
+		self.time = 0
+		self.sender = sender
 		
 	elseif message_id == hash("reset") then
 		for _, mesh in pairs(self.meshes) do
+			table.insert(BUFFERS, go.get(mesh.url, "vertices"))
 			go.set(mesh.url, "vertices", self.v1)
 		end
+	end
+end
+
+function update(self, dt)
+	if self.animation then
+		self.time = self.time + dt
+		if self.time > .03 then
+			self.time = 0.0
+			if self.frame > self.animation.finish then
+				self.animation = nil
+				msg.post(self.sender, "mesh_animation_done")
+			else
+				self.frame = self.frame + 1
+			end
+			set_frame(self, self.frame)
+		end
+
 	end
 end

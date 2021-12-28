@@ -1,0 +1,48 @@
+
+function init(self)
+	msg.post("/model", "load_mesh", {path = "/assets/mixamo.bin", animations = "/assets/animations.script"})
+	
+end
+
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("meshes_loaded") then
+		pprint("Success!")
+		self.total_frames = message.frames
+	end
+end
+
+
+local function set_anim (self, anim)
+	self.anim = anim
+	msg.post("/model", "play", {anim = self.anim});
+end
+
+function update(self, dt)
+	imgui.set_next_window_size(400, 300)
+	imgui.set_next_window_pos(1400, 900)
+	imgui.begin_window("animations")
+
+	local changed, checked = imgui.checkbox("move1", self.anim == "move1")
+	if changed and checked then
+		set_anim(self, "move1")
+	end
+
+	changed, checked = imgui.checkbox("move2", self.anim == "move2")
+	if changed and checked then
+		set_anim(self, "move2")
+	end
+
+	changed, checked = imgui.checkbox("move3", self.anim == "move3")
+	if changed and checked then
+		set_anim(self, "move3")
+	end
+
+	changed, checked = imgui.checkbox("move4", self.anim == "move4")
+	if changed and checked then
+		set_anim(self, "move4")
+	end
+	
+	
+	imgui.end_window()
+end

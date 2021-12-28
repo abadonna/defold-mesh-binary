@@ -1,7 +1,10 @@
 
 local function load_scene(self, id)
 	if self.demo then
+		--msg.post(self.demo .. ":/model", "reset")
 		msg.post("#" .. self.demo, "unload")
+		self.demo = id
+		return
 	end
 	self.demo = id
 	msg.post("#" .. self.demo, "async_load")
@@ -13,7 +16,7 @@ function init(self)
 	self.font = imgui.font_add_ttf_data(data, #data, 32, 32)
 	imgui.set_ini_filename()
 
-	load_scene(self, "complex")
+	load_scene(self, "mixamo")
 end
 
 function update(self, dt)
@@ -31,6 +34,12 @@ function update(self, dt)
 	if changed and checked then
 		load_scene(self, "complex")
 	end
+
+	changed, checked = imgui.checkbox("mixamo", self.demo == "mixamo")
+	if changed and checked then
+		load_scene(self, "mixamo")
+	end
+	
 	imgui.font_pop()
 	imgui.end_window()
 end
@@ -39,23 +48,7 @@ function on_message(self, message_id, message, sender)
 	if message_id == hash("proxy_loaded") then
 		msg.post(sender, "init")
 		msg.post(sender, "enable")
+	elseif message_id == hash("proxy_unloaded") then
+		msg.post("#" .. self.demo, "async_load")
 	end
-end
-
-function on_input(self, action_id, action)
-	-- Add input-handling code here. The game object this script is attached to
-	-- must have acquired input focus:
-	--
-	--    msg.post(".", "acquire_input_focus")
-	--
-	-- All mapped input bindings will be received. Mouse and touch input will
-	-- be received regardless of where on the screen it happened.
-	-- Learn more: https://defold.com/manuals/input/
-	-- Remove this function if not needed
-end
-
-function on_reload(self)
-	-- Add reload-handling code here
-	-- Learn more: https://defold.com/manuals/hot-reload/
-	-- Remove this function if not needed
 end
