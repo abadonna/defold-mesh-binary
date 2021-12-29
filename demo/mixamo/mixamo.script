@@ -8,14 +8,13 @@ end
 function on_message(self, message_id, message, sender)
 	if message_id == hash("meshes_loaded") then
 		pprint("Success!")
-		self.total_frames = message.frames
 	end
 end
 
 
 local function set_anim (self, anim)
 	self.anim = anim
-	msg.post("/model", "play", {anim = self.anim});
+	msg.post("/model", "play", {anim = self.anim, blend_frames = 100});
 end
 
 function update(self, dt)

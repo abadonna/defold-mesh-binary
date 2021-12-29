@@ -23,6 +23,7 @@ local function prepare_submeshes(meshes)
 			m.skin = mesh.skin
 			m.frames = mesh.frames
 			m.bones = mesh.bones
+			m.info = mesh.info
 			m.calc_tangents()
 		end
 	end
@@ -143,6 +144,7 @@ M.read_mesh = function()
 	mesh.scale = mesh.world_.scale
 
 	--reading armature
+	--TODO: keep rigs separate from meshes for optimization
 
 	mesh.skin = {}
 	for i = 1, vertex_count do
@@ -171,6 +173,7 @@ M.read_mesh = function()
 	end
 	
 	mesh.bones = mesh.frames[1]
+	mesh.info = {} -- to share data with submeshes
 
 	return prepare_submeshes(meshes)
 end

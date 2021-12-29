@@ -59,9 +59,9 @@ function final(self)
 	end
 end
 
-local function set_frame(self, frame)
+local function set_frame(self, frame, frame_blend, blend)
 	for _, mesh in pairs(self.meshes) do
-		mesh.set_frame(frame)
+		mesh.set_frame(frame, frame_blend, blend)
 	end
 end
 
@@ -174,10 +174,16 @@ function on_message(self, message_id, message, sender)
 		set_frame(self, message.frame)
 
 	elseif message_id == hash("play") then
+		if self.animation and message.blend_frames then
+			self.blend_from = self.frame
+			self.last_blend_frame = self.animation.finish
+			self.blend = 1
+			self.blend_step = 1./message.blend_frames
+		end
 		self.animation = self.animations[message.anim]
 		self.frame = self.animation.start
-		set_frame(self, self.frame)
-		self.time = 0
+		set_frame(self, self.blend_from or self.frame )
+		
 		self.sender = sender
 		
 	elseif message_id == hash("reset") then
@@ -193,14 +199,29 @@ function update(self, dt)
 		self.time = self.time + dt
 		if self.time > .03 then
 			self.time = 0.0
+			if self.blend_from then
+				self.blend = self.blend - self.blend_step
+				
+				if self.blend > 0 then
+					self.frame = math.min(self.frame + 1, self.animation.finish)
+					self.blend_from = self.blend_from + 1
+					set_frame(self, self.frame, self.blend_from, self.blend)
+					return
+				end
+
+				self.blend_from = nil
+			end
+
 			if self.frame > self.animation.finish then
 				self.animation = nil
 				msg.post(self.sender, "mesh_animation_done")
 			else
 				self.frame = self.frame + 1
 			end
+			
 			set_frame(self, self.frame)
 		end
-
 	end
+
+	
 end

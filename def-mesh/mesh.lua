@@ -1,8 +1,111 @@
 local M = {}
 
+local function transpose(m)
+	local r = vmath.matrix4(m)
+	r.m01 = m.m10
+	r.m02 = m.m20
+	r.m03 = m.m30
+
+	r.m10 = m.m01
+	r.m12 = m.m21
+	r.m13 = m.m31
+
+	r.m20 = m.m02
+	r.m21 = m.m12
+	r.m23 = m.m32
+
+	r.m30 = m.m03
+	r.m31 = m.m13
+	r.m32 = m.m23
+
+	return r
+
+end
+
+local function mat_to_quat(m)
+	local t = 0
+	local q = nil
+	if m.m22 < 0 then
+		if m.m00 > m.m11 then
+			t = 1 + m.m00 -m.m11 -m.m22
+			q = vmath.quat(t, m.m01 + m.m10, m.m20 + m.m02, m.m21 - m.m12)
+		else
+			t = 1 - m.m00 + m.m11 - m.m22
+			q = vmath.quat(m.m01 + m.m10, t, m.m12 + m.m21, m.m02 - m.m20)
+		end
+
+	else 
+		if m.m00 < -m.m11 then 
+			t = 1 - m.m00 - m.m11 + m.m22
+			q = vmath.quat(m.m20 + m.m02, m.m12 + m.m21, t, m.m10 - m.m01)
+		else 
+			t = 1 + m.m00 + m.m11 + m.m22;
+			q = vmath.quat(m.m21-m.m12, m.m02-m.m20, m.m10-m.m01, t)
+		end
+	end
+
+	local st = math.sqrt(t)
+	q.x = q.x * 0.5 / st
+	q.y = q.y * 0.5 / st
+	q.z = q.z * 0.5 / st
+	q.w = q.w * 0.5 / st
+	return q
+end
+
 M.new = function()
 	local mesh = {}
 	mesh.color = vmath.vector4(1.0, 1.0, 1.0, 1.0)
+
+	mesh.interpolate = function(idx1, idx2, factor)
+		
+		if mesh.info.blend_frame == idx2 and mesh.info.blend_factor == factor then
+			return mesh.info.bones
+		end
+		mesh.bones = {}
+
+		local src = mesh.info.bones or mesh.frames[idx2]
+		
+		for i = 1, #mesh.frames[idx1], 4 do 
+			--local offset = idx * 4
+			
+			local m1 = vmath.matrix4();
+			m1.c0 = mesh.frames[idx1][i]
+			m1.c1 = mesh.frames[idx1][i + 1]
+			m1.c2 = mesh.frames[idx1][i + 2]
+			m1.c3 = mesh.frames[idx1][i + 3]
+
+			local m2 = vmath.matrix4();
+			m2.c0 = src[i]
+			m2.c1 = src[i + 1]
+			m2.c2 = src[i + 2]
+			m2.c3 = src[i + 3]
+
+			local m = vmath.matrix4();
+			m.c0 = vmath.lerp(factor, m1.c0, m2.c0)
+			m.c1 = vmath.lerp(factor, m1.c1, m2.c1)
+			m.c2 = vmath.lerp(factor, m1.c2, m2.c2)
+			-- TODO: c0-c2 are incorrect, need to interpolate quaternions for rotation
+
+			--[[ but this is not working
+			local q1 = mat_to_quat(m1)
+			local q2 = mat_to_quat(m2)
+			local q = vmath.slerp(factor, q1, q2)
+			m = vmath.matrix4_from_quat(q) --]]
+		
+
+			m.c3 = vmath.lerp(factor, m1.c3, m2.c3)
+			
+			mesh.bones[i] = m.c0
+			mesh.bones[i + 1] = m.c1
+			mesh.bones[i + 2] = m.c2
+			mesh.bones[i + 3] = m.c3
+		end
+		mesh.info.blend_frame = idx2
+		mesh.info.blend_factor = factor 
+		mesh.info.bones = mesh.bones
+		return mesh.bones
+	end
+	
 	mesh.calc_tangents = function()
 		mesh.tangents = {}
 		mesh.bitangents = {}
@@ -65,9 +168,12 @@ M.new = function()
 		
 	end
 
-	mesh.set_frame = function(idx)
+	mesh.set_frame = function(idx, idx2, factor)
+		
 		if mesh.frames then
-			mesh.bones = mesh.frames[idx]
+			idx = math.min(idx, #mesh.frames)
+			idx2 = idx2 and math.min(idx2, #mesh.frames) or nil
+			mesh.bones = idx2 and mesh.interpolate(idx, idx2, factor) or mesh.frames[idx]
 			mesh.apply_armature()
 		end
 	end
