@@ -1,5 +1,4 @@
 local M = {}
-
 local function transpose(m)
 	local r = vmath.matrix4(m)
 	r.m01 = m.m10
@@ -21,6 +20,7 @@ local function transpose(m)
 	return r
 
 end
+
 
 local function mat_to_quat(m)
 	local t = 0
@@ -65,40 +65,31 @@ M.new = function()
 
 		local src = mesh.info.bones or mesh.frames[idx2]
 		
-		for i = 1, #mesh.frames[idx1], 4 do 
-			--local offset = idx * 4
+		for i = 1, #mesh.frames[idx1], 3 do 
 			
 			local m1 = vmath.matrix4();
 			m1.c0 = mesh.frames[idx1][i]
 			m1.c1 = mesh.frames[idx1][i + 1]
 			m1.c2 = mesh.frames[idx1][i + 2]
-			m1.c3 = mesh.frames[idx1][i + 3]
-
+			
 			local m2 = vmath.matrix4();
 			m2.c0 = src[i]
 			m2.c1 = src[i + 1]
 			m2.c2 = src[i + 2]
-			m2.c3 = src[i + 3]
 
 			local m = vmath.matrix4();
 			m.c0 = vmath.lerp(factor, m1.c0, m2.c0)
 			m.c1 = vmath.lerp(factor, m1.c1, m2.c1)
 			m.c2 = vmath.lerp(factor, m1.c2, m2.c2)
-			-- TODO: c0-c2 are incorrect, need to interpolate quaternions for rotation
-
-			--[[ but this is not working
-			local q1 = mat_to_quat(m1)
-			local q2 = mat_to_quat(m2)
-			local q = vmath.slerp(factor, q1, q2)
-			m = vmath.matrix4_from_quat(q) --]]
-		
-
-			m.c3 = vmath.lerp(factor, m1.c3, m2.c3)
+			
+			-- TODO: lerp transforms are incorrect, 
+			-- need to interpolate quaternions for rotation
+			-- and vector for translation
 			
 			mesh.bones[i] = m.c0
 			mesh.bones[i + 1] = m.c1
 			mesh.bones[i + 2] = m.c2
-			mesh.bones[i + 3] = m.c3
+			
 		end
 		mesh.info.blend_frame = idx2
 		mesh.info.blend_factor = factor 
@@ -160,8 +151,8 @@ M.new = function()
 		end --]]
 
 		for idx, _ in pairs(mesh.used_bones_idx) do -- set only used bones, critical for performance
-			local offset = idx * 4;
-			for i = 1, 4 do
+			local offset = idx * 3;
+			for i = 1, 3 do
 				go.set(mesh.url, "bones", mesh.bones[offset + i], {index = offset + i})
 			end
 		end

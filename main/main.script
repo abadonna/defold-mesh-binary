@@ -16,7 +16,7 @@ function init(self)
 	self.font = imgui.font_add_ttf_data(data, #data, 32, 32)
 	imgui.set_ini_filename()
 
-	load_scene(self, "complex")
+	load_scene(self, "mixamo")
 end
 
 function update(self, dt)
