@@ -187,14 +187,12 @@ M.read_mesh = function()
 	mesh.frames = {}
 	for i = 1, frame_count do
 		local bones = {}
-		
-		
+
 		for j = 1, bone_count  do
-			local m = transpose(M.read_matrix())
-			--read and transpose, so we can get rid of last 0,0,0,1 row later
-			table.insert(bones, m.c0) 
-			table.insert(bones, m.c1) 
-			table.insert(bones, m.c2) 
+			--3x4 transform matric
+			table.insert(bones, M.read_vec4()) 
+			table.insert(bones, M.read_vec4()) 
+			table.insert(bones, M.read_vec4()) 
 		end
 		table.insert(mesh.frames, bones)
 	end

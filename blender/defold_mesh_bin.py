@@ -19,11 +19,11 @@ from pathlib import Path
 def write_frame_data(bones, matrix_local, f):
     for pbone in bones:
         matrix = matrix_local.inverted() @ pbone.matrix @ pbone.bone.matrix_local.inverted() @ matrix_local
-        matrix.transpose()
+        #matrix.transpose()
         f.write(struct.pack('ffff', *matrix[0]))
         f.write(struct.pack('ffff', *matrix[1]))
         f.write(struct.pack('ffff', *matrix[2]))
-        f.write(struct.pack('ffff', *matrix[3]))
+        #f.write(struct.pack('ffff', *matrix[3]))
         
      
 def optimize(bones, vertices, vertex_groups, limit_per_vertex):

@@ -32,8 +32,8 @@ mat4 get_bone_matrix(int idx) {
     mtx_bone[2] = bones[offset + 2];
     //mtx_bone[3] = vec4(0.,0.,0.,1.);
     mtx_bone = transpose(mtx_bone); 
-    //transposed matrix simplifies reading 3x4 matrix,
-    //using 3x4 lets us to use more bones per mesh
+    //transposed matrix simplifies reading 4x3 matrix,
+    //using 4x3 lets us to use more bones per mesh
     //and increase performance while sending data to shader
     return mtx_bone;
 }
