@@ -1,27 +1,5 @@
 local Mesh = require "def-mesh.mesh"
 
-local function transpose(m)
-	local r = vmath.matrix4(m)
-	r.m01 = m.m10
-	r.m02 = m.m20
-	r.m03 = m.m30
-
-	r.m10 = m.m01
-	r.m12 = m.m21
-	r.m13 = m.m31
-
-	r.m20 = m.m02
-	r.m21 = m.m12
-	r.m23 = m.m32
-
-	r.m30 = m.m03
-	r.m31 = m.m13
-	r.m32 = m.m23
-
-	return r
-
-end
-
 local function prepare_submeshes(meshes)
 	local mesh = meshes[1]
 	mesh.calc_tangents()

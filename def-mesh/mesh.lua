@@ -71,13 +71,14 @@ M.new = function()
 			m1.c0 = mesh.frames[idx1][i]
 			m1.c1 = mesh.frames[idx1][i + 1]
 			m1.c2 = mesh.frames[idx1][i + 2]
-			
+
 			local m2 = vmath.matrix4();
 			m2.c0 = src[i]
 			m2.c1 = src[i + 1]
 			m2.c2 = src[i + 2]
 
 			local m = vmath.matrix4();
+
 			m.c0 = vmath.lerp(factor, m1.c0, m2.c0)
 			m.c1 = vmath.lerp(factor, m1.c1, m2.c1)
 			m.c2 = vmath.lerp(factor, m1.c2, m2.c2)
@@ -85,6 +86,22 @@ M.new = function()
 			-- TODO: lerp transforms are incorrect, 
 			-- need to interpolate quaternions for rotation
 			-- and vector for translation
+
+			--[[
+			local q1 = mat_to_quat(m1)
+			local q2 = mat_to_quat(m2)
+			local q =  vmath.slerp(factor, q1, q2)
+			local t1 = vmath.vector3(m1.m30, m1.m31, m1.m32)
+			local t2 = vmath.vector3(m2.m30, m2.m31, m2.m32)
+			local t = vmath.lerp(factor, t1, t2)
+
+			m = vmath.matrix4_from_quat(q)
+			
+			m.m30 = t.x
+			m.m31 = t.y
+			m.m32 = t.z
+			m.m33 = 1.
+			--]]
 			
 			mesh.bones[i] = m.c0
 			mesh.bones[i + 1] = m.c1
