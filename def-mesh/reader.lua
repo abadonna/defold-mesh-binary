@@ -1,4 +1,25 @@
 local Mesh = require "def-mesh.mesh"
+local function transpose(m)
+	local r = vmath.matrix4(m)
+	r.m01 = m.m10
+	r.m02 = m.m20
+	r.m03 = m.m30
+
+	r.m10 = m.m01
+	r.m12 = m.m21
+	r.m13 = m.m31
+
+	r.m20 = m.m02
+	r.m21 = m.m12
+	r.m23 = m.m32
+
+	r.m30 = m.m03
+	r.m31 = m.m13
+	r.m32 = m.m23
+
+	return r
+
+end
 
 local function prepare_submeshes(meshes)
 	local mesh = meshes[1]
@@ -22,7 +43,8 @@ local function prepare_submeshes(meshes)
 			m.skin = mesh.skin
 			m.frames = mesh.frames
 			m.bones = mesh.bones
-			m.info = mesh.info
+			m.inv_local_bones = mesh.inv_local_bones
+			m.cache = mesh.cache
 			m.calc_tangents()
 		end
 	end
@@ -161,13 +183,21 @@ M.read_mesh = function()
 		table.insert(mesh.skin, data)
 	end
 
+	mesh.inv_local_bones = {}
+	for i = 1, bone_count  do
+		--3x4 transform matrix
+		table.insert(mesh.inv_local_bones, M.read_vec4()) 
+		table.insert(mesh.inv_local_bones, M.read_vec4()) 
+		table.insert(mesh.inv_local_bones, M.read_vec4()) 
+	end
+
 	local frame_count = M.read_int()
 	mesh.frames = {}
+	
 	for i = 1, frame_count do
 		local bones = {}
-
 		for j = 1, bone_count  do
-			--3x4 transform matric
+			--3x4 transform matrix
 			table.insert(bones, M.read_vec4()) 
 			table.insert(bones, M.read_vec4()) 
 			table.insert(bones, M.read_vec4()) 
@@ -175,8 +205,7 @@ M.read_mesh = function()
 		table.insert(mesh.frames, bones)
 	end
 	
-	mesh.bones = mesh.frames[1]
-	mesh.info = {} -- to share data with submeshes
+	mesh.cache = {bones = mesh.frames[1]} -- to share data with submeshes
 
 	return prepare_submeshes(meshes)
 end
@@ -249,8 +278,8 @@ end
 --read position, rotation and scale in Defold coordinates 
 M.read_transform = function()
 	local res = {}
-	local v = M.read_vec3()
-	res.position = vmath.vector3(v.x, v.z, -v.y)-- blender coords fix
+	local p = M.read_vec3()
+	res.position = vmath.vector3(p.x, p.z, -p.y)-- blender coords fix
 
 	local euler = M.read_vec3()
 	local qx = vmath.quat_rotation_x(euler.x)
@@ -258,8 +287,18 @@ M.read_transform = function()
 	local qz = vmath.quat_rotation_z(-euler.y) -- blender coords fix
 	res.rotation = qx * qz * qy
 
-	v = M.read_vec3()
-	res.scale = vmath.vector3(v.x, v.z, v.y)-- blender coords fix
+	local s = M.read_vec3()
+	res.scale = vmath.vector3(s.x, s.z, s.y)-- blender coords fix
+
+	local mtx_rot = vmath.matrix4_rotation_x(euler.x) * vmath.matrix4_rotation_y(euler.y) * vmath.matrix4_rotation_z(euler.z) 
+	local mtx_tr = vmath.matrix4_translation(p)
+	local mtx_scale = vmath.matrix4()
+	mtx_scale.m00 = s.x
+	mtx_scale.m11 = s.y
+	mtx_scale.m22 = s.z
+	
+	res.matrix =  transpose(mtx_tr * mtx_rot * mtx_scale)
+
 	return res
 end
 

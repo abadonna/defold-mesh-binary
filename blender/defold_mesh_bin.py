@@ -18,12 +18,12 @@ from pathlib import Path
 
 def write_frame_data(bones, matrix_local, f):
     for pbone in bones:
-        matrix = matrix_local.inverted() @ pbone.matrix @ pbone.bone.matrix_local.inverted() @ matrix_local
-        #matrix.transpose()
-        f.write(struct.pack('ffff', *matrix[0]))
-        f.write(struct.pack('ffff', *matrix[1]))
-        f.write(struct.pack('ffff', *matrix[2]))
-        #f.write(struct.pack('ffff', *matrix[3]))
+        #matrix = matrix_local.inverted() @ pbone.matrix @ pbone.bone.matrix_local.inverted() @ matrix_local
+ 
+        f.write(struct.pack('ffff', *pbone.matrix[0]))
+        f.write(struct.pack('ffff', *pbone.matrix[1]))
+        f.write(struct.pack('ffff', *pbone.matrix[2]))
+     
         
      
 def optimize(bones, vertices, vertex_groups, limit_per_vertex):
@@ -129,11 +129,10 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                 
             return None
         
-        need_tangents = False
         materials = []
         for m in mesh.materials:
-            print("--------------------------")
-            print("material", m.name, m.blend_method)
+            #print("--------------------------")
+            #print("material", m.name, m.blend_method)
             
             material = {'col':  m.diffuse_color, 'blend': m.blend_method, 'spec_power': 0.0, 'normal_strength': 1.0}
             materials.append(material)
@@ -150,18 +149,17 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                    
                     if material.get('specular'):
                         material['specular_invert'] = 1 if find_node(specular, 'INVERT') else 0 
-                        print("invert", material['specular_invert'])
+                        #print("invert", material['specular_invert'])
                         
                     roughness = principled.inputs['Roughness']
                     material['roughness'] = roughness.default_value
                     material['roughness_tex'] = find_texture(roughness)
                    
-                    print("roughness", material['roughness'], material.get('roughness_tex'))
+                    #print("roughness", material['roughness'], material.get('roughness_tex'))
                     
                     normal_map = find_node(principled.inputs['Normal'], 'NORMAL_MAP')
                     if normal_map:
                         material['normal'] = find_texture(normal_map.inputs['Color'])
-                        need_tangents = material.get('normal') != None
                         material['normal_strength'] = normal_map.inputs['Strength'].default_value
                     
                     base_color = principled.inputs['Base Color']
@@ -172,15 +170,17 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                     material['texture'] = find_texture(base_color)
                     
                     if material.get('texture') != None:
-                        print(material['texture'])
+                        #print(material['texture'])
                         break #TODO objects with combined shaders
         
         #---------------------write-geometry------------------------
         
-        #if need_tangents:
-        #    mesh.calc_tangents(uvmap=mesh.uv_layers.active.name)
-        
         f.write(struct.pack('i', len(mesh.vertices)))
+        
+#        for block in mesh.shape_keys.key_blocks:
+#            print(block.name)
+#            for data in block.data:
+#                vertex = data.co
         
         for vert in mesh.vertices:
             f.write(struct.pack('fff', *vert.co))
@@ -189,18 +189,9 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         f.write(struct.pack('i', len(mesh.loop_triangles)))
         
         uv = []
-#        tangents = []
-#        bitangents = []
         for face in mesh.loop_triangles:
             f.write(struct.pack('iii', *face.vertices))
             f.write(struct.pack('i', face.material_index))
-            
-#            if need_tangents:
-#                for vert in [mesh.loops[i] for i in face.loops]:
-#                    tangent = vert.tangent
-#                    bitangent = vert.bitangent_sign * vert.normal.cross(tangent)
-#                    tangents.extend(tangent)
-#                    bitangents.extend(bitangent)
             
             for loop_idx in face.loops:
                 uv_cords = mesh.uv_layers.active.data[loop_idx].uv if mesh.uv_layers.active else (0, 0)
@@ -213,13 +204,6 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                  f.write(struct.pack('i', 0))
                 
         f.write(struct.pack('f' * len(uv), *uv))
-        
-#        if need_tangents:
-#            f.write(struct.pack('i', 1))
-#            f.write(struct.pack('f' * len(tangents), *tangents))
-#            f.write(struct.pack('f' * len(bitangents), *bitangents))
-#        else:
-#             f.write(struct.pack('i', 0)) #no tangents flag
         
         f.write(struct.pack('i', len(mesh.materials)))
         
@@ -240,7 +224,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
             if material.get('normal') == None:
                 f.write(struct.pack('i', 0)) #no normal texture flag
             else:
-                print(material['normal'], material['normal_strength'])
+                #print(material['normal'], material['normal_strength'])
                 f.write(struct.pack('i', len(material['normal'])))
                 f.write(bytes(material['normal'], "ascii"))
                 f.write(struct.pack('f', material['normal_strength']))
@@ -268,7 +252,6 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                 
         if armature:
             pose = armature.pose
-            world = armature.matrix_world
             
             #optimizing bones, checking empty bones, etc
             #set limit to 4 bones per vertex
@@ -287,7 +270,12 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                     f.write(struct.pack('i', bone_idx))
                     f.write(struct.pack('f', wgrp.weight))
                    
-                    
+            for pbone in used_bones:
+                matrix = pbone.bone.matrix_local.inverted()
+                f.write(struct.pack('ffff', *matrix[0]))
+                f.write(struct.pack('ffff', *matrix[1]))
+                f.write(struct.pack('ffff', *matrix[2]))
+        
             if export_anim_setting:
                 f.write(struct.pack('i', context.scene.frame_end))
                 for frame in range(context.scene.frame_end):
@@ -295,6 +283,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                     write_frame_data(used_bones, obj.matrix_local, f)
 
             else:
+                world = armature.matrix_world
                 f.write(struct.pack('i', 1)) #single frame flag
                 write_frame_data(used_bones, obj.matrix_local, f)
         else:

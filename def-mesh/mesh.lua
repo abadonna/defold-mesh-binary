@@ -1,26 +1,4 @@
 local M = {}
-local function transpose(m)
-	local r = vmath.matrix4(m)
-	r.m01 = m.m10
-	r.m02 = m.m20
-	r.m03 = m.m30
-
-	r.m10 = m.m01
-	r.m12 = m.m21
-	r.m13 = m.m31
-
-	r.m20 = m.m02
-	r.m21 = m.m12
-	r.m23 = m.m32
-
-	r.m30 = m.m03
-	r.m31 = m.m13
-	r.m32 = m.m23
-
-	return r
-
-end
-
 
 local function mat_to_quat(m)
 	local t = 0
@@ -58,16 +36,15 @@ M.new = function()
 
 	mesh.interpolate = function(idx1, idx2, factor)
 		
-		if mesh.info.blend_frame == idx2 and mesh.info.blend_factor == factor then
-			return mesh.info.bones
+		if mesh.cache.idx2 == idx2 and mesh.cache.factor == factor then
+			return mesh.cache.bones
 		end
-		mesh.bones = {}
-
-		local src = mesh.info.bones or mesh.frames[idx2]
+		local src = mesh.cache.bones or mesh.frames[idx2]
+		local bones = {}
 		
 		for i = 1, #mesh.frames[idx1], 3 do 
 			
-			local m1 = vmath.matrix4();
+			local m1 = vmath.matrix4()
 			m1.c0 = mesh.frames[idx1][i]
 			m1.c1 = mesh.frames[idx1][i + 1]
 			m1.c2 = mesh.frames[idx1][i + 2]
@@ -77,41 +54,41 @@ M.new = function()
 			m2.c1 = src[i + 1]
 			m2.c2 = src[i + 2]
 
-			local m = vmath.matrix4();
+			local m = vmath.matrix4()
 
-			m.c0 = vmath.lerp(factor, m1.c0, m2.c0)
-			m.c1 = vmath.lerp(factor, m1.c1, m2.c1)
-			m.c2 = vmath.lerp(factor, m1.c2, m2.c2)
+			--m.c0 = vmath.lerp(factor, m1.c0, m2.c0)
+			--m.c1 = vmath.lerp(factor, m1.c1, m2.c1)
+			--m.c2 = vmath.lerp(factor, m1.c2, m2.c2)
+
+			-- dual quats?
+			-- https://github.com/PacktPublishing/OpenGL-Build-High-Performance-Graphics/blob/master/Module%201/Chapter08/DualQuaternionSkinning/main.cpp
+			-- https://subscription.packtpub.com/book/application_development/9781788296724/1/ch01lvl1sec09/8-skeletal-and-physically-based-simulation-on-the-gpu
+			-- https://xbdev.net/misc_demos/demos/dual_quaternions_beyond/paper.pdf
+			-- https://github.com/chinedufn/skeletal-animation-system/blob/master/src/blend-dual-quaternions.js
+			-- https://github.com/Achllle/dual_quaternions/blob/master/src/dual_quaternions/dual_quaternions.py
 			
-			-- TODO: lerp transforms are incorrect, 
-			-- need to interpolate quaternions for rotation
-			-- and vector for translation
-
-			--[[
-			local q1 = mat_to_quat(m1)
-			local q2 = mat_to_quat(m2)
-			local q =  vmath.slerp(factor, q1, q2)
 			local t1 = vmath.vector3(m1.m30, m1.m31, m1.m32)
 			local t2 = vmath.vector3(m2.m30, m2.m31, m2.m32)
 			local t = vmath.lerp(factor, t1, t2)
 
-			m = vmath.matrix4_from_quat(q)
-			
+			local q1 = mat_to_quat(m1)
+			local q2 = mat_to_quat(m2)
+			local q =  vmath.slerp(factor, q1, q2)
+			m = vmath.matrix4_from_quat(q) 
+		
 			m.m30 = t.x
 			m.m31 = t.y
 			m.m32 = t.z
 			m.m33 = 1.
-			--]]
 			
-			mesh.bones[i] = m.c0
-			mesh.bones[i + 1] = m.c1
-			mesh.bones[i + 2] = m.c2
+			--m = from_array(D.DualQuatToMatrix(D.DualQuatLerp(D.DualQuatFromMatrix(to_array(m1)), D.DualQuatFromMatrix(to_array(m2)), factor)))
 			
+			bones[i] = m.c0
+			bones[i + 1] = m.c1
+			bones[i + 2] = m.c2
 		end
-		mesh.info.blend_frame = idx2
-		mesh.info.blend_factor = factor 
-		mesh.info.bones = mesh.bones
-		return mesh.bones
+		
+		return bones
 	end
 	
 	mesh.calc_tangents = function()
@@ -157,11 +134,41 @@ M.new = function()
 		end
 	end
 
-	mesh.apply_armature = function()
-		if not mesh.bones then
+	mesh.calculate_bones = function()
+		if not mesh.cache.bones then
 			return
 		end
 
+		local inv_local = vmath.inv(mesh.local_.matrix)
+		local bones = {}
+		for idx = 1, #mesh.cache.bones, 3 do
+			local bone = vmath.matrix4()
+			bone.c0 = mesh.cache.bones[idx]
+			bone.c1 = mesh.cache.bones[idx + 1]
+			bone.c2 = mesh.cache.bones[idx + 2]
+
+			local bone_local = vmath.matrix4()
+			bone_local.c0 = mesh.inv_local_bones[idx]
+			bone_local.c1 = mesh.inv_local_bones[idx + 1]
+			bone_local.c2 = mesh.inv_local_bones[idx + 2]
+
+			bone = mesh.local_.matrix * bone_local * bone * inv_local
+			table.insert(bones, bone.c0)
+			table.insert(bones, bone.c1)
+			table.insert(bones, bone.c2)
+		end
+
+		mesh.cache.calculated = bones
+	end
+
+	mesh.apply_armature = function()
+		if not mesh.cache.bones then
+			return
+		end
+
+		if not mesh.cache.calculated then
+			mesh.calculate_bones()
+		end
 		--[[
 		for i, v in ipairs(mesh.bones) do
 			go.set(mesh.url, "bones", v, {index = i})
@@ -169,19 +176,27 @@ M.new = function()
 
 		for idx, _ in pairs(mesh.used_bones_idx) do -- set only used bones, critical for performance
 			local offset = idx * 3;
+			
 			for i = 1, 3 do
-				go.set(mesh.url, "bones", mesh.bones[offset + i], {index = offset + i})
+				go.set(mesh.url, "bones", mesh.cache.calculated[offset + i], {index = offset + i})
 			end
 		end
 		
 	end
 
-	mesh.set_frame = function(idx, idx2, factor)
-		
+	mesh.set_frame = function(idx1, idx2, factor)	
 		if mesh.frames then
-			idx = math.min(idx, #mesh.frames)
+			idx = math.min(idx1, #mesh.frames)
 			idx2 = idx2 and math.min(idx2, #mesh.frames) or nil
-			mesh.bones = idx2 and mesh.interpolate(idx, idx2, factor) or mesh.frames[idx]
+		
+			if mesh.cache.idx1 ~= idx1 or mesh.cache.idx2 ~= idx2 or mesh.cache.factor ~= factor  then
+				mesh.cache.bones = idx2 and mesh.interpolate(idx, idx2, factor) or mesh.frames[idx]
+				mesh.cache.idx1 = idx1
+				mesh.cache.idx2 = idx2
+				mesh.cache.factor = factor
+				mesh.calculate_bones()
+			end
+		
 			mesh.apply_armature()
 		end
 	end
