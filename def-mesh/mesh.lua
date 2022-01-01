@@ -1,5 +1,9 @@
 local M = {}
 
+--local D = require "def-mesh.dquats"
+
+local vec3 = vmath.vector3
+
 local function mat_to_quat(m)
 	local t = 0
 	local q = nil
@@ -78,9 +82,9 @@ M.new = function()
 			-- https://xbdev.net/misc_demos/demos/dual_quaternions_beyond/paper.pdf
 			-- https://github.com/chinedufn/skeletal-animation-system/blob/master/src/blend-dual-quaternions.js
 			-- https://github.com/Achllle/dual_quaternions/blob/master/src/dual_quaternions/dual_quaternions.py
-			
-			local t1 = vmath.vector3(m1.m30, m1.m31, m1.m32)
-			local t2 = vmath.vector3(m2.m30, m2.m31, m2.m32)
+
+			local t1 = vec3(m1.m30, m1.m31, m1.m32)
+			local t2 = vec3(m2.m30, m2.m31, m2.m32)
 			local t = vmath.lerp(factor, t1, t2)
 
 			local q1 = mat_to_quat(m1)
@@ -93,7 +97,7 @@ M.new = function()
 			m.m32 = t.z
 			m.m33 = 1.
 			
-			--m = from_array(D.DualQuatToMatrix(D.DualQuatLerp(D.DualQuatFromMatrix(to_array(m1)), D.DualQuatFromMatrix(to_array(m2)), factor)))
+			--m = D.FromMatrix(D.DualQuatToMatrix(D.DualQuatLerp(D.DualQuatFromMatrix(D.Matrix(m1)), D.DualQuatFromMatrix(D.Matrix(m2)), factor)))
 			
 			bones[i] = m.c0
 			bones[i + 1] = m.c1
@@ -114,9 +118,9 @@ M.new = function()
 			local face = mesh.faces[i]
 			local v = {mesh.vertices[face.v[1]], mesh.vertices[face.v[2]], mesh.vertices[face.v[3]]}
 			
-			local uv1 = vmath.vector3(mesh.texcords[(i-1) * 6 + 1], mesh.texcords[(i-1) * 6 + 2], 0)
-			local uv2 = vmath.vector3(mesh.texcords[(i-1) * 6 + 3], mesh.texcords[(i-1) * 6 + 4], 0)
-			local uv3 = vmath.vector3(mesh.texcords[(i-1) * 6 + 5], mesh.texcords[(i-1) * 6 + 6], 0)
+			local uv1 = vec3(mesh.texcords[(i-1) * 6 + 1], mesh.texcords[(i-1) * 6 + 2], 0)
+			local uv2 = vec3(mesh.texcords[(i-1) * 6 + 3], mesh.texcords[(i-1) * 6 + 4], 0)
+			local uv3 = vec3(mesh.texcords[(i-1) * 6 + 5], mesh.texcords[(i-1) * 6 + 6], 0)
 
 			local delta_pos1 = v[2].p - v[1].p;
 			local delta_pos2 = v[3].p - v[1].p;
@@ -213,7 +217,7 @@ M.new = function()
 		end
 	end
 
-	mesh.update_vertex_buffer = function(buf)
+	mesh.update_vertex_buffer = function(buf) -- rewrite to C ?
 		local positions = buffer.get_stream(buf, "position")
 		local normals = buffer.get_stream(buf, "normal")
 		--tangent, bitangent
@@ -221,7 +225,7 @@ M.new = function()
 		local blended = {}
 
 		for idx, vertex in ipairs(mesh.vertices) do
-			local v = { p = vmath.vector3(vertex.p), n = vmath.vector3(vertex.n) }
+			local v = { p = vec3(vertex.p), n = vec3(vertex.n) }
 			
 			local total_weight = 0
 			for _, shape in pairs(mesh.shapes) do
@@ -252,8 +256,8 @@ M.new = function()
 		local count = 1
 		
 		for i, face in ipairs(mesh.faces) do
-			for _, idx in ipairs(face.v) do
-				local vertex = blended[idx]
+			for j = 1, 3 do
+				local vertex = blended[face.v[j]]
 
 				positions[count] = vertex.p.x
 				positions[count + 1] = vertex.p.y

@@ -1,22 +1,3 @@
---[[
-
-	Some explanations of types.
-	The fact is that matrices 4x4 in Defold are implemented rather awkwardly.
-	In particular, it would be more convenient if they were a two-dimensional array.
-	This makes them easier to transpose and work in loops.
-	That's why I use a two-dimensional array form for matrices.
-	Sorry.
-
-	-- Classic 4x4 matrix
-	TD3DMatrix = ( array [0..3, 0..3] of single )
-
-	-- Single quaternion
-	TQuat = ( qX,qY,qZ,qW: single )
-
-	-- Dual quaternion
-	TDualQuat = ( Real,Dual: TQuat )
-
---]]
 
 local M = {}
 
@@ -25,6 +6,48 @@ local dE = 0.0000001
 
 local function sqr(x)
 	return x*x
+end
+
+function M.Matrix(m)
+	local r = {[0] = {[0] = 0}, [1] = {}, [2] = {}, [3] = {}}
+	r[0][0] = m.m00
+	r[0][1] = m.m10
+	r[0][2] = m.m20
+	r[0][3] = m.m30
+	r[1][0] = m.m01
+	r[1][1] = m.m11
+	r[1][2] = m.m21
+	r[1][3] = m.m31
+	r[2][0] = m.m02
+	r[2][1] = m.m12
+	r[2][2] = m.m22
+	r[2][3] = m.m32
+	r[3][0] = m.m03
+	r[3][1] = m.m13
+	r[3][2] = m.m23
+	r[3][3] = m.m33
+	return r
+end
+
+function M.FromMatrix(r)
+	local m = vmath.matrix4()
+	m.m00 = r[0][0]
+	m.m10 = r[0][1]
+	m.m20 = r[0][2]
+	m.m30 = r[0][3]
+	m.m01 = r[1][0]
+	m.m11 = r[1][1] 
+	m.m21 = r[1][2]
+	m.m31 = r[1][3]
+	m.m02 = r[2][0] 
+	m.m12 = r[2][1] 
+	m.m22 = r[2][2]
+	m.m32 = r[2][3]
+	m.m03 = r[3][0] 
+	m.m13 = r[3][1] 
+	m.m23 = r[3][2]
+	m.m33 = r[3][3]
+	return m 
 end
 
 -- types: M.Quat(qx,qy,qz,qw:single):TQuat

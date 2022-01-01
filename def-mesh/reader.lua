@@ -18,8 +18,10 @@ local function transpose(m)
 	r.m32 = m.m23
 
 	return r
-
 end
+
+local vec3 = vmath.vector3
+local vec4 = vmath.vector4
 
 local function prepare_submeshes(meshes)
 	local mesh = meshes[1]
@@ -274,11 +276,11 @@ M.read_float = function()
 end
 
 M.read_vec3 = function()
-	return vmath.vector3(M.read_float(), M.read_float(), M.read_float())
+	return vec3(M.read_float(), M.read_float(), M.read_float())
 end
 
 M.read_vec4 = function()
-	return vmath.vector4(M.read_float(), M.read_float(), M.read_float(), M.read_float())
+	return vec4(M.read_float(), M.read_float(), M.read_float(), M.read_float())
 end
 
 M.read_quat = function()
@@ -300,7 +302,7 @@ end
 M.read_transform = function()
 	local res = {}
 	local p = M.read_vec3()
-	res.position = vmath.vector3(p.x, p.z, -p.y)-- blender coords fix
+	res.position = vec3(p.x, p.z, -p.y)-- blender coords fix
 
 	local euler = M.read_vec3()
 	local qx = vmath.quat_rotation_x(euler.x)
@@ -309,7 +311,7 @@ M.read_transform = function()
 	res.rotation = qx * qz * qy
 
 	local s = M.read_vec3()
-	res.scale = vmath.vector3(s.x, s.z, s.y)-- blender coords fix
+	res.scale = vec3(s.x, s.z, s.y)-- blender coords fix
 
 	local mtx_rot = vmath.matrix4_rotation_x(euler.x) * vmath.matrix4_rotation_y(euler.y) * vmath.matrix4_rotation_z(euler.z) 
 	local mtx_tr = vmath.matrix4_translation(p)
