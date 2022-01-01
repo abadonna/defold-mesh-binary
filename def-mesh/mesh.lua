@@ -218,51 +218,52 @@ M.new = function()
 		local normals = buffer.get_stream(buf, "normal")
 		--tangent, bitangent
 
+		local blended = {}
+
+		for idx, vertex in ipairs(mesh.vertices) do
+			local v = { p = vmath.vector3(vertex.p), n = vmath.vector3(vertex.n) }
+			
+			local total_weight = 0
+			for _, shape in pairs(mesh.shapes) do
+				if shape.deltas[idx] then
+					total_weight = total_weight + shape.value
+				end
+			end
+
+			if total_weight > 0 then
+				for _, shape in pairs(mesh.shapes) do
+					local delta = shape.deltas[idx]
+					if delta then
+						local weight = shape.value * shape.value/total_weight
+
+						v.p.x = v.p.x + weight * delta.p.x
+						v.p.y = v.p.y + weight * delta.p.y
+						v.p.z = v.p.z + weight * delta.p.z
+						v.n.x = v.n.x + weight * delta.n.x
+						v.n.y = v.n.y + weight * delta.n.y
+						v.n.z = v.n.z + weight * delta.n.z
+					end
+				end
+			end
+
+			blended[idx]  = v
+		end
+			
 		local count = 1
 		
 		for i, face in ipairs(mesh.faces) do
 			for _, idx in ipairs(face.v) do
-				local vertex = mesh.vertices[idx]
+				local vertex = blended[idx]
 
-				local x = 0
-				local y = 0
-				local z = 0
-
-				local nx = 0
-				local ny = 0
-				local nz = 0
-
-				local total_weight = 0
-				for _, shape in pairs(mesh.shapes) do
-					if shape.deltas[idx] then
-						total_weight = total_weight + shape.value
-					end
-				end
-
-				if total_weight > 0 then
-					for _, shape in pairs(mesh.shapes) do
-						local delta = shape.deltas[idx]
-						if delta then
-							local weight = shape.value * shape.value/total_weight
-			
-							x = x + weight * delta.p.x
-							y = y + weight * delta.p.y
-							z = z + weight * delta.p.z
-							nx = nx + weight * delta.n.x
-							ny = ny + weight * delta.n.y
-							nz = nz + weight * delta.n.z
-						end
-					end
-				end
-
-				positions[count] = vertex.p.x + x
-				positions[count + 1] = vertex.p.y + y
-				positions[count + 2] = vertex.p.z + z
+				positions[count] = vertex.p.x
+				positions[count + 1] = vertex.p.y
+				positions[count + 2] = vertex.p.z
 
 				local n = face.n or vertex.n
-				normals[count] = n.x + nx
-				normals[count + 1] = n.y + ny
-				normals[count + 2] = n.z + nz --TOFIX: not correct for blendshaped face normals
+				normals[count] = n.x
+				normals[count + 1] = n.y
+				normals[count + 2] = n.z
+				--TOFIX: not correct for blendshaped face normals
 
 				count = count + 3
 			end
