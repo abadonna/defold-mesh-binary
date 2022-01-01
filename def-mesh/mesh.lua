@@ -225,29 +225,26 @@ M.new = function()
 		local blended = {}
 
 		for idx, vertex in ipairs(mesh.vertices) do
-			local v = { p = vec3(vertex.p), n = vec3(vertex.n) }
+			local v = { p = vec3(), n = vec3() }
 			
 			local total_weight = 0
 			for _, shape in pairs(mesh.shapes) do
-				if shape.deltas[idx] then
+				local delta = shape.deltas[idx]
+				if delta then
 					total_weight = total_weight + shape.value
+					v.p = v.p + shape.value * delta.p
+					v.n = v.n + shape.value * delta.n
 				end
 			end
 
-			if total_weight > 0 then
-				for _, shape in pairs(mesh.shapes) do
-					local delta = shape.deltas[idx]
-					if delta then
-						local weight = shape.value * shape.value/total_weight
-
-						v.p.x = v.p.x + weight * delta.p.x
-						v.p.y = v.p.y + weight * delta.p.y
-						v.p.z = v.p.z + weight * delta.p.z
-						v.n.x = v.n.x + weight * delta.n.x
-						v.n.y = v.n.y + weight * delta.n.y
-						v.n.z = v.n.z + weight * delta.n.z
-					end
-				end
+			if total_weight > 1 then
+				v.p = vertex.p + v.p / total_weight
+				v.n = vertex.n + v.n / total_weight
+			elseif total_weight > 0 then
+				v.p = vertex.p + v.p
+				v.n = vertex.n + v.n
+			else
+				v = vertex
 			end
 
 			blended[idx]  = v
