@@ -45,6 +45,7 @@ local function prepare_submeshes(meshes)
 			m.bones = mesh.bones
 			m.inv_local_bones = mesh.inv_local_bones
 			m.cache = mesh.cache
+			m.shapes = mesh.shapes
 			m.calc_tangents()
 		end
 	end
@@ -74,6 +75,7 @@ M.read_mesh = function()
 	
 	local vertex_count = M.read_int()
 	mesh.vertices = {}
+
 	for i = 1, vertex_count do
 		table.insert(mesh.vertices, 
 		{ 
@@ -81,6 +83,25 @@ M.read_mesh = function()
 			n = M.read_vec3()
 		})
 	end
+
+	local shape_count = M.read_int()
+	mesh.shapes = {}
+	
+	for j = 1, shape_count do
+		local name = M.read_string()
+		local delta_count = M.read_int()
+		mesh.shapes[name] = {value = 0, deltas = {}}
+		for i = 1, delta_count do
+			local idx = M.read_int() + 1
+			mesh.shapes[name].deltas[idx] = 
+			{ 
+				p = M.read_vec3(),
+				n = M.read_vec3()
+			}
+		end
+	end
+		--TODO: calc tangents for every blendshape
+
 
 	local face_map = {}
 	local face_count = M.read_int()

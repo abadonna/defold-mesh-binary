@@ -34,6 +34,18 @@ M.new = function()
 	local mesh = {}
 	mesh.color = vmath.vector4(1.0, 1.0, 1.0, 1.0)
 
+	mesh.set_shapes = function(input) -- very slow, need a way to calculate on gpu
+		for name, value in pairs(input) do
+			if mesh.shapes[name] then
+				mesh.shapes[name].value = value
+			end
+		end
+		if mesh.url then
+			local res = go.get(mesh.url, "vertices")
+			mesh.update_vertex_buffer(resource.get_buffer(res))
+		end
+	end
+
 	mesh.interpolate = function(idx1, idx2, factor)
 		
 		if mesh.cache.idx2 == idx2 and mesh.cache.factor == factor then
@@ -200,6 +212,62 @@ M.new = function()
 			mesh.apply_armature()
 		end
 	end
+
+	mesh.update_vertex_buffer = function(buf)
+		local positions = buffer.get_stream(buf, "position")
+		local normals = buffer.get_stream(buf, "normal")
+		--tangent, bitangent
+
+		local count = 1
+		
+		for i, face in ipairs(mesh.faces) do
+			for _, idx in ipairs(face.v) do
+				local vertex = mesh.vertices[idx]
+
+				local x = 0
+				local y = 0
+				local z = 0
+
+				local nx = 0
+				local ny = 0
+				local nz = 0
+
+				local total_weight = 0
+				for _, shape in pairs(mesh.shapes) do
+					if shape.deltas[idx] then
+						total_weight = total_weight + shape.value
+					end
+				end
+
+				if total_weight > 0 then
+					for _, shape in pairs(mesh.shapes) do
+						local delta = shape.deltas[idx]
+						if delta then
+							local weight = shape.value * shape.value/total_weight
+			
+							x = x + weight * delta.p.x
+							y = y + weight * delta.p.y
+							z = z + weight * delta.p.z
+							nx = nx + weight * delta.n.x
+							ny = ny + weight * delta.n.y
+							nz = nz + weight * delta.n.z
+						end
+					end
+				end
+
+				positions[count] = vertex.p.x + x
+				positions[count + 1] = vertex.p.y + y
+				positions[count + 2] = vertex.p.z + z
+
+				local n = face.n or vertex.n
+				normals[count] = n.x + nx
+				normals[count + 1] = n.y + ny
+				normals[count + 2] = n.z + nz --TOFIX: not correct for blendshaped face normals
+
+				count = count + 3
+			end
+		end
+	end
 	
 	mesh.create_buffer = function()
 		local buf = buffer.create(#mesh.faces * 3, {
@@ -212,30 +280,18 @@ M.new = function()
 			{name = hash("tangent"), type = buffer.VALUE_TYPE_FLOAT32, count = 3},
 			{name = hash("bitangent"), type = buffer.VALUE_TYPE_FLOAT32, count = 3},
 		})
-		local positions = buffer.get_stream(buf, "position")
-		local normals = buffer.get_stream(buf, "normal")
+
+		mesh.update_vertex_buffer(buf)
+	
 		local weights = buffer.get_stream(buf, "weight")
 		local bones = buffer.get_stream(buf, "bone")
 		local color = buffer.get_stream(buf, "color")
 
-		local count = 1
 		local bcount = 1
 
 		mesh.used_bones_idx = {}
 		for i, face in ipairs(mesh.faces) do
 			for _, idx in ipairs(face.v) do
-				local vertex = mesh.vertices[idx]
-
-				positions[count] = vertex.p.x
-				positions[count + 1] = vertex.p.y
-				positions[count + 2] = vertex.p.z
-
-				local n = face.n or vertex.n
-				normals[count] = n.x
-				normals[count + 1] = n.y
-				normals[count + 2] = n.z
-				
-				count = count + 3
 
 				local skin = mesh.skin and mesh.skin[idx] or nil
 				local bone_count = skin and #skin or 0

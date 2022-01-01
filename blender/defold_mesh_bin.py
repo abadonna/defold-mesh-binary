@@ -19,7 +19,6 @@ from pathlib import Path
 def write_frame_data(bones, matrix_local, f):
     for pbone in bones:
         #matrix = matrix_local.inverted() @ pbone.matrix @ pbone.bone.matrix_local.inverted() @ matrix_local
- 
         f.write(struct.pack('ffff', *pbone.matrix[0]))
         f.write(struct.pack('ffff', *pbone.matrix[1]))
         f.write(struct.pack('ffff', *pbone.matrix[2]))
@@ -149,14 +148,11 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                    
                     if material.get('specular'):
                         material['specular_invert'] = 1 if find_node(specular, 'INVERT') else 0 
-                        #print("invert", material['specular_invert'])
                         
                     roughness = principled.inputs['Roughness']
                     material['roughness'] = roughness.default_value
                     material['roughness_tex'] = find_texture(roughness)
                    
-                    #print("roughness", material['roughness'], material.get('roughness_tex'))
-                    
                     normal_map = find_node(principled.inputs['Normal'], 'NORMAL_MAP')
                     if normal_map:
                         material['normal'] = find_texture(normal_map.inputs['Color'])
@@ -177,14 +173,33 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         
         f.write(struct.pack('i', len(mesh.vertices)))
         
-#        for block in mesh.shape_keys.key_blocks:
-#            print(block.name)
-#            for data in block.data:
-#                vertex = data.co
-        
         for vert in mesh.vertices:
-            f.write(struct.pack('fff', *vert.co))
-            f.write(struct.pack('fff', *vert.normal))
+                f.write(struct.pack('fff', *vert.co))
+                f.write(struct.pack('fff', *vert.normal))
+                
+        shapes = []
+        if mesh.shape_keys and len(mesh.shape_keys.key_blocks) > 0:
+            for shape in mesh.shape_keys.key_blocks:
+                s = {'name': shape.name, 'deltas': []}
+                normals = shape.normals_vertex_get()
+                for i in range(len(shape.data)):
+                    vert  = mesh.vertices[i]
+                    if shape.data[i].co != vert.co:
+                        dpos = shape.data[i].co - vert.co
+                        s['deltas'].append({'idx': i, 'p': dpos, 'n': (normals[i*3] - vert.normal.x, normals[i*3 + 1] - vert.normal.y, normals[i*3 + 2]- vert.normal.z)})
+                   
+                if len(s['deltas']) > 0:
+                    shapes.append(s)
+            
+        f.write(struct.pack('i', len(shapes)))
+        for shape in shapes:
+             f.write(struct.pack('i', len(shape['name'])))
+             f.write(bytes(shape['name'], "ascii"))
+             f.write(struct.pack('i', len(shape['deltas'])))
+             for vert in shape['deltas']:
+                 f.write(struct.pack('i', vert['idx']))
+                 f.write(struct.pack('fff', *vert['p']))
+                 f.write(struct.pack('fff', *vert['n']))
            
         f.write(struct.pack('i', len(mesh.loop_triangles)))
         
@@ -224,7 +239,6 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
             if material.get('normal') == None:
                 f.write(struct.pack('i', 0)) #no normal texture flag
             else:
-                #print(material['normal'], material['normal_strength'])
                 f.write(struct.pack('i', len(material['normal'])))
                 f.write(bytes(material['normal'], "ascii"))
                 f.write(struct.pack('f', material['normal_strength']))

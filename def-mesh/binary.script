@@ -173,6 +173,11 @@ function on_message(self, message_id, message, sender)
 	elseif message_id == hash("set_frame") then
 		set_frame(self, message.frame)
 
+	elseif message_id == hash("set_shapes") then
+		for _, mesh in pairs(self.meshes) do
+			mesh.set_shapes(message.shapes)
+		end
+
 	elseif message_id == hash("play") then
 		if self.animation and message.blend_frames then
 			self.blend_from = self.frame
