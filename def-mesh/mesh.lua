@@ -116,7 +116,7 @@ M.new = function()
 		
 		for i = 1, #mesh.faces do
 			local face = mesh.faces[i]
-			local v = {mesh.cache.blended_all[face.v[1]], mesh.cache.blended_all[face.v[2]], mesh.cache.blended_all[face.v[3]]}
+			local v = {mesh.vertices[face.v[1]], mesh.vertices[face.v[2]], mesh.vertices[face.v[3]]}
 			
 			local uv1 = vec3(mesh.texcords[(i-1) * 6 + 1], mesh.texcords[(i-1) * 6 + 2], 0)
 			local uv2 = vec3(mesh.texcords[(i-1) * 6 + 3], mesh.texcords[(i-1) * 6 + 4], 0)
@@ -186,10 +186,6 @@ M.new = function()
 		if not mesh.cache.calculated then
 			mesh.calculate_bones()
 		end
-		--[[
-		for i, v in ipairs(mesh.bones) do
-			go.set(mesh.url, "bones", v, {index = i})
-		end --]]
 
 		for idx, _ in pairs(mesh.used_bones_idx) do -- set only used bones, critical for performance
 			local offset = idx * 3;
@@ -219,7 +215,7 @@ M.new = function()
 	end
 
 	mesh.update_vertex_buffer = function(buf, shapes) 
-
+		local iq = vmath.quat()
 		local blended = {}
 		local key = ""
 		for name, shape in pairs(mesh.shapes) do
@@ -232,7 +228,6 @@ M.new = function()
 			for name, _ in pairs(shapes) do
 				local shape = mesh.shapes[name]
 				if shape then
-					--pprint(mesh.name, name, #shape.deltas, #mesh.vertices)
 					for idx in pairs(shape.deltas) do
 						modified[idx] = true
 					end
@@ -240,7 +235,7 @@ M.new = function()
 			end
 			
 			for idx, _ in pairs(modified) do
-				local v = { p = vec3(), n = vec3() }
+				local v = { p = vec3(), n = vec3(), q = vmath.quat() }
 				
 				local total_weight = 0
 				for _, shape in pairs(mesh.shapes) do
@@ -249,6 +244,7 @@ M.new = function()
 						total_weight = total_weight + shape.value
 						v.p = v.p + shape.value * delta.p
 						v.n = v.n + shape.value * delta.n
+						v.q = v.q * vmath.lerp(shape.value, iq, delta.q)
 					end
 				end
 
@@ -262,6 +258,7 @@ M.new = function()
 					v.n = vertex.n + v.n
 				else
 					v = vertex
+					v.q = iq
 				end
 
 				blended[idx] = v
@@ -269,13 +266,16 @@ M.new = function()
 			end
 			mesh.cache.blended = blended
 			mesh.cache.shape_key = key
-
-			--mesh.calc_tangents() -- optimize this, calculate only affected
 		end
 
 		local positions = buffer.get_stream(buf, "position")
 		local normals = buffer.get_stream(buf, "normal")
-		--tangent, bitangent
+
+		-- not sure about tangents\bitangents stuff, maybe we can just ignore it
+		-- for perfonamce and nobody will notice
+		
+		local tangents = buffer.get_stream(buf, "tangent")
+		local bitangents = buffer.get_stream(buf, "bitangent")
 		
 		local count = 1
 		
@@ -287,21 +287,30 @@ M.new = function()
 					local n = face.n or vertex.n
 
 					positions[count] = vertex.p.x
+					positions[count + 1] = vertex.p.y
+					positions[count + 2] = vertex.p.z
+					
 					normals[count] = n.x
-
-					count = count + 1
-					positions[count] = vertex.p.y
-					normals[count] = n.y
-
-					count = count + 1
-					positions[count] = vertex.p.z
-					normals[count] = n.z
+					normals[count + 1] = n.y
+					normals[count + 2] = n.z
 					--TOFIX: not correct for blendshaped face normals
 
-					count = count + 1
-				else
-					count = count + 3
+					if mesh.material.texture_normal then
+						local t = vmath.rotate(vertex.q, vec3(mesh.tangents[count], mesh.tangents[count + 1], mesh.tangents[count + 2]))
+						tangents[count] = t.x
+						tangents[count + 1] = t.y
+						tangents[count + 2] = t.z
+
+						local bt = vmath.rotate(vertex.q, vec3(mesh.bitangents[count], mesh.bitangents[count + 1], mesh.bitangents[count + 2]))
+						bitangents[count] = bt.x
+						bitangents[count + 1] = bt.y
+						bitangents[count + 2] = bt.z
+					end
+
 				end
+				
+				count = count + 3
+				
 			end
 		end
 	end
@@ -323,6 +332,11 @@ M.new = function()
 		local positions = buffer.get_stream(buf, "position")
 		local normals = buffer.get_stream(buf, "normal")
 
+		local tangents = buffer.get_stream(buf, "tangent")
+		local bitangents = buffer.get_stream(buf, "bitangent")
+
+		mesh.calc_tangents()
+		
 		local blended = {}
 		
 		if mesh.cache.blended_all then
@@ -330,15 +344,17 @@ M.new = function()
 		else
 			--apply blend shapes 
 			for idx, vertex in ipairs(mesh.vertices) do
-				local v = { p = vec3(), n = vec3() }
+				local v = { p = vec3(), n = vec3(), q = vmath.quat() }
 
 				local total_weight = 0
+				local iq = vmath.quat()
 				for _, shape in pairs(mesh.shapes) do
 					local delta = shape.deltas[idx]
 					if delta then
 						total_weight = total_weight + shape.value
 						v.p = v.p + shape.value * delta.p
 						v.n = v.n + shape.value * delta.n
+						v.q = v.q * vmath.lerp(shape.value, iq, delta.q)
 					end
 				end
 
@@ -368,19 +384,37 @@ M.new = function()
 				local n = face.n or vertex.n
 
 				positions[count] = vertex.p.x
+				positions[count + 1] = vertex.p.y
+				positions[count + 2] = vertex.p.z
+				
 				normals[count] = n.x
-
-				count = count + 1
-				positions[count] = vertex.p.y
-				normals[count] = n.y
-
-				count = count + 1
-				positions[count] = vertex.p.z
-				normals[count] = n.z
+				normals[count + 1] = n.y
+				normals[count + 2] = n.z
 				--TOFIX: not correct for blendshaped face normals
 
-				count = count + 1
-			
+				if mesh.material.texture_normal then
+					if not vertex.q then
+						tangents[count] = mesh.tangents[count]
+						tangents[count + 1] = mesh.tangents[count + 1]
+						tangents[count + 2] = mesh.tangents[count + 2]
+
+						bitangents[count] = mesh.bitangents[count]
+						bitangents[count + 1] = mesh.bitangents[count + 1]
+						bitangents[count + 2] = mesh.bitangents[count + 2]
+					else
+						local t = vmath.rotate(vertex.q, vec3(mesh.tangents[count], mesh.tangents[count + 1], mesh.tangents[count + 2]))
+						tangents[count] = t.x
+						tangents[count + 1] = t.y
+						tangents[count + 2] = t.z
+
+						local bt = vmath.rotate(vertex.q, vec3(mesh.bitangents[count], mesh.bitangents[count + 1], mesh.bitangents[count + 2]))
+						bitangents[count] = bt.x
+						bitangents[count + 1] = bt.y
+						bitangents[count + 2] = bt.z
+					end
+				end
+				
+				count = count + 3
 
 				local skin = mesh.skin and mesh.skin[idx] or nil
 				local bone_count = skin and #skin or 0
@@ -408,8 +442,7 @@ M.new = function()
 			texcords[i] = value
 		end
 
-		mesh.calc_tangents()
-
+		--[[
 		local tangents = buffer.get_stream(buf, "tangent")
 		for i, value in ipairs(mesh.tangents) do
 			tangents[i] = value
@@ -418,7 +451,7 @@ M.new = function()
 		local bitangents = buffer.get_stream(buf, "bitangent")
 		for i, value in ipairs(mesh.bitangents) do
 			bitangents[i] = value
-		end
+		end --]]
 
 		return buf
 	end

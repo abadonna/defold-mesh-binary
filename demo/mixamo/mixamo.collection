@@ -45,6 +45,11 @@ instances {
       value: "/textures/Pearl_Top_Diffuse.png"
       type: PROPERTY_TYPE_HASH
     }
+    properties {
+      id: "t7"
+      value: "/textures/Pearl_Top_Normal.png"
+      type: PROPERTY_TYPE_HASH
+    }
   }
   scale3 {
     x: 1.7

@@ -20,7 +20,7 @@ local function set_anim (self, anim)
 end
 
 function update(self, dt)
-	--msg.post("/model", "set_shapes", {shapes = {body = math.random()}})
+	--msg.post("/model", "set_shapes", {shapes = {MouthOpen = math.random()}})
 	
 	imgui.set_next_window_size(400, 300)
 	imgui.set_next_window_pos(1400, 900)

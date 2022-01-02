@@ -99,9 +99,10 @@ M.read_mesh = function()
 				p = M.read_vec3(),
 				n = M.read_vec3()
 			}
+			mesh.shapes[name].deltas[idx].q = vmath.quat_from_to(mesh.vertices[idx].n, mesh.vertices[idx].n + mesh.shapes[name].deltas[idx].n)
 		end
 	end
-		--TODO: calc tangents for every blendshape
+		--TODO: calc tangents for every blendshape?
 
 
 	local face_map = {}
