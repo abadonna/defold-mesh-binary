@@ -80,7 +80,7 @@ function on_message(self, message_id, message, sender)
 				if mesh.frames then
 					self.total_frames = #mesh.frames
 				end
-				
+
 				local buf = mesh.create_buffer()
 				local f = mesh.material.type == 0 and "#factory" or "#factory_trans"
 				

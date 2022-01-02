@@ -184,7 +184,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                 normals = shape.normals_vertex_get()
                 for i in range(len(shape.data)):
                     vert  = mesh.vertices[i]
-                    if shape.data[i].co != vert.co:
+                    if (shape.data[i].co - vert.co).length > 0.001:
                         dpos = shape.data[i].co - vert.co
                         s['deltas'].append({'idx': i, 'p': dpos, 'n': (normals[i*3] - vert.normal.x, normals[i*3 + 1] - vert.normal.y, normals[i*3 + 2]- vert.normal.z)})
                    

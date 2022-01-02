@@ -66,6 +66,7 @@ M.read_mesh = function()
 	local meshes = {mesh}
 	
 	mesh.name = M.read_string()
+	mesh.base = true --not a submesh
 	
 	local parent_flag = M.read_int()
 	if parent_flag > 0 then

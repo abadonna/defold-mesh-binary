@@ -46,7 +46,7 @@ M.new = function()
 		end
 		if mesh.url then
 			local res = go.get(mesh.url, "vertices")
-			mesh.update_vertex_buffer(resource.get_buffer(res))
+			mesh.update_vertex_buffer(resource.get_buffer(res), input)
 		end
 	end
 
@@ -132,6 +132,7 @@ M.new = function()
 			local tangent = (delta_pos1 * delta_uv2.y - delta_pos2 * delta_uv1.y) * r;
 			local bitangent = (delta_pos2 * delta_uv1.x - delta_pos1 * delta_uv2.x) * r;
 
+			--- move bitangent computation to vertex shader? E.g. pass bitangent sign as tangent.w ans use cross(T,N)
 			for j = 1, 3 do
 				if r ~= math.huge and vmath.dot(vmath.cross(v[j].n, tangent), bitangent) < 0.0 then
 					table.insert(mesh.tangents, -tangent.x)
@@ -217,16 +218,114 @@ M.new = function()
 		end
 	end
 
-	mesh.update_vertex_buffer = function(buf) -- rewrite to C ?
+	mesh.update_vertex_buffer = function(buf, shapes) 
+
+		local blended = {}
+		local key = ""
+		for name, shape in pairs(mesh.shapes) do
+			key = key .. name .. shape.value
+		end
+		if mesh.cache.shape_key == key then
+			blended = mesh.cache.blended
+		else
+			local modified = {}
+			for name, _ in pairs(shapes) do
+				local shape = mesh.shapes[name]
+				if shape then
+					--pprint(mesh.name, name, #shape.deltas, #mesh.vertices)
+					for idx in pairs(shape.deltas) do
+						modified[idx] = true
+					end
+				end
+			end
+			
+			for idx, _ in pairs(modified) do
+				local v = { p = vec3(), n = vec3() }
+				
+				local total_weight = 0
+				for _, shape in pairs(mesh.shapes) do
+					local delta = shape.deltas[idx]
+					if delta then
+						total_weight = total_weight + shape.value
+						v.p = v.p + shape.value * delta.p
+						v.n = v.n + shape.value * delta.n
+					end
+				end
+
+				local vertex = mesh.vertices[idx]
+
+				if total_weight > 1 then
+					v.p = vertex.p + v.p / total_weight
+					v.n = vertex.n + v.n / total_weight
+				elseif total_weight > 0 then
+					v.p = vertex.p + v.p
+					v.n = vertex.n + v.n
+				else
+					v = vertex
+				end
+
+				blended[idx] = v
+			end
+			mesh.cache.blended = blended
+			mesh.cache.shape_key = key
+		end
+
 		local positions = buffer.get_stream(buf, "position")
 		local normals = buffer.get_stream(buf, "normal")
 		--tangent, bitangent
+		
+		local count = 1
+		
+		for i, face in ipairs(mesh.faces) do
+			for _, idx in ipairs(face.v) do
+
+				local vertex = blended[idx]
+				if vertex then
+					local n = face.n or vertex.n
+
+					positions[count] = vertex.p.x
+					normals[count] = n.x
+
+					count = count + 1
+					positions[count] = vertex.p.y
+					normals[count] = n.y
+
+					count = count + 1
+					positions[count] = vertex.p.z
+					normals[count] = n.z
+					--TOFIX: not correct for blendshaped face normals
+
+					count = count + 1
+				else
+					count = count + 3
+				end
+			end
+		end
+	end
+	
+	mesh.create_buffer = function()
+		local buf = buffer.create(#mesh.faces * 3, {
+			{name = hash("position"), type = buffer.VALUE_TYPE_FLOAT32, count = 3},
+			{name = hash("normal"), type = buffer.VALUE_TYPE_FLOAT32, count = 3},
+			{name = hash("texcoord0"), type = buffer.VALUE_TYPE_FLOAT32, count = 2},
+			{name = hash("weight"), type = buffer.VALUE_TYPE_FLOAT32, count = 4},
+			{name = hash("bone"), type = buffer.VALUE_TYPE_UINT8, count = 4},
+			{name = hash("tangent"), type = buffer.VALUE_TYPE_FLOAT32, count = 3},
+			{name = hash("bitangent"), type = buffer.VALUE_TYPE_FLOAT32, count = 3},
+		})
+	
+		local weights = buffer.get_stream(buf, "weight")
+		local bones = buffer.get_stream(buf, "bone")
+
+		local positions = buffer.get_stream(buf, "position")
+		local normals = buffer.get_stream(buf, "normal")
 
 		local blended = {}
 
+		--apply blend shapes 
 		for idx, vertex in ipairs(mesh.vertices) do
 			local v = { p = vec3(), n = vec3() }
-			
+
 			local total_weight = 0
 			for _, shape in pairs(mesh.shapes) do
 				local delta = shape.deltas[idx]
@@ -249,14 +348,17 @@ M.new = function()
 
 			blended[idx]  = v
 		end
-			
+
 		local count = 1
-		
+		local bcount = 1
+
+		mesh.used_bones_idx = {}
 		for i, face in ipairs(mesh.faces) do
-			for j = 1, 3 do
-				local vertex = blended[face.v[j]]
-				local n = face.n or vertex.n
+			for _, idx in ipairs(face.v) do
 				
+				local vertex = blended[idx]
+				local n = face.n or vertex.n
+
 				positions[count] = vertex.p.x
 				normals[count] = n.x
 
@@ -270,31 +372,7 @@ M.new = function()
 				--TOFIX: not correct for blendshaped face normals
 
 				count = count + 1
-			end
-		end
-	end
-	
-	mesh.create_buffer = function()
-		local buf = buffer.create(#mesh.faces * 3, {
-			{name = hash("position"), type = buffer.VALUE_TYPE_FLOAT32, count = 3},
-			{name = hash("normal"), type = buffer.VALUE_TYPE_FLOAT32, count = 3},
-			{name = hash("texcoord0"), type = buffer.VALUE_TYPE_FLOAT32, count = 2},
-			{name = hash("weight"), type = buffer.VALUE_TYPE_FLOAT32, count = 4},
-			{name = hash("bone"), type = buffer.VALUE_TYPE_UINT8, count = 4},
-			{name = hash("tangent"), type = buffer.VALUE_TYPE_FLOAT32, count = 3},
-			{name = hash("bitangent"), type = buffer.VALUE_TYPE_FLOAT32, count = 3},
-		})
-
-		mesh.update_vertex_buffer(buf)
-	
-		local weights = buffer.get_stream(buf, "weight")
-		local bones = buffer.get_stream(buf, "bone")
-
-		local bcount = 1
-
-		mesh.used_bones_idx = {}
-		for i, face in ipairs(mesh.faces) do
-			for _, idx in ipairs(face.v) do
+			
 
 				local skin = mesh.skin and mesh.skin[idx] or nil
 				local bone_count = skin and #skin or 0
