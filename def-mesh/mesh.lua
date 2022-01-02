@@ -113,10 +113,10 @@ M.new = function()
 		if not mesh.material.texture_normal then
 			return
 		end
-
+		
 		for i = 1, #mesh.faces do
 			local face = mesh.faces[i]
-			local v = {mesh.vertices[face.v[1]], mesh.vertices[face.v[2]], mesh.vertices[face.v[3]]}
+			local v = {mesh.cache.blended_all[face.v[1]], mesh.cache.blended_all[face.v[2]], mesh.cache.blended_all[face.v[3]]}
 			
 			local uv1 = vec3(mesh.texcords[(i-1) * 6 + 1], mesh.texcords[(i-1) * 6 + 2], 0)
 			local uv2 = vec3(mesh.texcords[(i-1) * 6 + 3], mesh.texcords[(i-1) * 6 + 4], 0)
@@ -265,9 +265,12 @@ M.new = function()
 				end
 
 				blended[idx] = v
+				mesh.cache.blended_all[idx] = v
 			end
 			mesh.cache.blended = blended
 			mesh.cache.shape_key = key
+
+			--mesh.calc_tangents() -- optimize this, calculate only affected
 		end
 
 		local positions = buffer.get_stream(buf, "position")
@@ -321,32 +324,37 @@ M.new = function()
 		local normals = buffer.get_stream(buf, "normal")
 
 		local blended = {}
+		
+		if mesh.cache.blended_all then
+			blended = mesh.cache.blended_all
+		else
+			--apply blend shapes 
+			for idx, vertex in ipairs(mesh.vertices) do
+				local v = { p = vec3(), n = vec3() }
 
-		--apply blend shapes 
-		for idx, vertex in ipairs(mesh.vertices) do
-			local v = { p = vec3(), n = vec3() }
-
-			local total_weight = 0
-			for _, shape in pairs(mesh.shapes) do
-				local delta = shape.deltas[idx]
-				if delta then
-					total_weight = total_weight + shape.value
-					v.p = v.p + shape.value * delta.p
-					v.n = v.n + shape.value * delta.n
+				local total_weight = 0
+				for _, shape in pairs(mesh.shapes) do
+					local delta = shape.deltas[idx]
+					if delta then
+						total_weight = total_weight + shape.value
+						v.p = v.p + shape.value * delta.p
+						v.n = v.n + shape.value * delta.n
+					end
 				end
-			end
 
-			if total_weight > 1 then
-				v.p = vertex.p + v.p / total_weight
-				v.n = vertex.n + v.n / total_weight
-			elseif total_weight > 0 then
-				v.p = vertex.p + v.p
-				v.n = vertex.n + v.n
-			else
-				v = vertex
-			end
+				if total_weight > 1 then
+					v.p = vertex.p + v.p / total_weight
+					v.n = vertex.n + v.n / total_weight
+				elseif total_weight > 0 then
+					v.p = vertex.p + v.p
+					v.n = vertex.n + v.n
+				else
+					v = vertex
+				end
 
-			blended[idx]  = v
+				blended[idx]  = v
+			end
+			mesh.cache.blended_all = blended
 		end
 
 		local count = 1
@@ -399,6 +407,8 @@ M.new = function()
 		for i, value in ipairs(mesh.texcords) do
 			texcords[i] = value
 		end
+
+		mesh.calc_tangents()
 
 		local tangents = buffer.get_stream(buf, "tangent")
 		for i, value in ipairs(mesh.tangents) do

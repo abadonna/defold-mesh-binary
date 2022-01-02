@@ -25,7 +25,6 @@ local vec4 = vmath.vector4
 
 local function prepare_submeshes(meshes)
 	local mesh = meshes[1]
-	mesh.calc_tangents()
 	
 	if #meshes < 2 then
 		return meshes
@@ -48,7 +47,6 @@ local function prepare_submeshes(meshes)
 			m.inv_local_bones = mesh.inv_local_bones
 			m.cache = mesh.cache
 			m.shapes = mesh.shapes
-			m.calc_tangents()
 		end
 	end
 	return meshes
