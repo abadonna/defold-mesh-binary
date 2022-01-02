@@ -255,18 +255,21 @@ M.new = function()
 		for i, face in ipairs(mesh.faces) do
 			for j = 1, 3 do
 				local vertex = blended[face.v[j]]
-
-				positions[count] = vertex.p.x
-				positions[count + 1] = vertex.p.y
-				positions[count + 2] = vertex.p.z
-
 				local n = face.n or vertex.n
+				
+				positions[count] = vertex.p.x
 				normals[count] = n.x
-				normals[count + 1] = n.y
-				normals[count + 2] = n.z
+
+				count = count + 1
+				positions[count] = vertex.p.y
+				normals[count] = n.y
+
+				count = count + 1
+				positions[count] = vertex.p.z
+				normals[count] = n.z
 				--TOFIX: not correct for blendshaped face normals
 
-				count = count + 3
+				count = count + 1
 			end
 		end
 	end
@@ -278,7 +281,6 @@ M.new = function()
 			{name = hash("texcoord0"), type = buffer.VALUE_TYPE_FLOAT32, count = 2},
 			{name = hash("weight"), type = buffer.VALUE_TYPE_FLOAT32, count = 4},
 			{name = hash("bone"), type = buffer.VALUE_TYPE_UINT8, count = 4},
-			{name = hash("color"), type = buffer.VALUE_TYPE_FLOAT32, count = 4},
 			{name = hash("tangent"), type = buffer.VALUE_TYPE_FLOAT32, count = 3},
 			{name = hash("bitangent"), type = buffer.VALUE_TYPE_FLOAT32, count = 3},
 		})
@@ -287,7 +289,6 @@ M.new = function()
 	
 		local weights = buffer.get_stream(buf, "weight")
 		local bones = buffer.get_stream(buf, "bone")
-		local color = buffer.get_stream(buf, "color")
 
 		local bcount = 1
 
@@ -311,11 +312,6 @@ M.new = function()
 				bones[bcount + 1] = bone_count > 1 and skin[2].idx or 0
 				bones[bcount + 2] = bone_count > 2 and skin[3].idx or 0
 				bones[bcount + 3] = bone_count > 3 and skin[4].idx or 0
-
-				color[bcount] = mesh.material and mesh.material.color.x or 0.8
-				color[bcount + 1] = mesh.material and mesh.material.color.y or 0.8
-				color[bcount + 2] = mesh.material and mesh.material.color.z or 0.8
-				color[bcount + 3] = mesh.material and mesh.material.color.w or 1.0
 
 				bcount = bcount + 4
 			end

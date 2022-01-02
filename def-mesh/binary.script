@@ -140,6 +140,7 @@ function on_message(self, message_id, message, sender)
 					end
 				end
 
+				go.set(mesh.url, "base_color", mesh.material and mesh.material.color or vmath.vector4(0.8,0.8,0.8,1))
 				go.set(mesh.url, "options", options)
 				go.set(mesh.url, "options_specular", options_specular)
 				

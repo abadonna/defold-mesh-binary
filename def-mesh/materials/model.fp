@@ -1,7 +1,6 @@
 varying highp vec4 var_position;
 varying highp vec3 var_normal;
 varying mediump vec2 var_texcoord0;
-varying mediump vec4 var_color;
 varying mediump mat3 var_tbn;
 
 varying mediump vec3 var_light_dir;
@@ -17,7 +16,8 @@ uniform lowp sampler2D tex6;
 uniform lowp sampler2D tex7;
 
 uniform lowp vec4 tint;
-uniform lowp vec4 options; 
+uniform lowp vec4 options;
+uniform lowp vec4 base_color;
 //x - texture, 
 //y - normal map strength, 
 
@@ -29,7 +29,7 @@ uniform lowp vec4 options_specular;
 
 void main()
 {
-    vec4 color = var_color; //vec4(var_color.xyz * var_color.w, var_color.w);
+    vec4 color = base_color;
 
     if (options.x == 1.0) {color = texture2D(tex0, var_texcoord0.xy);}
  

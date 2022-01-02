@@ -148,7 +148,6 @@ M.read_mesh = function()
 	
 	for i = 1, material_count do
 		local m = meshes[i] or {} --not used material
-		
 		m.material = {
 			type = M.read_int(), -- 0 - opaque, 1 - transparent
 			color = M.read_vec4(), 
