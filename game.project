@@ -25,7 +25,7 @@ dependencies#1 = https://github.com/britzl/extension-imgui/archive/master.zip
 dependencies#2 = https://github.com/britzl/defold-metrics/archive/master.zip
 
 [library]
-include_dirs = /def-mesh
+include_dirs = def-mesh
 
 [html5]
 cssfile = /builtins/manifests/web/dark_theme.css
