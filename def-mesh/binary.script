@@ -95,8 +95,8 @@ function on_message(self, message_id, message, sender)
 				mesh.apply_armature()
 				local options = vmath.vector4(0.0)
 				local options_specular = vmath.vector4(0.0)
-				options_specular.y = mesh.material.specular
-				options_specular.z = mesh.material.roughness
+				options_specular.y = mesh.material.specular.value
+				options_specular.z = mesh.material.roughness.value
 				
 
 				if mesh.material.texture then
@@ -110,33 +110,41 @@ function on_message(self, message_id, message, sender)
 					end
 				end
 
-				if mesh.material.texture_normal then
+				if mesh.material.normal then
 					if not pcall(function()
-						local texture = hash("/textures/" .. string.gsub(mesh.material.texture_normal, ".png", ".texturec"))
+						local texture = hash("/textures/" .. string.gsub(mesh.material.normal.texture, ".png", ".texturec"))
 						go.set(mesh.url, "texture1", texture)
-						options.y = mesh.material.normal_strength
+						options.y = mesh.material.normal.strength
 					end) then
-						pprint(mesh.material.texture_normal .. " not found")
+						pprint(mesh.material.normal.texture .. " not found")
 					end
 				end
 
-				if mesh.material.texture_specular then
+				if mesh.material.specular.texture then
 					if not pcall(function()
-						local texture = hash("/textures/" .. string.gsub(mesh.material.texture_specular, ".png", ".texturec"))
+						local texture = hash("/textures/" .. string.gsub(mesh.material.specular.texture, ".png", ".texturec"))
 						go.set(mesh.url, "texture2", texture)
-						options_specular.x = 1.0 + mesh.material.specular_invert
+						options_specular.x = 1.0 + mesh.material.specular.invert
+						if mesh.material.specular.ramp then
+							local r = mesh.material.specular.ramp
+							go.set(mesh.url, "spec_ramp", vmath.vector4(r.p1, r.v1, r.p2, r.v2))
+						end
 					end) then
-						pprint(mesh.material.texture_specular .. " not found")
+						pprint(mesh.material.specular.texture .. " not found")
 					end
 				end
 
-				if mesh.material.texture_roughness then
+				if mesh.material.roughness.texture then
 					if not pcall(function()
-						local texture = hash("/textures/" .. string.gsub(mesh.material.texture_roughness, ".png", ".texturec"))
+						local texture = hash("/textures/" .. string.gsub(mesh.material.roughness.texture, ".png", ".texturec"))
 						go.set(mesh.url, "texture2", texture) -- roughness and specular are usually the same?
 						options_specular.w = 1.0
+						if mesh.material.roughness.ramp then
+							local r = mesh.material.roughness.ramp
+							go.set(mesh.url, "rough_ramp", vmath.vector4(r.p1, r.v1, r.p2, r.v2))
+						end
 					end) then
-						pprint(mesh.material.texture_roughness .. " not found")
+						pprint(mesh.material.roughness.texture .. " not found")
 					end
 				end
 

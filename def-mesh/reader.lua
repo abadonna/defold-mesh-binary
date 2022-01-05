@@ -102,8 +102,6 @@ M.read_mesh = function()
 			mesh.shapes[name].deltas[idx].q = vmath.quat_from_to(mesh.vertices[idx].n, mesh.vertices[idx].n + mesh.shapes[name].deltas[idx].n)
 		end
 	end
-		--TODO: calc tangents for every blendshape?
-
 
 	local face_map = {}
 	local face_count = M.read_int()
@@ -151,25 +149,47 @@ M.read_mesh = function()
 		m.material = {
 			type = M.read_int(), -- 0 - opaque, 1 - transparent
 			color = M.read_vec4(), 
-			specular =  M.read_float(),
-			roughness =  M.read_float()}
+			specular = {value = M.read_float()},
+			roughness = {value = M.read_float()}
+		}
 		local texture_flag = M.read_int()
+		local ramp_flag
 		if texture_flag > 0 then
 			m.material.texture = M.read_string(texture_flag)
 		end
 		texture_flag = M.read_int() --normal texture
 		if texture_flag > 0 then
-			m.material.texture_normal = M.read_string(texture_flag)
-			m.material.normal_strength = M.read_float()
+			m.material.normal = {
+				texture = M.read_string(texture_flag),
+				strength = M.read_float()
+			}
 		end
 		texture_flag = M.read_int() --specular texture
 		if texture_flag > 0 then
-			m.material.texture_specular = M.read_string(texture_flag)
-			m.material.specular_invert = M.read_int()
+			m.material.specular.texture = M.read_string(texture_flag)
+			m.material.specular.invert = M.read_int()
+			ramp_flag = M.read_int()
+			if ramp_flag > 0 then
+				m.material.specular.ramp = {
+					p1 = M.read_float(),
+					v1 = M.read_float(),
+					p2 = M.read_float(),
+					v1 = M.read_float()
+				}
+			end
 		end
 		texture_flag = M.read_int() --roughness texture
 		if texture_flag > 0 then
-			m.material.texture_roughness = M.read_string(texture_flag)
+			m.material.roughness.texture = M.read_string(texture_flag)
+			ramp_flag = M.read_int()
+			if ramp_flag > 0 then
+				m.material.roughness.ramp = {
+					p1 = M.read_float(),
+					v1 = M.read_float(),
+					p2 = M.read_float(),
+					v1 = M.read_float()
+				}
+			end
 		end
 	end
 

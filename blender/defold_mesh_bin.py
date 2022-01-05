@@ -103,6 +103,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         def find_nodes_to(socket, type):
             for link in socket.links:
                 node = link.from_node
+                #print(node.bl_static_type )
                 if node.bl_static_type == type:
                     return [node]
                 else:
@@ -128,6 +129,15 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                 
             return None
         
+        def find_ramp(socket):
+            node = find_node(socket, 'VALTORGB')
+            if node and node.color_ramp:
+                ramp = node.color_ramp
+                e1 = ramp.elements[0]
+                e2 = ramp.elements[len(ramp.elements)-1]
+                return {'p1': e1.position, 'v1': e1.color[0], 'p2': e2.position, 'v2': e2.color[0]} 
+                #simplified ramp, just intensity of first and last element, enough for specular\roughness
+        
         materials = []
         for m in mesh.materials:
             #print("--------------------------")
@@ -147,11 +157,13 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                     material['specular'] = find_texture(specular)
                    
                     if material.get('specular'):
-                        material['specular_invert'] = 1 if find_node(specular, 'INVERT') else 0 
+                        material['specular_invert'] = 1 if find_node(specular, 'INVERT') else 0
+                        material['specular_ramp'] = find_ramp(specular)
                         
                     roughness = principled.inputs['Roughness']
                     material['roughness'] = roughness.default_value
                     material['roughness_tex'] = find_texture(roughness)
+                    material['roughness_ramp'] = find_ramp(roughness)
                    
                     normal_map = find_node(principled.inputs['Normal'], 'NORMAL_MAP')
                     if normal_map:
@@ -249,12 +261,28 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                 f.write(struct.pack('i', len(material['specular'])))
                 f.write(bytes(material['specular'], "ascii"))
                 f.write(struct.pack('i', material['specular_invert']))
+                if material.get('specular_ramp') == None:
+                    f.write(struct.pack('i', 0)) #no ramp flag
+                else:
+                    f.write(struct.pack('i', 1))
+                    f.write(struct.pack('f', material['specular_ramp']['p1']))
+                    f.write(struct.pack('f', material['specular_ramp']['v1']))
+                    f.write(struct.pack('f', material['specular_ramp']['p2']))
+                    f.write(struct.pack('f', material['specular_ramp']['v2']))
                 
             if material.get('roughness_tex') == None:
                 f.write(struct.pack('i', 0)) #no roughbess texture flag
             else:
                 f.write(struct.pack('i', len(material['roughness_tex'])))
                 f.write(bytes(material['roughness_tex'], "ascii"))
+                if material.get('roughness_ramp') == None:
+                    f.write(struct.pack('i', 0)) #no ramp flag
+                else:
+                    f.write(struct.pack('i', 1))
+                    f.write(struct.pack('f', material['roughness_ramp']['p1']))
+                    f.write(struct.pack('f', material['roughness_ramp']['v1']))
+                    f.write(struct.pack('f', material['roughness_ramp']['p2']))
+                    f.write(struct.pack('f', material['roughness_ramp']['v2']))
                         
             
         #f.close()

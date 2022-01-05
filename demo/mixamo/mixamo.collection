@@ -4,7 +4,7 @@ instances {
   prototype: "/def-mesh/binary.go"
   position {
     x: 0.0
-    y: -1.5
+    y: -2.5
     z: 0.0
   }
   rotation {
@@ -50,11 +50,36 @@ instances {
       value: "/textures/Pearl_Top_Normal.png"
       type: PROPERTY_TYPE_HASH
     }
+    properties {
+      id: "t8"
+      value: "/textures/Pearl_Body_Normal.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t9"
+      value: "/textures/Pearl_Bottom_Normal.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t10"
+      value: "/textures/Pearl_Hair_Gloss.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t11"
+      value: "/textures/Pearl_Hair_Normal.png"
+      type: PROPERTY_TYPE_HASH
+    }
+    properties {
+      id: "t12"
+      value: "/textures/Pearl_Hair_Specular.png"
+      type: PROPERTY_TYPE_HASH
+    }
   }
   scale3 {
-    x: 1.7
-    y: 1.7
-    z: 1.7
+    x: 2.5
+    y: 2.5
+    z: 2.5
   }
 }
 scale_along_z: 1

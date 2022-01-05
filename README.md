@@ -18,6 +18,7 @@ proof of concept
 * Exports all the meshes
 * Base color, specular power, roughness and texture for every material (so far only "Principled BSDF")
 * Normal map, reflection map, roughness map
+* Blend shapes
 * Multiple materials per mesh, up to 8 textures per mesh
 * Bones
 * Bone animations on GPU

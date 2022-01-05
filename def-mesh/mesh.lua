@@ -110,7 +110,7 @@ M.new = function()
 	mesh.calc_tangents = function()
 		mesh.tangents = {}
 		mesh.bitangents = {}
-		if not mesh.material.texture_normal then
+		if not mesh.material.normal then
 			return
 		end
 		
@@ -295,7 +295,7 @@ M.new = function()
 					normals[count + 2] = n.z
 					--TOFIX: not correct for blendshaped face normals
 
-					if mesh.material.texture_normal then
+					if mesh.material.normal then
 						local t = vmath.rotate(vertex.q, vec3(mesh.tangents[count], mesh.tangents[count + 1], mesh.tangents[count + 2]))
 						tangents[count] = t.x
 						tangents[count + 1] = t.y
@@ -392,7 +392,7 @@ M.new = function()
 				normals[count + 2] = n.z
 				--TOFIX: not correct for blendshaped face normals
 
-				if mesh.material.texture_normal then
+				if mesh.material.normal then
 					if not vertex.q then
 						tangents[count] = mesh.tangents[count]
 						tangents[count + 1] = mesh.tangents[count + 1]
