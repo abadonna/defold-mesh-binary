@@ -188,13 +188,14 @@ function on_message(self, message_id, message, sender)
 		end
 
 	elseif message_id == hash("play") then
+		local animation = message.anim and self.animations[message.anim] or {start = message.start, finish = message.finish}
 		if self.animation and message.blend_frames then
 			self.blend_from = self.frame
 			self.last_blend_frame = self.animation.finish
 			self.blend = 1
 			self.blend_step = 1./message.blend_frames
 		end
-		self.animation = self.animations[message.anim]
+		self.animation = animation
 		self.frame = self.animation.start
 		set_frame(self, self.blend_from or self.frame )
 		
