@@ -22,7 +22,7 @@ varying mediump vec3 var_light_dir;
 varying mediump vec3 var_vh;
 varying mediump mat3 var_tbn;
 
-#ifdef GL_ES
+#if __VERSION__ < 200
 mat4 transpose(highp mat4 m)
 {
     highp vec4 i0 = m[0];
