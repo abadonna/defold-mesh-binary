@@ -132,9 +132,17 @@ M.new = function()
 			local tangent = (delta_pos1 * delta_uv2.y - delta_pos2 * delta_uv1.y) * r;
 			local bitangent = (delta_pos2 * delta_uv1.x - delta_pos1 * delta_uv2.x) * r;
 
+			if tangent.x == math.huge or bitangent.x == math.huge then --issue with tangents, skip it
+				mesh.tangents = {}
+				mesh.bitangents = {}
+				mesh.material.normal = nil
+				return
+			end
+
+			
 			--- move bitangent computation to vertex shader? E.g. pass bitangent sign as tangent.w ans use cross(T,N)
 			for j = 1, 3 do
-				if r ~= math.huge and vmath.dot(vmath.cross(v[j].n, tangent), bitangent) < 0.0 then
+				if r < math.huge and vmath.dot(vmath.cross(v[j].n, tangent), bitangent) < 0.0 then
 					table.insert(mesh.tangents, -tangent.x)
 					table.insert(mesh.tangents, -tangent.y)
 					table.insert(mesh.tangents, -tangent.z)
