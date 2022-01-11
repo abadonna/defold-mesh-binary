@@ -12,7 +12,13 @@ uniform mediump mat4 mtx_view;
 uniform mediump mat4 mtx_proj;
 uniform mediump mat4 mtx_normal;
 uniform mediump vec4 light;
-uniform mediump vec4 bones[800];
+
+#ifdef GL_ES
+    uniform mediump vec4 bones[450];
+#else
+    uniform mediump vec4 bones[800];
+#endif
+
 uniform lowp vec4 options; 
 
 varying highp vec4 var_position;

@@ -41,7 +41,26 @@ go.property("v17", resource.buffer("/def-mesh/buffers/dummy17.buffer"))
 go.property("v18", resource.buffer("/def-mesh/buffers/dummy18.buffer"))
 go.property("v19", resource.buffer("/def-mesh/buffers/dummy19.buffer"))
 go.property("v20", resource.buffer("/def-mesh/buffers/dummy20.buffer"))
-
+go.property("v21", resource.buffer("/def-mesh/buffers/dummy21.buffer"))
+go.property("v22", resource.buffer("/def-mesh/buffers/dummy22.buffer"))
+go.property("v23", resource.buffer("/def-mesh/buffers/dummy23.buffer"))
+go.property("v24", resource.buffer("/def-mesh/buffers/dummy24.buffer"))
+go.property("v25", resource.buffer("/def-mesh/buffers/dummy25.buffer"))
+go.property("v26", resource.buffer("/def-mesh/buffers/dummy26.buffer"))
+go.property("v27", resource.buffer("/def-mesh/buffers/dummy27.buffer"))
+go.property("v28", resource.buffer("/def-mesh/buffers/dummy28.buffer"))
+go.property("v29", resource.buffer("/def-mesh/buffers/dummy29.buffer"))
+go.property("v30", resource.buffer("/def-mesh/buffers/dummy30.buffer"))
+go.property("v31", resource.buffer("/def-mesh/buffers/dummy31.buffer"))
+go.property("v32", resource.buffer("/def-mesh/buffers/dummy32.buffer"))
+go.property("v33", resource.buffer("/def-mesh/buffers/dummy33.buffer"))
+go.property("v34", resource.buffer("/def-mesh/buffers/dummy34.buffer"))
+go.property("v35", resource.buffer("/def-mesh/buffers/dummy35.buffer"))
+go.property("v36", resource.buffer("/def-mesh/buffers/dummy36.buffer"))
+go.property("v37", resource.buffer("/def-mesh/buffers/dummy37.buffer"))
+go.property("v38", resource.buffer("/def-mesh/buffers/dummy38.buffer"))
+go.property("v39", resource.buffer("/def-mesh/buffers/dummy39.buffer"))
+go.property("v40", resource.buffer("/def-mesh/buffers/dummy40.buffer"))
 
 function init(self)
 	self.time = 0
@@ -49,7 +68,9 @@ function init(self)
 	self.total_frames = 0
 	if BUFFERS == nil then
 		BUFFERS = {self.v1, self.v2, self.v3, self.v4, self.v5, self.v6, self.v7, self.v8, self.v9, self.v10,
-		self.v11, self.v12, self.v13, self.v14, self.v15, self.v16, self.v17, self.v18, self.v19, self.v20}
+		self.v11, self.v12, self.v13, self.v14, self.v15, self.v16, self.v17, self.v18, self.v19, self.v20,
+		self.v21, self.v22, self.v23, self.v24, self.v25, self.v26, self.v27, self.v28, self.v29, self.v30,
+		self.v31, self.v32, self.v33, self.v34, self.v35, self.v36, self.v37, self.v38, self.v39, self.v40}
 	end
 end
 
