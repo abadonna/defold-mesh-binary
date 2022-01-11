@@ -86,6 +86,12 @@ local function set_frame(self, frame, frame_blend, blend)
 	end
 end
 
+local function get_texture_hash(tex_name)
+	local fname = string.gsub(tex_name, ".png", ".texturec")
+	fname = string.gsub(fname, ".jpg", ".texturec")
+	return hash("/textures/" .. fname)
+end
+
 function on_message(self, message_id, message, sender)
 	if message_id == hash("load_mesh") then
 		reader.init_from_resource(message.path)
@@ -123,7 +129,7 @@ function on_message(self, message_id, message, sender)
 				if mesh.material.texture then
 					options.x = 1.0
 					if not pcall(function()
-						local texture = hash("/textures/" .. string.gsub(mesh.material.texture, ".png", ".texturec"))
+						local texture = get_texture_hash(mesh.material.texture)
 						go.set(mesh.url, "texture0", texture)
 						options.x = 1.0
 					end) then
@@ -133,7 +139,7 @@ function on_message(self, message_id, message, sender)
 
 				if mesh.material.normal then
 					if not pcall(function()
-						local texture = hash("/textures/" .. string.gsub(mesh.material.normal.texture, ".png", ".texturec"))
+						local texture = get_texture_hash(mesh.material.normal.texture)
 						go.set(mesh.url, "texture1", texture)
 						options.y = mesh.material.normal.strength
 					end) then
@@ -143,7 +149,7 @@ function on_message(self, message_id, message, sender)
 
 				if mesh.material.specular.texture then
 					if not pcall(function()
-						local texture = hash("/textures/" .. string.gsub(mesh.material.specular.texture, ".png", ".texturec"))
+						local texture = get_texture_hash(mesh.material.specular.texture)
 						go.set(mesh.url, "texture2", texture)
 						options_specular.x = 1.0 + mesh.material.specular.invert
 						if mesh.material.specular.ramp then
@@ -157,7 +163,7 @@ function on_message(self, message_id, message, sender)
 
 				if mesh.material.roughness.texture then
 					if not pcall(function()
-						local texture = hash("/textures/" .. string.gsub(mesh.material.roughness.texture, ".png", ".texturec"))
+						local texture = get_texture_hash(mesh.material.roughness.texture)
 						go.set(mesh.url, "texture2", texture) -- roughness and specular are usually the same?
 						options_specular.w = 1.0
 						if mesh.material.roughness.ramp then
