@@ -16,12 +16,12 @@ bl_info = {
 import bpy, sys, struct
 from pathlib import Path
 
-def write_frame_data(bones, matrix_local, f):
+def write_frame_data(precompute, bones, matrix_local, f):
     for pbone in bones:
-        #matrix = matrix_local.inverted() @ pbone.matrix @ pbone.bone.matrix_local.inverted() @ matrix_local
-        f.write(struct.pack('ffff', *pbone.matrix[0]))
-        f.write(struct.pack('ffff', *pbone.matrix[1]))
-        f.write(struct.pack('ffff', *pbone.matrix[2]))
+        matrix = matrix_local.inverted() @ pbone.matrix @ pbone.bone.matrix_local.inverted() @ matrix_local if precompute else pbone.matrix
+        f.write(struct.pack('ffff', *matrix[0]))
+        f.write(struct.pack('ffff', *matrix[1]))
+        f.write(struct.pack('ffff', *matrix[2]))
      
         
      
@@ -55,7 +55,7 @@ def optimize(bones, vertices, vertex_groups, limit_per_vertex):
                 used_bones.append(bone)
     return used_bones, vertex_groups_per_vertex
 
-def write_some_data(context, filepath, export_anim_setting, export_hidden_settings):
+def write_some_data(context, filepath, export_anim_setting, export_hidden_settings, export_precompute_setting):
     
     f = open(filepath, 'wb')
      
@@ -192,7 +192,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         shapes = []
         if mesh.shape_keys and len(mesh.shape_keys.key_blocks) > 0:
             for shape in mesh.shape_keys.key_blocks:
-                s = {'name': shape.name, 'deltas': []}
+                s = {'name': shape.name, 'deltas': [], 'value':shape.value}
                 normals = shape.normals_vertex_get()
                 for i in range(len(shape.data)):
                     vert  = mesh.vertices[i]
@@ -207,6 +207,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         for shape in shapes:
              f.write(struct.pack('i', len(shape['name'])))
              f.write(bytes(shape['name'], "ascii"))
+             f.write(struct.pack('f', shape['value']))
              f.write(struct.pack('i', len(shape['deltas'])))
              for vert in shape['deltas']:
                  f.write(struct.pack('i', vert['idx']))
@@ -303,7 +304,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
             print("USED BONES: ", len(used_bones))
             bones_map = {bone.name: i for i, bone in enumerate(used_bones)}
             f.write(struct.pack('i', len(used_bones)))
-                
+            
             for groups in vertex_groups_per_vertex:
                 f.write(struct.pack('i', len(groups)))
                 for wgrp in groups:
@@ -311,23 +312,26 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                     bone_idx = bones_map[group.name]
                     f.write(struct.pack('i', bone_idx))
                     f.write(struct.pack('f', wgrp.weight))
-                   
-            for pbone in used_bones:
-                matrix = pbone.bone.matrix_local.inverted()
-                f.write(struct.pack('ffff', *matrix[0]))
-                f.write(struct.pack('ffff', *matrix[1]))
-                f.write(struct.pack('ffff', *matrix[2]))
+                    
+            f.write(struct.pack('i', 1 if export_precompute_setting else 0))
+            
+            if not export_precompute_setting:
+                for pbone in used_bones:
+                    matrix = pbone.bone.matrix_local.inverted()
+                    f.write(struct.pack('ffff', *matrix[0]))
+                    f.write(struct.pack('ffff', *matrix[1]))
+                    f.write(struct.pack('ffff', *matrix[2]))
         
             if export_anim_setting:
                 f.write(struct.pack('i', context.scene.frame_end))
                 for frame in range(context.scene.frame_end):
                     context.scene.frame_set(frame)
-                    write_frame_data(used_bones, obj.matrix_local, f)
+                    write_frame_data(export_precompute_setting, used_bones, obj.matrix_local, f)
 
             else:
                 world = armature.matrix_world
                 f.write(struct.pack('i', 1)) #single frame flag
-                write_frame_data(used_bones, obj.matrix_local, f)
+                write_frame_data(export_precompute_setting, used_bones, obj.matrix_local, f)
         else:
             f.write(struct.pack('i', 0)) #no bones flag
 
@@ -357,6 +361,12 @@ class DefoldExport(Operator, ExportHelper):
         maxlen=255,  # Max internal buffer length, longer would be clamped.
     )
     
+    export_precompute: BoolProperty(
+        name="Precompute bones",
+        description="less calculations in runtime, but avoid runtime animation blending",
+        default=True,
+    )
+    
     export_anim: BoolProperty(
         name="Export animations",
         description="Only for armatures",
@@ -371,7 +381,7 @@ class DefoldExport(Operator, ExportHelper):
 
 
     def execute(self, context):
-        return write_some_data(context, self.filepath, self.export_anim, self.export_hidden)
+        return write_some_data(context, self.filepath, self.export_anim, self.export_hidden, self.export_precompute)
 
 
 # Only needed if you want to add into a dynamic menu

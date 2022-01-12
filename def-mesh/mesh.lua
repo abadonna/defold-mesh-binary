@@ -72,10 +72,6 @@ M.new = function()
 
 			local m = vmath.matrix4()
 
-			--m.c0 = vmath.lerp(factor, m1.c0, m2.c0)
-			--m.c1 = vmath.lerp(factor, m1.c1, m2.c1)
-			--m.c2 = vmath.lerp(factor, m1.c2, m2.c2)
-
 			-- dual quats?
 			-- https://github.com/PacktPublishing/OpenGL-Build-High-Performance-Graphics/blob/master/Module%201/Chapter08/DualQuaternionSkinning/main.cpp
 			-- https://subscription.packtpub.com/book/application_development/9781788296724/1/ch01lvl1sec09/8-skeletal-and-physically-based-simulation-on-the-gpu
@@ -87,10 +83,16 @@ M.new = function()
 			local t2 = vec3(m2.m30, m2.m31, m2.m32)
 			local t = vmath.lerp(factor, t1, t2)
 
-			local q1 = mat_to_quat(m1)
-			local q2 = mat_to_quat(m2)
-			local q =  vmath.slerp(factor, q1, q2)
-			m = vmath.matrix4_from_quat(q) 
+			if mesh.inv_local_bones then
+				local q1 = mat_to_quat(m1)
+				local q2 = mat_to_quat(m2)
+				local q =  vmath.slerp(factor, q1, q2)
+				m = vmath.matrix4_from_quat(q)
+			else --precomputed, blending will be incorrect anyway
+				m.c0 = vmath.lerp(factor, m1.c0, m2.c0)
+				m.c1 = vmath.lerp(factor, m1.c1, m2.c1)
+				m.c2 = vmath.lerp(factor, m1.c2, m2.c2)
+			end
 		
 			m.m30 = t.x
 			m.m31 = t.y
@@ -132,17 +134,9 @@ M.new = function()
 			local tangent = (delta_pos1 * delta_uv2.y - delta_pos2 * delta_uv1.y) * r;
 			local bitangent = (delta_pos2 * delta_uv1.x - delta_pos1 * delta_uv2.x) * r;
 
-			if tangent.x == math.huge or bitangent.x == math.huge then --issue with tangents, skip it
-				mesh.tangents = {}
-				mesh.bitangents = {}
-				mesh.material.normal = nil
-				return
-			end
-
-			
 			--- move bitangent computation to vertex shader? E.g. pass bitangent sign as tangent.w ans use cross(T,N)
 			for j = 1, 3 do
-				if r < math.huge and vmath.dot(vmath.cross(v[j].n, tangent), bitangent) < 0.0 then
+				if math.abs(r) < math.huge and vmath.dot(vmath.cross(v[j].n, tangent), bitangent) < 0.0 then
 					table.insert(mesh.tangents, -tangent.x)
 					table.insert(mesh.tangents, -tangent.y)
 					table.insert(mesh.tangents, -tangent.z)
@@ -161,6 +155,11 @@ M.new = function()
 
 	mesh.calculate_bones = function()
 		if not mesh.cache.bones then
+			return
+		end
+
+		if not mesh.inv_local_bones then --precomputed
+			mesh.cache.calculated = mesh.cache.bones
 			return
 		end
 

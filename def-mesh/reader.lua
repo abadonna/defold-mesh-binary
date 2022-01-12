@@ -29,12 +29,12 @@ local function prepare_submeshes(meshes)
 	if #meshes < 2 then
 		return meshes
 	end
-
-	for i = #meshes, 2, -1 do
+	
+	for i = #meshes, 1, -1 do
 		local m = meshes[i]
 		if #m.faces == 0 then
 			table.remove(meshes, i)
-		else
+		elseif i > 1 then
 			m.local_ = mesh.local_
 			m.world_ = mesh.world_
 			m.vertices = mesh.vertices
@@ -49,6 +49,8 @@ local function prepare_submeshes(meshes)
 			m.shapes = mesh.shapes
 		end
 	end
+
+	meshes[1].base = true
 	return meshes
 end
 
@@ -90,8 +92,11 @@ M.read_mesh = function()
 	
 	for j = 1, shape_count do
 		local name = M.read_string()
+		mesh.shapes[name] = {
+			value = M.read_float(), 
+			deltas = {}}
 		local delta_count = M.read_int()
-		mesh.shapes[name] = {value = 0, deltas = {}}
+		
 		for i = 1, delta_count do
 			local idx = M.read_int() + 1
 			mesh.shapes[name].deltas[idx] = 
@@ -105,6 +110,7 @@ M.read_mesh = function()
 
 	local face_map = {}
 	local face_count = M.read_int()
+	
 	mesh.faces = {}
 	for i = 1, face_count do
 		local face = {
@@ -225,12 +231,16 @@ M.read_mesh = function()
 		table.insert(mesh.skin, data)
 	end
 
-	mesh.inv_local_bones = {}
-	for i = 1, bone_count  do
-		--3x4 transform matrix
-		table.insert(mesh.inv_local_bones, M.read_vec4()) 
-		table.insert(mesh.inv_local_bones, M.read_vec4()) 
-		table.insert(mesh.inv_local_bones, M.read_vec4()) 
+	local precomputed = (M.read_int() == 1)
+
+	if not precomputed then
+		mesh.inv_local_bones = {}
+		for i = 1, bone_count  do
+			--3x4 transform matrix
+			table.insert(mesh.inv_local_bones, M.read_vec4()) 
+			table.insert(mesh.inv_local_bones, M.read_vec4()) 
+			table.insert(mesh.inv_local_bones, M.read_vec4()) 
+		end
 	end
 
 	local frame_count = M.read_int()
