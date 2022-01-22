@@ -1,4 +1,6 @@
 local reader = require "def-mesh.reader"
+go.property('opaque', resource.material())
+go.property('transparent', resource.material())
 
 go.property('t1', resource.texture())
 go.property('t2', resource.texture())
@@ -115,6 +117,12 @@ function on_message(self, message_id, message, sender)
 				
 				mesh.id = factory.create(f, mesh.position, mesh.rotation, {}, mesh.scale)
 				mesh.url = msg.url(nil, mesh.id, "mesh")
+
+				if self.opaque ~= hash("") and mesh.material.type == 0 then
+					go.set(mesh.url, "material", self.opaque)
+				elseif self.transparent ~= hash("") and mesh.material.type ~= 0 then
+					go.set(mesh.url, "material", self.transparent)
+				end
 				
 
 				local v = table.remove(BUFFERS)
