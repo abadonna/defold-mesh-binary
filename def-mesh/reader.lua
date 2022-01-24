@@ -35,6 +35,7 @@ local function prepare_submeshes(meshes)
 		if #m.faces == 0 then
 			table.remove(meshes, i)
 		elseif i > 1 then
+			m.parent = mesh.parent
 			m.local_ = mesh.local_
 			m.world_ = mesh.world_
 			m.vertices = mesh.vertices
@@ -205,6 +206,7 @@ M.read_mesh = function()
 		mesh.position = mesh.local_.position
 		mesh.rotation = mesh.local_.rotation
 		mesh.scale = mesh.local_.scale
+		mesh.cache = {}
 		return prepare_submeshes(meshes)
 	end
 
@@ -337,7 +339,7 @@ M.read_transform = function()
 	local qx = vmath.quat_rotation_x(euler.x)
 	local qy = vmath.quat_rotation_y(euler.z) -- blender coords fix
 	local qz = vmath.quat_rotation_z(-euler.y) -- blender coords fix
-	res.rotation = qx * qz * qy
+	res.rotation = qy * qz  * qx
 
 	local s = M.read_vec3()
 	res.scale = vec3(s.x, s.z, s.y)-- blender coords fix
