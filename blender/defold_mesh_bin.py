@@ -143,7 +143,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
             #print("--------------------------")
             #print("material", m.name, m.blend_method)
             
-            material = {'col':  m.diffuse_color, 'blend': m.blend_method, 'spec_power': 0.0, 'normal_strength': 1.0}
+            material = {'name': m.name, 'col':  m.diffuse_color, 'blend': m.blend_method, 'spec_power': 0.0, 'roughness': 0.0, 'normal_strength': 1.0}
             materials.append(material)
             
             if m.node_tree:
@@ -237,6 +237,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         
         #---------------------write-materials------------------------
         for material in materials:
+            print("MATERIAL " + material['name'])
             
             f.write(struct.pack('i', 0 if material['blend'] == 'OPAQUE' else 1))
             f.write(struct.pack('ffff', *material['col']))
