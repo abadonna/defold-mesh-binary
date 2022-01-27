@@ -327,6 +327,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                 f.write(struct.pack('i', context.scene.frame_end))
                 for frame in range(context.scene.frame_end):
                     context.scene.frame_set(frame)
+                    context.view_layer.update()
                     write_frame_data(export_precompute_setting, used_bones, obj.matrix_local, f)
 
             else:
