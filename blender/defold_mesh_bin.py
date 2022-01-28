@@ -75,7 +75,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         if len(mesh.loop_triangles) == 0:
             continue
         
-        if obj.hide_get() and not export_hidden_settings:
+        if not obj.visible_get() and not export_hidden_settings:
             continue
         
         print(obj.name)
@@ -320,6 +320,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                 for pbone in used_bones:
                     matrix = pbone.bone.matrix_local.inverted()
                     f.write(struct.pack('ffff', *matrix[0]))
+                    
                     f.write(struct.pack('ffff', *matrix[1]))
                     f.write(struct.pack('ffff', *matrix[2]))
         
@@ -327,7 +328,15 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                 f.write(struct.pack('i', context.scene.frame_end))
                 for frame in range(context.scene.frame_end):
                     context.scene.frame_set(frame)
-                    context.view_layer.update()
+                    
+                    #there is an issue with IK bones (and maybe other simulations?)
+                    #looks like Blender needs some time to compute it
+                    context.scene.frame_set(frame) #twice to make sure IK computations is done?
+                    context.view_layer.update() #not enough?
+                    depsgraph = context.evaluated_depsgraph_get()
+                    armature = armature.evaluated_get(depsgraph)
+                    #and remap bones by name? so far it looks ok without it
+                    
                     write_frame_data(export_precompute_setting, used_bones, obj.matrix_local, f)
 
             else:
