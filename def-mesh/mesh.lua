@@ -1,3 +1,4 @@
+local SETTINGS = require "def-mesh.settings"
 local M = {}
 
 --local D = require "def-mesh.dquats"
@@ -217,7 +218,7 @@ M.new = function()
 				mesh.calculate_bones()
 			end
 
-			if #mesh.shape_frames >= idx then
+			if SETTINGS.animate_blendshapes and #mesh.shape_frames >= idx then
 				local input = {}
 				local need_update = false
 				for name, value in pairs(mesh.shape_frames[idx]) do
