@@ -23,8 +23,14 @@ def write_frame_data(precompute, bones, matrix_local, f):
         f.write(struct.pack('ffff', *matrix[1]))
         f.write(struct.pack('ffff', *matrix[2]))
      
-        
-     
+def write_shape_values(mesh, shapes, f):
+    for shape in shapes:
+        s = mesh.shape_keys.key_blocks.get(shape['name'])
+        value = float("{:.2f}".format(s.value))
+        f.write(struct.pack('i', len(shape['name'])))
+        f.write(bytes(shape['name'], "ascii"))
+        f.write(struct.pack('f', value))
+                
 def optimize(bones, vertices, vertex_groups, limit_per_vertex):
           
     def sort_weights(vg):
@@ -207,7 +213,6 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         for shape in shapes:
              f.write(struct.pack('i', len(shape['name'])))
              f.write(bytes(shape['name'], "ascii"))
-             f.write(struct.pack('f', shape['value']))
              f.write(struct.pack('i', len(shape['deltas'])))
              for vert in shape['deltas']:
                  f.write(struct.pack('i', vert['idx']))
@@ -338,11 +343,14 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                     #and remap bones by name? so far it looks ok without it
                     
                     write_frame_data(export_precompute_setting, used_bones, obj.matrix_local, f)
+                    
+                    write_shape_values(mesh, shapes, f)
 
             else:
                 world = armature.matrix_world
                 f.write(struct.pack('i', 1)) #single frame flag
                 write_frame_data(export_precompute_setting, used_bones, obj.matrix_local, f)
+                write_shape_values(mesh, shapes, f)
         else:
             f.write(struct.pack('i', 0)) #no bones flag
 

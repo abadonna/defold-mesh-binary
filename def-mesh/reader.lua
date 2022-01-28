@@ -48,6 +48,8 @@ local function prepare_submeshes(meshes)
 			m.inv_local_bones = mesh.inv_local_bones
 			m.cache = mesh.cache
 			m.shapes = mesh.shapes
+			m.shape_frames = mesh.shape_frames
+			m.shape_values = mesh.shape_values
 		end
 	end
 
@@ -93,9 +95,7 @@ M.read_mesh = function()
 	
 	for j = 1, shape_count do
 		local name = M.read_string()
-		mesh.shapes[name] = {
-			value = M.read_float(), 
-			deltas = {}}
+		mesh.shapes[name] = {deltas = {}}
 		local delta_count = M.read_int()
 		
 		for i = 1, delta_count do
@@ -247,6 +247,8 @@ M.read_mesh = function()
 
 	local frame_count = M.read_int()
 	mesh.frames = {}
+	mesh.shape_frames = {}
+
 	
 	for i = 1, frame_count do
 		local bones = {}
@@ -257,8 +259,15 @@ M.read_mesh = function()
 			table.insert(bones, M.read_vec4()) 
 		end
 		table.insert(mesh.frames, bones)
+
+		local shapes = {}
+		for j = 1, shape_count do
+			shapes[M.read_string()] = M.read_float()
+		end
+		table.insert(mesh.shape_frames, shapes)
 	end
-	
+
+	mesh.shape_values = mesh.shape_frames[1]
 	mesh.cache = {bones = mesh.frames[1]} -- to share data with submeshes
 
 	return prepare_submeshes(meshes)

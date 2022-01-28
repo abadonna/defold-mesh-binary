@@ -216,7 +216,24 @@ M.new = function()
 				mesh.cache.factor = factor
 				mesh.calculate_bones()
 			end
-		
+
+			if #mesh.shape_frames >= idx then
+				local input = {}
+				local need_update = false
+				for name, value in pairs(mesh.shape_frames[idx]) do
+					if mesh.shape_values[name] ~= value then
+						input[name] = value
+						need_update = true
+					end
+				end
+				
+				mesh.shape_values = mesh.shape_frames[idx]
+				if mesh.url and need_update then
+					local res = go.get(mesh.url, "vertices")
+					mesh.update_vertex_buffer(resource.get_buffer(res), input)
+				end
+			end
+			
 			mesh.apply_armature()
 		end
 	end
@@ -226,7 +243,7 @@ M.new = function()
 		local blended = {}
 		local key = ""
 		for name, shape in pairs(mesh.shapes) do
-			key = key .. name .. shape.value
+			key = key .. name .. (shape.value or mesh.shape_values[name])
 		end
 		if mesh.cache.shape_key == key then
 			blended = mesh.cache.blended
@@ -245,13 +262,14 @@ M.new = function()
 				local v = { p = vec3(), n = vec3(), q = vmath.quat() }
 				
 				local total_weight = 0
-				for _, shape in pairs(mesh.shapes) do
+				for name, shape in pairs(mesh.shapes) do
 					local delta = shape.deltas[idx]
+					local value = shape.value or mesh.shape_values[name]
 					if delta then
-						total_weight = total_weight + shape.value
-						v.p = v.p + shape.value * delta.p
-						v.n = v.n + shape.value * delta.n
-						v.q = v.q * vmath.lerp(shape.value, iq, delta.q)
+						total_weight = total_weight + value
+						v.p = v.p + value * delta.p
+						v.n = v.n + value * delta.n
+						v.q = v.q * vmath.lerp(value, iq, delta.q)
 					end
 				end
 
@@ -355,13 +373,14 @@ M.new = function()
 
 				local total_weight = 0
 				local iq = vmath.quat()
-				for _, shape in pairs(mesh.shapes) do
+				for shape_name, shape in pairs(mesh.shapes) do
 					local delta = shape.deltas[idx]
+					local value = shape.value or mesh.shape_values[shape_name]
 					if delta then
-						total_weight = total_weight + shape.value
-						v.p = v.p + shape.value * delta.p
-						v.n = v.n + shape.value * delta.n
-						v.q = v.q * vmath.lerp(shape.value, iq, delta.q)
+						total_weight = total_weight + value
+						v.p = v.p + value * delta.p
+						v.n = v.n + value * delta.n
+						v.q = v.q * vmath.lerp(value, iq, delta.q)
 					end
 				end
 

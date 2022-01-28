@@ -1,3 +1,18 @@
+
+local function blink()
+	msg.post("/model", "set_shapes", {shapes = {["blink_upper_down.R"] = 1, ["blink_upper_down.L"] = 1}})
+	timer.delay(0.3, false, function()
+		msg.post("/model", "set_shapes", {shapes = {["blink_upper_down.R"] = 0, ["blink_upper_down.L"] = 0}})
+		timer.delay(math.random(3, 5), false, blink)
+	end)
+end
+
 function init(self)
+	math.randomseed(os.time() * 10000)
+	math.random()
+	math.random()
+	math.random()
+	
 	msg.post("/model", "load_mesh", {path = "/assets/joy.bin"})
+	blink()
 end
