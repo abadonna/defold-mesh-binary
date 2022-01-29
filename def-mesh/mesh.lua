@@ -303,19 +303,18 @@ M.new = function()
 		local tangents = buffer.get_stream(buf, "tangent")
 		local bitangents = buffer.get_stream(buf, "bitangent")
 		
-		local count = 1
-		
-		for i, face in ipairs(mesh.faces) do
-			for _, idx in ipairs(face.v) do
+		for idx, vertex in pairs(blended) do
 
-				local vertex = blended[idx]
-				if vertex then
-					local n = face.n or vertex.n
+			--local n = face.n or vertex.n
+			local n = vertex.n
+			if mesh.indecies[idx] then
+			
+				for _, count in ipairs(mesh.indecies[idx]) do
 
 					positions[count] = vertex.p.x
 					positions[count + 1] = vertex.p.y
 					positions[count + 2] = vertex.p.z
-					
+						
 					normals[count] = n.x
 					normals[count + 1] = n.y
 					normals[count + 2] = n.z
@@ -334,10 +333,9 @@ M.new = function()
 					end
 
 				end
-				
-				count = count + 3
-				
 			end
+				
+			
 		end
 	end
 	
@@ -364,6 +362,7 @@ M.new = function()
 		mesh.calc_tangents()
 		
 		local blended = {}
+		mesh.indecies = {}
 		
 		if mesh.cache.blended_all then
 			blended = mesh.cache.blended_all
@@ -371,7 +370,7 @@ M.new = function()
 			--apply blend shapes 
 			for idx, vertex in ipairs(mesh.vertices) do
 				local v = { p = vec3(), n = vec3(), q = vmath.quat() }
-
+				
 				local total_weight = 0
 				local iq = vmath.quat()
 				for shape_name, shape in pairs(mesh.shapes) do
@@ -406,6 +405,11 @@ M.new = function()
 		mesh.used_bones_idx = {}
 		for i, face in ipairs(mesh.faces) do
 			for _, idx in ipairs(face.v) do
+
+				if not mesh.indecies[idx] then
+					mesh.indecies[idx] = {}
+				end
+				table.insert(mesh.indecies[idx], count)
 				
 				local vertex = blended[idx]
 				local n = face.n or vertex.n

@@ -12,7 +12,19 @@ function init(self)
 	math.random()
 	math.random()
 	math.random()
-	
+	self.loaded   = true
+	self.value = 1
 	msg.post("/model", "load_mesh", {path = "/assets/joy.bin"})
 	blink()
 end
+
+--[[
+function update(self, dt)
+	if self.loaded then
+	
+		msg.post("/model", "set_shapes", {shapes = {["blink_upper_down.R"] = self.value, ["blink_upper_down.L"] = self.value}});
+		
+		self.value = self.value == 0 and 1 or  0
+	end
+end
+--]]
