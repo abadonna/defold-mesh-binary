@@ -23,7 +23,7 @@ function update(self, dt)
 end
 
 function on_message(self, message_id, message, sender)
-	if message_id == hash("meshes_loaded") then
+	if message_id == hash("mesh_loaded") then
 		pprint("Success!")
 		self.total_frames = message.frames
 		self.loaded = true
