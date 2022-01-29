@@ -222,13 +222,13 @@ M.new = function()
 				local input = {}
 				local need_update = false
 				for name, value in pairs(mesh.shape_frames[idx]) do
-					if mesh.shape_values[name] ~= value then
+					if math.abs(mesh.shape_values[name] - value) > SETTINGS.blendshape_treshold then
 						input[name] = value
 						need_update = true
+						mesh.shape_values[name] = value
 					end
 				end
 				
-				mesh.shape_values = mesh.shape_frames[idx]
 				if mesh.url and need_update then
 					local res = go.get(mesh.url, "vertices")
 					mesh.update_vertex_buffer(resource.get_buffer(res), input)
