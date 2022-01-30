@@ -39,15 +39,14 @@ M.new = function()
 	local mesh = {}
 	mesh.color = vmath.vector4(1.0, 1.0, 1.0, 1.0)
 
-	mesh.set_shapes = function(input) -- very slow, need a way to calculate on gpu
+	mesh.set_shapes = function(input)
 		for name, value in pairs(input) do
 			if mesh.shapes[name] then
 				mesh.shapes[name].value = value
 			end
 		end
-		if mesh.url then
-			local res = go.get(mesh.url, "vertices")
-			mesh.update_vertex_buffer(resource.get_buffer(res), input)
+		if mesh.buf then
+			mesh.update_vertex_buffer(input)
 		end
 	end
 
@@ -229,9 +228,8 @@ M.new = function()
 					end
 				end
 				
-				if mesh.url and need_update then
-					local res = go.get(mesh.url, "vertices")
-					mesh.update_vertex_buffer(resource.get_buffer(res), input)
+				if mesh.buf and need_update then
+					mesh.update_vertex_buffer(input)
 				end
 			end
 			
@@ -239,104 +237,34 @@ M.new = function()
 		end
 	end
 
-	mesh.update_vertex_buffer = function(buf, shapes) 
-		local iq = vmath.quat()
-		local blended = {}
+	mesh.update_vertex_buffer = function(shapes) 
 		local key = ""
 		for name, shape in pairs(mesh.shapes) do
 			key = key .. name .. (shape.value or mesh.shape_values[name])
 		end
+
+		local blended = mesh.cache.blended;
+		local need_update = false
+		local need_update_tangets = SETTINGS.animate_tangents and (mesh.material.normal and true or false)
+
 		if mesh.cache.shape_key == key then
-			blended = mesh.cache.blended
+			need_update = mesh_utils.apply_shapes(mesh.buf, mesh, mesh.shape_values, shapes, blended, need_update_tangets)
 		else
-			local modified = {}
-			for name, _ in pairs(shapes) do
-				local shape = mesh.shapes[name]
-				if shape then
-					for idx in pairs(shape.deltas) do
-						modified[idx] = true
-					end
-				end
+
+			mesh_utils.clear_cache(blended)
+			mesh.cache.blended = nil
+			need_update, blended = mesh_utils.apply_shapes(mesh.buf, mesh, mesh.shape_values, shapes, nil, need_update_tangets)
+
+			if blended then
+				mesh.cache.blended = blended
+				mesh.cache.shape_key = key
 			end
-			
-			for idx, _ in pairs(modified) do
-				local v = { p = vec3(), n = vec3(), q = vmath.quat() }
-				
-				local total_weight = 0
-				for name, shape in pairs(mesh.shapes) do
-					local delta = shape.deltas[idx]
-					local value = shape.value or mesh.shape_values[name]
-					if delta then
-						total_weight = total_weight + value
-						v.p = v.p + value * delta.p
-						v.n = v.n + value * delta.n
-						v.q = v.q * vmath.lerp(value, iq, delta.q)
-					end
-				end
-
-				local vertex = mesh.vertices[idx]
-
-				if total_weight > 1 then
-					v.p = vertex.p + v.p / total_weight
-					v.n = vertex.n + v.n / total_weight
-				elseif total_weight > 0 then
-					v.p = vertex.p + v.p
-					v.n = vertex.n + v.n
-				else
-					v = vertex
-					v.q = iq
-				end
-
-				blended[idx] = v
-				mesh.cache.blended_all[idx] = v
-			end
-			mesh.cache.blended = blended
-			mesh.cache.shape_key = key
 		end
 
-		local positions = buffer.get_stream(buf, "position")
-		local normals = buffer.get_stream(buf, "normal")
-
-		-- not sure about tangents\bitangents stuff, maybe we can just ignore it
-		-- for perfonamce and nobody will notice
+		if need_update then
+			resource.set_buffer(go.get(mesh.url, "vertices"), mesh.buf)
+		end 
 		
-		local tangents = buffer.get_stream(buf, "tangent")
-		local bitangents = buffer.get_stream(buf, "bitangent")
-		
-		for idx, vertex in pairs(blended) do
-
-			--local n = face.n or vertex.n
-			local n = vertex.n
-			if mesh.indecies[idx] then
-			
-				for _, count in ipairs(mesh.indecies[idx]) do
-
-					positions[count] = vertex.p.x
-					positions[count + 1] = vertex.p.y
-					positions[count + 2] = vertex.p.z
-						
-					normals[count] = n.x
-					normals[count + 1] = n.y
-					normals[count + 2] = n.z
-					--TOFIX: not correct for blendshaped face normals
-
-					if mesh.material.normal then
-						local t = vmath.rotate(vertex.q, vec3(mesh.tangents[count], mesh.tangents[count + 1], mesh.tangents[count + 2]))
-						tangents[count] = t.x
-						tangents[count + 1] = t.y
-						tangents[count + 2] = t.z
-
-						local bt = vmath.rotate(vertex.q, vec3(mesh.bitangents[count], mesh.bitangents[count + 1], mesh.bitangents[count + 2]))
-						bitangents[count] = bt.x
-						bitangents[count + 1] = bt.y
-						bitangents[count + 2] = bt.z
-					end
-
-				end
-			end
-				
-			
-		end
 	end
 	
 	mesh.create_buffer = function()
@@ -362,7 +290,7 @@ M.new = function()
 		mesh.calc_tangents()
 		
 		local blended = {}
-		mesh.indecies = {}
+		mesh.indices = {}
 		
 		if mesh.cache.blended_all then
 			blended = mesh.cache.blended_all
@@ -406,10 +334,10 @@ M.new = function()
 		for i, face in ipairs(mesh.faces) do
 			for _, idx in ipairs(face.v) do
 
-				if not mesh.indecies[idx] then
-					mesh.indecies[idx] = {}
+				if not mesh.indices[idx] then
+					mesh.indices[idx] = {}
 				end
-				table.insert(mesh.indecies[idx], count)
+				table.insert(mesh.indices[idx], count)
 				
 				local vertex = blended[idx]
 				local n = face.n or vertex.n
@@ -473,16 +401,10 @@ M.new = function()
 			texcords[i] = value
 		end
 
-		--[[
-		local tangents = buffer.get_stream(buf, "tangent")
-		for i, value in ipairs(mesh.tangents) do
-			tangents[i] = value
+		if mesh.shapes ~= {} then
+			mesh.data = mesh_utils.load_mesh_data(mesh)
+			mesh.buf = buf
 		end
-
-		local bitangents = buffer.get_stream(buf, "bitangent")
-		for i, value in ipairs(mesh.bitangents) do
-			bitangents[i] = value
-		end --]]
 
 		return buf
 	end

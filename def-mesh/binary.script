@@ -78,6 +78,8 @@ end
 
 function final(self)
 	for _, mesh in pairs(self.meshes) do
+		mesh_utils.clear_data(mesh);
+		
 		table.insert(BUFFERS, go.get(mesh.url, "vertices")) --return buffer to pool
 	end
 end
