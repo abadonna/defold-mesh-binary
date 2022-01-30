@@ -221,7 +221,7 @@ M.new = function()
 				local input = {}
 				local need_update = false
 				for name, value in pairs(mesh.shape_frames[idx]) do
-					if math.abs(mesh.shape_values[name] - value) > SETTINGS.blendshape_treshold then
+					if math.abs(mesh.shape_values[name] - value) >= SETTINGS.blendshape_treshold then
 						input[name] = value
 						need_update = true
 						mesh.shape_values[name] = value

@@ -378,9 +378,12 @@ static int ClearData(lua_State* L)
         delete data;
     }
 
-    //lua_getfield(L, 1, "cache");
-    //lua_getfield(L, -1, "blended");
-    //ClearCache(L);
+    lua_getfield(L, 1, "base");
+    if (!lua_isnil(L, -1)) {
+        lua_getfield(L, 1, "cache");
+        lua_getfield(L, -1, "blended");
+        ClearCache(L);
+    }
     
     return 0;
 }

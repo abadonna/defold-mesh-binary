@@ -15,6 +15,5 @@ function init(self)
 
 	msg.post("/model", "load_mesh", {path = "/assets/joy.bin"})
 	blink()
-	--msg.post("/model", "set_shapes", {shapes = {["blink_upper_down.R"] = math.random(), ["blink_upper_down.L"] = math.random()}});
 end
 
