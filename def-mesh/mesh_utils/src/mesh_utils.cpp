@@ -21,7 +21,6 @@ typedef struct ShapeData {
 
 
 typedef struct Shape {
-    char* name;
     std::unordered_map<uint32_t, ShapeData>* deltas;
 } Shape;
 
@@ -31,23 +30,80 @@ typedef struct IndexArray {
 } IndexArray;
 
 typedef struct MeshData {
-    std::unordered_map<char*, Shape>* shapes;
     std::unordered_map<size_t, IndexArray>* indices;
-    Vertex* vertices;
-    size_t vertex_count;
     float* tangents;
     float* bitangents;
 } MeshData;
 
-static int LoadData(lua_State* L) {
+typedef struct VertexData {
+    std::unordered_map<char*, Shape>* shapes;
+    Vertex* vertices;
+} VertexData;
+
+
+static int LoadMeshData(lua_State* L) {
     MeshData* data = new MeshData();
+
+    auto indices = new std::unordered_map<size_t, IndexArray>();
+    lua_getfield(L, -1, "indices");
+    lua_pushnil(L); 
+    while (lua_next(L, -2) != 0)
+    {
+        IndexArray index;
+        size_t vertex_idx = luaL_checknumber(L, -2);
+        index.count = lua_objlen(L, -1);
+        index.indices = (size_t*)malloc(sizeof(size_t) * index.count);
+
+        for (size_t i = 1; i <= index.count;  i++) {
+            lua_rawgeti(L, -1, i);
+            index.indices[i-1] = luaL_checknumber(L, -1) - 1;
+            lua_pop(L, 1);
+        }
+
+        (*indices)[vertex_idx] = index;
+
+        lua_pop(L, 1);
+    }
+    lua_pop(L, 1);
+
+    lua_getfield(L, -1, "tangents");
+    size_t count = lua_objlen(L, -1);
+    float* tangents = (float*)malloc(sizeof(float) * count);
+
+    for (size_t i = 1; i <= count;  i++) {
+        lua_rawgeti(L, -1, i);
+        tangents[i-1] = luaL_checknumber(L, -1);
+        lua_pop(L, 1);
+    }
+    lua_pop(L, 1);
+
+    lua_getfield(L, -1, "bitangents");
+    float* bitangents = (float*)malloc(sizeof(float) * count);
+
+    for (size_t i = 1; i <= count;  i++) {
+        lua_rawgeti(L, -1, i);
+        bitangents[i-1] = luaL_checknumber(L, -1);
+        lua_pop(L, 1);
+    }
+    lua_pop(L, 1);
+
+    data->indices = indices;
+    data->tangents = tangents;
+    data->bitangents = bitangents;
+
+    lua_pushlightuserdata(L, data); 
+
+    return 1;
+}
+
+static int LoadVertexData(lua_State* L) {
+    VertexData* data = new VertexData();
     
     lua_getfield(L, -1, "vertices");
-    size_t count = lua_objlen(L, -1);
-    data->vertex_count = count + 1;
-    Vertex* vertices = (Vertex *) malloc(sizeof(Vertex) * data->vertex_count);
+    size_t count = lua_objlen(L, -1) + 1;
+    Vertex* vertices = (Vertex *) malloc(sizeof(Vertex) * count);
     
-    for (size_t i = 1; i <= count;  i++) {
+    for (size_t i = 1; i < count;  i++) {
         lua_rawgeti(L, -1, i);
         lua_getfield(L, -1, "p");
         Vertex v;
@@ -69,7 +125,7 @@ static int LoadData(lua_State* L) {
     while (lua_next(L, -2) != 0)
     {
         Shape shape;
-        shape.name = (char*)luaL_checkstring(L, -2);
+        char* name = (char*)luaL_checkstring(L, -2);
         shape.deltas = new std::unordered_map<uint32_t, ShapeData>();
         lua_getfield(L, -1, "deltas");
         lua_pushnil(L); 
@@ -90,62 +146,14 @@ static int LoadData(lua_State* L) {
             lua_pop(L, 2);
         }
 
-        (*shapes)[shape.name] = shape;
-        
-        //printf("delta: %s\n", lua_typename(L, lua_type(L, -1)));
+        (*shapes)[name] = shape;
         lua_pop(L, 2);
     }
 
     lua_pop(L, 1);
 
-    auto indices = new std::unordered_map<size_t, IndexArray>();
-    lua_getfield(L, -1, "indices");
-    lua_pushnil(L); 
-    while (lua_next(L, -2) != 0)
-    {
-        IndexArray index;
-        size_t vertex_idx = luaL_checknumber(L, -2);
-        index.count = lua_objlen(L, -1);
-        index.indices = (size_t*)malloc(sizeof(size_t) * index.count);
-       
-        for (size_t i = 1; i <= index.count;  i++) {
-            lua_rawgeti(L, -1, i);
-            index.indices[i-1] = luaL_checknumber(L, -1);
-            lua_pop(L, 1);
-        }
-
-        (*indices)[vertex_idx] = index;
-        
-        lua_pop(L, 1);
-    }
-    lua_pop(L, 1);
-
-    lua_getfield(L, -1, "tangents");
-    count = lua_objlen(L, -1);
-    float* tangents = (float*)malloc(sizeof(float) * count);
-    
-    for (size_t i = 1; i <= count;  i++) {
-        lua_rawgeti(L, -1, i);
-        tangents[i-1] = luaL_checknumber(L, -1);
-        lua_pop(L, 1);
-    }
-    lua_pop(L, 1);
-    
-    lua_getfield(L, -1, "bitangents");
-    float* bitangents = (float*)malloc(sizeof(float) * count);
-
-    for (size_t i = 1; i <= count;  i++) {
-        lua_rawgeti(L, -1, i);
-        bitangents[i-1] = luaL_checknumber(L, -1);
-        lua_pop(L, 1);
-    }
-    lua_pop(L, 1);
-
     data->shapes = shapes;
     data->vertices = vertices;
-    data->indices = indices;
-    data->tangents = tangents;
-    data->bitangents = bitangents;
     
     lua_pushlightuserdata(L, data); 
 
@@ -161,9 +169,10 @@ static std::unordered_map<uint32_t, ShapeData>* Calculate(lua_State* L)
 {
     auto blended = new std::unordered_map<uint32_t, ShapeData>();
 
-    lua_getfield(L, MESH, "data");
-    MeshData* data = (MeshData *)lua_touserdata(L, -1);
-    lua_pop(L, 1);
+    lua_getfield(L, MESH, "cache");
+    lua_getfield(L, -1, "vertex_data");
+    VertexData* data = (VertexData *)lua_touserdata(L, -1);
+    lua_pop(L, 2);
 
     std::unordered_map<char*, float>explicit_shape_values;
 
@@ -280,7 +289,7 @@ static int ApplyShapes(lua_State* L)
         return 1;
     }
 
-    lua_getfield(L, 2, "data");
+    lua_getfield(L, MESH, "data");
     MeshData* data = (MeshData *)lua_touserdata(L, -1);
     lua_pop(L, 1);
 
@@ -311,7 +320,7 @@ static int ApplyShapes(lua_State* L)
         if (ind_it != data->indices->end()) {
             IndexArray array = ind_it->second;
             for (int i = 0; i < array.count; i ++) {
-                size_t count = array.indices[i] - 1;
+                size_t count = array.indices[i];
                 size_t idx = stride * count / 3 ;
 
                 positions[idx] = vertex.p.getX();
@@ -359,7 +368,6 @@ static int ClearData(lua_State* L)
     lua_getfield(L, 1, "data");
     
     if (!lua_isnil(L, -1)) {
-  
         MeshData* data = (MeshData *)lua_touserdata(L, -1);
 
         for (auto it = data->indices->begin(); it != data->indices->end(); ++it ) {
@@ -367,12 +375,6 @@ static int ClearData(lua_State* L)
         }
         delete data->indices;
         
-        for (auto it = data->shapes->begin(); it != data->shapes->end(); ++it ) {
-            delete it->second.deltas;
-        }
-        delete data->shapes;
-        
-        free(data->vertices);
         free(data->tangents);
         free(data->bitangents);
         delete data;
@@ -381,6 +383,23 @@ static int ClearData(lua_State* L)
     lua_getfield(L, 1, "base");
     if (!lua_isnil(L, -1)) {
         lua_getfield(L, 1, "cache");
+        lua_getfield(L, -1, "vertex_data");
+        if (!lua_isnil(L, -1)) {
+            VertexData* data = (VertexData *)lua_touserdata(L, -1);
+
+            for (auto it = data->shapes->begin(); it != data->shapes->end(); ++it ) {
+                delete it->second.deltas;
+            }
+            delete data->shapes;
+
+            free(data->vertices);
+            delete data;
+        }
+
+        lua_pop(L, 1);
+
+
+        
         lua_getfield(L, -1, "blended");
         ClearCache(L);
     }
@@ -392,7 +411,8 @@ static int ClearData(lua_State* L)
 static const luaL_reg Module_methods[] =
 {
     {"apply_shapes", ApplyShapes},
-    {"load_mesh_data", LoadData},
+    {"load_mesh_data", LoadMeshData},
+    {"load_vertex_data", LoadVertexData},
     {"clear_cache", ClearCache},
     {"clear_data", ClearData},
     {0, 0}

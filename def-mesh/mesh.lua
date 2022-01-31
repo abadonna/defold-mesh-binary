@@ -402,6 +402,9 @@ M.new = function()
 		end
 
 		if mesh.shapes ~= {} then
+			if mesh.cache.vertex_data == nil then
+				mesh.cache.vertex_data = mesh_utils.load_vertex_data(mesh)
+			end
 			mesh.data = mesh_utils.load_mesh_data(mesh)
 			mesh.buf = buf
 		end

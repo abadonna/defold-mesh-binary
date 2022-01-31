@@ -3,7 +3,7 @@ local function blink()
 	msg.post("/model", "set_shapes", {shapes = {["blink_upper_down.R"] = 1, ["blink_upper_down.L"] = 1}})
 	timer.delay(0.3, false, function()
 		msg.post("/model", "set_shapes", {shapes = {["blink_upper_down.R"] = 0, ["blink_upper_down.L"] = 0}})
-		timer.delay(math.random(3, 5), false, blink)
+		timer.delay(math.random(2, 4), false, blink)
 	end)
 end
 
@@ -17,3 +17,24 @@ function init(self)
 	blink()
 end
 
+--[[
+----------------------------------performance test-----------------------------------
+local shapes = {"lip_roll_upper_in.L",  "lip_roll_upper_in.R", "lip_smile.L", "lip_smile.R", "cheek_puff_out.R", "cheek_puff_out.L", "blink_upper_down.R", "blink_upper_down.L", "brow_upper_up.L", "brow_upper_up.R"}
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("mesh_loaded") then
+		self.loaded = true
+	end
+end
+
+function update(self, dt)
+	if self.loaded then
+		local res = {}
+		for _, name in ipairs(shapes) do
+			res[name] = math.random()
+		end
+		msg.post("/model", "set_shapes", {shapes = res})
+	
+	end
+end
+--]]
