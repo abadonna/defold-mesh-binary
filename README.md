@@ -1,5 +1,5 @@
 # defold-mesh-binary
-proof of concept
+Export mesh of any complexity from Blender to Defold game engine.
 
 ## Usage
 1. Use defold_mesh_bin.py to export scene from Blender (tested only in 3.0.0)
@@ -13,15 +13,18 @@ proof of concept
 	render.set_depth_mask(true)
 ```` 
 
+![pcss](https://github.com/abadonna/defold-mesh-binary/blob/main/sample.png)
+
 ## Features
 * Binary format
 * Exports all the meshes
 * Base color, specular power, roughness and texture for every material (so far only "Principled BSDF")
 * Normal map, reflection map, roughness map
 * Blend shapes
-* Multiple materials per mesh, up to 8 textures per mesh
+* Multiple materials per mesh
 * Bones
 * Bone animations on GPU
+* Blend shape animations in C
 * Transparent materials
 
 ## Drawbacks (Defold 190)
@@ -29,10 +32,8 @@ proof of concept
 * Impossible to create texture in runtime
 * Meshes are not visible in Editor, only in runtime
 
-## ISSUES
-[6281](https://github.com/defold/defold/issues/6281), [6283](https://github.com/defold/defold/issues/6283)
 
 ## TODO
-* More advanced materials, with combined shader nodes
-* Text mesh buffer for geometry, to make it visible in Editor (?)
+* "Import animation only" option for exporter
+
 ---
