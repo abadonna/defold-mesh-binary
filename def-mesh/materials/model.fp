@@ -19,6 +19,7 @@ uniform lowp vec4 tint;
 uniform lowp vec4 options;
 //x - texture, 
 //y - normal map strength, 
+//z - alpha mode, 0 - opaque, 1 - blend, 2 - hashed
 
 uniform lowp vec4 base_color;
 
@@ -42,12 +43,37 @@ float ramp(float factor, vec4 data)
     return mix(data.y, data.w, f);
 }
 
+vec4 pcf_4x4(vec2 proj) {
+    vec2 texel = 1.0 / textureSize(tex0, 0);
+    vec4 sum = vec4(0); 
+    float x, y; 
+
+    for (y = -1.5; y <= 1.5; y += 1.0) {
+        for (x = -1.5; x <= 1.5; x += 1.0) {
+            vec2 uv = proj.xy + texel* vec2(x, y);
+            if (uv.x <0 ||uv.x > 1 || uv.y <0 ||uv.y > 1) {continue;}
+            vec4 a = texture2D(tex0, uv);
+            sum += a; 
+   
+        }
+    }
+
+    return sum / 16.;
+}
+
 void main()
 {
     vec4 color = base_color;
 
     if (options.x == 1.0) {color = texture2D(tex0, var_texcoord0.xy);}
- 
+
+    if (options.z == 2. && color.w > 0 && color.w < 1) {
+        color = pcf_4x4(var_texcoord0.xy);
+    }
+
+   
+
+ //-----------------------
     // Diffuse light calculations
     vec3 ambient = vec3(0.2);
     vec3 specular = vec3(0.0);

@@ -135,7 +135,8 @@ function on_message(self, message_id, message, sender)
 				local options_specular = vmath.vector4(0.0)
 				options_specular.y = mesh.material.specular.value
 				options_specular.z = mesh.material.roughness.value
-				
+
+				options.z = mesh.material.type
 
 				if mesh.material.texture then
 					options.x = 1.0

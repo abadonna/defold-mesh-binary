@@ -164,7 +164,7 @@ M.read_mesh = function()
 	for i = 1, material_count do
 		local m = meshes[i] or {} --not used material
 		m.material = {
-			type = M.read_int(), -- 0 - opaque, 1 - transparent
+			type = M.read_int(), -- 0 - opaque, 1 - blend, 2 - hashed
 			color = M.read_vec4(), 
 			specular = {value = M.read_float()},
 			roughness = {value = M.read_float()}
