@@ -100,6 +100,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         f.write(struct.pack('fff', *obj.scale))
         
         #keep world transform in case we won't export parent object (e.g. ARMATURE)
+        # !!!! problem here: if object or armature is moving - animations will look wrong
         (translation, rotation, scale) = obj.matrix_world.decompose()
         f.write(struct.pack('fff', *translation))
         f.write(struct.pack('fff', *rotation.to_euler()))
@@ -337,6 +338,9 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         
             if export_anim_setting:
                 f.write(struct.pack('i', context.scene.frame_end))
+                
+                frame_current = context.scene.frame_current
+
                 for frame in range(context.scene.frame_end):
                     context.scene.frame_set(frame)
                     
@@ -344,16 +348,17 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                     #looks like Blender needs some time to compute it
                     context.scene.frame_set(frame) #twice to make sure IK computations is done?
                     context.view_layer.update() #not enough?
+                    
                     depsgraph = context.evaluated_depsgraph_get()
-                    armature = armature.evaluated_get(depsgraph)
-                    #and remap bones by name? so far it looks ok without it
+                 
+                    #TODO: support object and armature transformations, save this data for every frame
                     
                     write_frame_data(export_precompute_setting, used_bones, obj.matrix_local, f)
-                    
                     write_shape_values(mesh, shapes, f)
 
+                context.scene.frame_set(frame_current) #as we work with object's global matrix in particular frame
+
             else:
-                world = armature.matrix_world
                 f.write(struct.pack('i', 1)) #single frame flag
                 write_frame_data(export_precompute_setting, used_bones, obj.matrix_local, f)
                 write_shape_values(mesh, shapes, f)

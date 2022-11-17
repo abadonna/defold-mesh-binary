@@ -94,6 +94,7 @@ local function get_texture_hash(tex_name)
 	fname = string.gsub(fname, ".jpg", ".texturec")
 	fname = string.gsub(fname, ".tif", ".texturec")
 	fname = string.gsub(fname, ".tiff", ".texturec")
+	fname = string.gsub(fname, ".tga", ".texturec")
 	return hash("/textures/" .. fname)
 end
 
