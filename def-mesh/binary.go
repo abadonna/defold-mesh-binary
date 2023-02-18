@@ -18,6 +18,7 @@ embedded_components {
   type: "factory"
   data: "prototype: \"/def-mesh/dummy.go\"\n"
   "load_dynamically: false\n"
+  "dynamic_prototype: false\n"
   ""
   position {
     x: 0.0
@@ -36,6 +37,7 @@ embedded_components {
   type: "factory"
   data: "prototype: \"/def-mesh/dummy_trans.go\"\n"
   "load_dynamically: false\n"
+  "dynamic_prototype: false\n"
   ""
   position {
     x: 0.0

@@ -1,7 +1,6 @@
 
 local function load_scene(self, id)
 	if self.demo then
-		--msg.post(self.demo .. ":/model", "reset")
 		msg.post("#" .. self.demo, "unload")
 		self.demo = id
 		return

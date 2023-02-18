@@ -1,4 +1,6 @@
 local reader = require "def-mesh.reader"
+local SETTINGS = require "def-mesh.settings"
+
 go.property('opaque', resource.material())
 go.property('transparent', resource.material())
 
@@ -23,63 +25,31 @@ go.property('t18', resource.texture())
 go.property('t19', resource.texture())
 go.property('t20', resource.texture())
 
-go.property("v1", resource.buffer("/def-mesh/buffers/dummy1.buffer"))
-go.property("v2", resource.buffer("/def-mesh/buffers/dummy2.buffer"))
-go.property("v3", resource.buffer("/def-mesh/buffers/dummy3.buffer"))
-go.property("v4", resource.buffer("/def-mesh/buffers/dummy4.buffer"))
-go.property("v5", resource.buffer("/def-mesh/buffers/dummy5.buffer"))
-go.property("v6", resource.buffer("/def-mesh/buffers/dummy6.buffer"))
-go.property("v7", resource.buffer("/def-mesh/buffers/dummy7.buffer"))
-go.property("v8", resource.buffer("/def-mesh/buffers/dummy8.buffer"))
-go.property("v9", resource.buffer("/def-mesh/buffers/dummy9.buffer"))
-go.property("v10", resource.buffer("/def-mesh/buffers/dummy10.buffer"))
-go.property("v11", resource.buffer("/def-mesh/buffers/dummy11.buffer"))
-go.property("v12", resource.buffer("/def-mesh/buffers/dummy12.buffer"))
-go.property("v13", resource.buffer("/def-mesh/buffers/dummy13.buffer"))
-go.property("v14", resource.buffer("/def-mesh/buffers/dummy14.buffer"))
-go.property("v15", resource.buffer("/def-mesh/buffers/dummy15.buffer"))
-go.property("v16", resource.buffer("/def-mesh/buffers/dummy16.buffer"))
-go.property("v17", resource.buffer("/def-mesh/buffers/dummy17.buffer"))
-go.property("v18", resource.buffer("/def-mesh/buffers/dummy18.buffer"))
-go.property("v19", resource.buffer("/def-mesh/buffers/dummy19.buffer"))
-go.property("v20", resource.buffer("/def-mesh/buffers/dummy20.buffer"))
-go.property("v21", resource.buffer("/def-mesh/buffers/dummy21.buffer"))
-go.property("v22", resource.buffer("/def-mesh/buffers/dummy22.buffer"))
-go.property("v23", resource.buffer("/def-mesh/buffers/dummy23.buffer"))
-go.property("v24", resource.buffer("/def-mesh/buffers/dummy24.buffer"))
-go.property("v25", resource.buffer("/def-mesh/buffers/dummy25.buffer"))
-go.property("v26", resource.buffer("/def-mesh/buffers/dummy26.buffer"))
-go.property("v27", resource.buffer("/def-mesh/buffers/dummy27.buffer"))
-go.property("v28", resource.buffer("/def-mesh/buffers/dummy28.buffer"))
-go.property("v29", resource.buffer("/def-mesh/buffers/dummy29.buffer"))
-go.property("v30", resource.buffer("/def-mesh/buffers/dummy30.buffer"))
-go.property("v31", resource.buffer("/def-mesh/buffers/dummy31.buffer"))
-go.property("v32", resource.buffer("/def-mesh/buffers/dummy32.buffer"))
-go.property("v33", resource.buffer("/def-mesh/buffers/dummy33.buffer"))
-go.property("v34", resource.buffer("/def-mesh/buffers/dummy34.buffer"))
-go.property("v35", resource.buffer("/def-mesh/buffers/dummy35.buffer"))
-go.property("v36", resource.buffer("/def-mesh/buffers/dummy36.buffer"))
-go.property("v37", resource.buffer("/def-mesh/buffers/dummy37.buffer"))
-go.property("v38", resource.buffer("/def-mesh/buffers/dummy38.buffer"))
-go.property("v39", resource.buffer("/def-mesh/buffers/dummy39.buffer"))
-go.property("v40", resource.buffer("/def-mesh/buffers/dummy40.buffer"))
+local buffer_declaraion = {
+	{name = "position", type = buffer.VALUE_TYPE_FLOAT32, count = 3},	
+	{name = "normal", type = buffer.VALUE_TYPE_FLOAT32, count = 3},
+	{name = "texcoord0", type = buffer.VALUE_TYPE_FLOAT32, count = 2},
+	{name = "weight", type = buffer.VALUE_TYPE_FLOAT32, count = 4},
+	{name = "bone", type = buffer.VALUE_TYPE_UINT8, count = 4},
+	{name = "tangent", type = buffer.VALUE_TYPE_FLOAT32, count = 3},
+	{name = "bitangent", type = buffer.VALUE_TYPE_FLOAT32, count = 3}
+}
+
+local function create_buffer()
+	local buffer = buffer.create(1, buffer_declaraion)
+	SETTINGS.buffer_count = (SETTINGS.buffer_count and SETTINGS.buffer_count + 1) or 1
+	return resource.create_buffer("/def-mesh/buffers/buffer" .. SETTINGS.buffer_count .. ".bufferc", {buffer = buffer})
+end
 
 function init(self)
 	self.time = 0
 	self.meshes = {}
 	self.total_frames = 0
-	if BUFFERS == nil then
-		BUFFERS = {self.v1, self.v2, self.v3, self.v4, self.v5, self.v6, self.v7, self.v8, self.v9, self.v10,
-		self.v11, self.v12, self.v13, self.v14, self.v15, self.v16, self.v17, self.v18, self.v19, self.v20,
-		self.v21, self.v22, self.v23, self.v24, self.v25, self.v26, self.v27, self.v28, self.v29, self.v30,
-		self.v31, self.v32, self.v33, self.v34, self.v35, self.v36, self.v37, self.v38, self.v39, self.v40}
-	end
 end
 
 function final(self)
 	for _, mesh in pairs(self.meshes) do
 		mesh_utils.clear_data(mesh);
-		table.insert(BUFFERS, go.get(mesh.url, "vertices")) --return buffer to pool
 	end
 end
 
@@ -101,14 +71,9 @@ end
 function on_message(self, message_id, message, sender)
 	if message_id == hash("load_mesh") then
 		reader.init_from_resource(message.path)
-		while not reader.eof() and #BUFFERS > 0 do
+		while not reader.eof() do
 			for _, mesh in ipairs(reader.read_mesh()) do --can be multiple meshes if initial mesh contains multiple materials
 				pprint(mesh.name .. " " .. #mesh.faces .. " triangles")
-
-				if #BUFFERS == 0 then
-					pprint("No more buffers")
-					return
-				end
 
 				if mesh.frames then
 					self.total_frames = #mesh.frames
@@ -127,7 +92,7 @@ function on_message(self, message_id, message, sender)
 				end
 				
 
-				local v = table.remove(BUFFERS)
+				local v = create_buffer()
 				resource.set_buffer(v, buf)
 				go.set(mesh.url, "vertices", v)
 
@@ -240,12 +205,6 @@ function on_message(self, message_id, message, sender)
 		set_frame(self, self.blend_from or self.frame )
 		
 		self.sender = sender
-		
-	elseif message_id == hash("reset") then
-		for _, mesh in pairs(self.meshes) do
-			table.insert(BUFFERS, go.get(mesh.url, "vertices"))
-			go.set(mesh.url, "vertices", self.v1)
-		end
 	end
 end
 

@@ -2,7 +2,7 @@ embedded_components {
   id: "mesh"
   type: "mesh"
   data: "material: \"/def-mesh/materials/model.material\"\n"
-  "vertices: \"/def-mesh/buffers/dummy1.buffer\"\n"
+  "vertices: \"/def-mesh/buffers/dummy.buffer\"\n"
   "textures: \"/textures/checker_256_32.png\"\n"
   "primitive_type: PRIMITIVE_TRIANGLES\n"
   "position_stream: \"position\"\n"
