@@ -1,7 +1,7 @@
 # defold-mesh-binary
 Export mesh of any complexity from Blender to Defold game engine.
 
-![web demo](https://abadonna.github.io/defold-mesh-binary/)
+[demo on github pages](https://abadonna.github.io/defold-mesh-binary/)
 
 ## Usage
 1. Use defold_mesh_bin.py to export scene from Blender (tested only in 3.0.0)
