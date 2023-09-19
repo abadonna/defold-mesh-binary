@@ -6,7 +6,7 @@ Export mesh of any complexity from Blender to Defold game engine.
 ## Usage
 1. Use defold_mesh_bin.py to export scene from Blender (tested only in 3.0.0)
 2. Add def-mesh/binary.go into the scene and set all textures you need
-3. Send "load_mesh" message with path to binary file in custom resources
+3. Send "load_mesh" message with path to binary file in custom resources and path to texture folder
 4. For transparent materials, add "trans" predicate and render it after "model" predicate:
 ```` 
 	render.set_depth_mask(false)
@@ -29,9 +29,7 @@ Export mesh of any complexity from Blender to Defold game engine.
 * Blend shape animations in C
 * Transparent materials
 
-## Drawbacks (Defold 190)
-* Impossible to create vertex buffer in runtime, so we have to keep buffers pool
-* Impossible to create texture in runtime
+## Drawbacks
 * Meshes are not visible in Editor, only in runtime
 
 
