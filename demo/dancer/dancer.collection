@@ -13,14 +13,6 @@ instances {
     z: 0.0
     w: 1.0
   }
-  component_properties {
-    id: "binary"
-    properties {
-      id: "t1"
-      value: "/textures/checker_256_32.png"
-      type: PROPERTY_TYPE_HASH
-    }
-  }
   scale3 {
     x: 1.0
     y: 1.0
@@ -45,6 +37,8 @@ embedded_instances {
   "    z: 0.0\n"
   "    w: 1.0\n"
   "  }\n"
+  "  property_decls {\n"
+  "  }\n"
   "}\n"
   "components {\n"
   "  id: \"demo\"\n"
@@ -59,6 +53,8 @@ embedded_instances {
   "    y: 0.0\n"
   "    z: 0.0\n"
   "    w: 1.0\n"
+  "  }\n"
+  "  property_decls {\n"
   "  }\n"
   "}\n"
   ""

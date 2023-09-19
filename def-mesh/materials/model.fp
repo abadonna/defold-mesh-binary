@@ -91,7 +91,7 @@ void main()
     if (light > 0.0) {
         float roughness = options_specular.w > 0.0 ? texture2D(tex2, var_texcoord0).x : options_specular.z;
         roughness = ramp(roughness, rough_ramp);
-        float k = mix(1.0, 0.2, roughness);
+        float k = mix(1.0, 0.4, roughness);
         roughness = 32. / (roughness * roughness);
         roughness = min(500.0, roughness);
         float sp = options_specular.x > 0.0 ? texture2D(tex2, var_texcoord0).x : options_specular.y;

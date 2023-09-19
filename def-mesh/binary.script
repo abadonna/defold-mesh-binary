@@ -4,27 +4,6 @@ local SETTINGS = require "def-mesh.settings"
 go.property('opaque', resource.material())
 go.property('transparent', resource.material())
 
-go.property('t1', resource.texture())
-go.property('t2', resource.texture())
-go.property('t3', resource.texture())
-go.property('t4', resource.texture())
-go.property('t5', resource.texture())
-go.property('t6', resource.texture())
-go.property('t7', resource.texture())
-go.property('t8', resource.texture())
-go.property('t9', resource.texture())
-go.property('t10', resource.texture())
-go.property('t11', resource.texture())
-go.property('t12', resource.texture())
-go.property('t13', resource.texture())
-go.property('t14', resource.texture())
-go.property('t15', resource.texture())
-go.property('t16', resource.texture())
-go.property('t17', resource.texture())
-go.property('t18', resource.texture())
-go.property('t19', resource.texture())
-go.property('t20', resource.texture())
-
 local buffer_declaraion = {
 	{name = "position", type = buffer.VALUE_TYPE_FLOAT32, count = 3},	
 	{name = "normal", type = buffer.VALUE_TYPE_FLOAT32, count = 3},
@@ -59,17 +38,36 @@ local function set_frame(self, frame, frame_blend, blend)
 	end
 end
 
-local function get_texture_hash(tex_name)
-	local fname = string.gsub(tex_name, ".png", ".texturec")
-	fname = string.gsub(fname, ".jpg", ".texturec")
-	fname = string.gsub(fname, ".tif", ".texturec")
-	fname = string.gsub(fname, ".tiff", ".texturec")
-	fname = string.gsub(fname, ".tga", ".texturec")
-	return hash("/textures/" .. fname)
+local function set_texture(url, slot, folder, file)
+	local data = sys.load_resource(folder .. file)
+	if not data then
+		pprint(folder .. file .. " not found")
+		return false
+	end
+
+	local path = folder .. file ..".texturec"
+	local img = imageloader.load{data = data}
+
+	local texture_id = hash(path)
+	if not pcall(function()
+		texture_id = resource.create_texture(path, img.header, img.buffer)
+	end) then
+		--already exists?
+	end
+	go.set(url, slot, texture_id)
+	return true
 end
 
 function on_message(self, message_id, message, sender)
 	if message_id == hash("load_mesh") then
+		self.texture_folder = message.texture_folder or "/assets/"
+		if string.find(self.texture_folder, "/") ~= 1 then
+			self.texture_folder = "/" .. self.texture_folder
+		end
+		if string.find(self.texture_folder, "/$") == nil then
+			self.texture_folder = self.texture_folder .. "/"
+		end
+		pprint(self.texture_folder )
 		reader.init_from_resource(message.path)
 		while not reader.eof() do
 			for _, mesh in ipairs(reader.read_mesh()) do --can be multiple meshes if initial mesh contains multiple materials
@@ -106,50 +104,33 @@ function on_message(self, message_id, message, sender)
 
 				if mesh.material.texture then
 					options.x = 1.0
-					if not pcall(function()
-						local texture = get_texture_hash(mesh.material.texture)
-						go.set(mesh.url, "texture0", texture)
-						options.x = 1.0
-					end) then
-						pprint(mesh.material.texture .. " not found")
-					end
+					set_texture(mesh.url, "texture0", self.texture_folder, mesh.material.texture)
 				end
 
-				if mesh.material.normal then
-					if not pcall(function()
-						local texture = get_texture_hash(mesh.material.normal.texture)
-						go.set(mesh.url, "texture1", texture)
+				if mesh.material.normal and
+				set_texture(mesh.url, "texture1", self.texture_folder, mesh.material.normal.texture) 
+				then
 						options.y = mesh.material.normal.strength
-					end) then
-						pprint(mesh.material.normal.texture .. " not found")
-					end
 				end
 
-				if mesh.material.specular.texture then
-					if not pcall(function()
-						local texture = get_texture_hash(mesh.material.specular.texture)
-						go.set(mesh.url, "texture2", texture)
-						options_specular.x = 1.0 + mesh.material.specular.invert
-						if mesh.material.specular.ramp then
-							local r = mesh.material.specular.ramp
-							go.set(mesh.url, "spec_ramp", vmath.vector4(r.p1, r.v1, r.p2, r.v2))
-						end
-					end) then
-						pprint(mesh.material.specular.texture .. " not found")
+				if mesh.material.specular.texture and
+				set_texture(mesh.url, "texture2", self.texture_folder, mesh.material.specular.texture) 
+				then
+					options_specular.x = 1.0 + mesh.material.specular.invert
+					if mesh.material.specular.ramp then
+						local r = mesh.material.specular.ramp
+						go.set(mesh.url, "spec_ramp", vmath.vector4(r.p1, r.v1, r.p2, r.v2))
 					end
 				end
-
-				if mesh.material.roughness.texture then
-					if not pcall(function()
-						local texture = get_texture_hash(mesh.material.roughness.texture)
-						go.set(mesh.url, "texture2", texture) -- roughness and specular are usually the same?
-						options_specular.w = 1.0
-						if mesh.material.roughness.ramp then
-							local r = mesh.material.roughness.ramp
-							go.set(mesh.url, "rough_ramp", vmath.vector4(r.p1, r.v1, r.p2, r.v2))
-						end
-					end) then
-						pprint(mesh.material.roughness.texture .. " not found")
+				
+				if mesh.material.roughness.texture and
+				set_texture(mesh.url, "texture2", self.texture_folder, mesh.material.roughness.texture) 
+				then
+					-- roughness and specular are usually the same?
+					options_specular.w = 1.0
+					if mesh.material.roughness.ramp then
+						local r = mesh.material.roughness.ramp
+						go.set(mesh.url, "rough_ramp", vmath.vector4(r.p1, r.v1, r.p2, r.v2))
 					end
 				end
 

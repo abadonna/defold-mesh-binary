@@ -191,7 +191,7 @@ M.read_mesh = function()
 					p1 = M.read_float(),
 					v1 = M.read_float(),
 					p2 = M.read_float(),
-					v1 = M.read_float()
+					v2 = M.read_float()
 				}
 			end
 		end
@@ -204,7 +204,7 @@ M.read_mesh = function()
 					p1 = M.read_float(),
 					v1 = M.read_float(),
 					p2 = M.read_float(),
-					v1 = M.read_float()
+					v2 = M.read_float()
 				}
 			end
 		end

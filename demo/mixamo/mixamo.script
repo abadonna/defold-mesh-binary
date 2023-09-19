@@ -1,6 +1,6 @@
 
 function init(self)
-	msg.post("/model", "load_mesh", {path = "/assets/mixamo.bin", animations = "/assets/animations.script"})
+	msg.post("/model", "load_mesh", {path = "/assets/mixamo.bin", texture_folder = "/textures/mixamo/", animations = "/assets/animations.script"})
 	self.mouth = 0
 	self.body = 0
 end
