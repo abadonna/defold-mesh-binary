@@ -24,6 +24,7 @@ function init(self)
 	self.time = 0
 	self.meshes = {}
 	self.total_frames = 0
+	msg.post("#dummy", "disable")
 end
 
 function final(self)
