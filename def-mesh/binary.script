@@ -1,8 +1,10 @@
+require "def-mesh.texture"
 local reader = require "def-mesh.reader"
 local SETTINGS = require "def-mesh.settings"
 
 go.property('opaque', resource.material())
 go.property('transparent', resource.material())
+go.property("animate_with_texture", false)
 
 local buffer_declaraion = {
 	{name = "position", type = buffer.VALUE_TYPE_FLOAT32, count = 3},	
@@ -68,10 +70,16 @@ function on_message(self, message_id, message, sender)
 		if string.find(self.texture_folder, "/$") == nil then
 			self.texture_folder = self.texture_folder .. "/"
 		end
-		pprint(self.texture_folder )
+
+		local anim_texture = nil
 		reader.init_from_resource(message.path)
 		while not reader.eof() do
-			for _, mesh in ipairs(reader.read_mesh()) do --can be multiple meshes if initial mesh contains multiple materials
+			for i, mesh in ipairs(reader.read_mesh()) do --can be multiple meshes if initial mesh contains multiple materials
+
+				if i == 1 and mesh.frames and self.animate_with_texture then
+					anim_texture = create_animation_texture(mesh)
+				end
+				
 				pprint(mesh.name .. " " .. #mesh.faces .. " triangles")
 
 				if mesh.frames then
@@ -103,6 +111,11 @@ function on_message(self, message_id, message, sender)
 
 				options.z = mesh.material.type
 
+				if anim_texture then
+					mesh.animate_with_texture = true
+					go.set(mesh.url, "texture3", anim_texture)
+				end
+
 				if mesh.material.texture then
 					options.x = 1.0
 					set_texture(mesh.url, "texture0", self.texture_folder, mesh.material.texture)
@@ -111,7 +124,7 @@ function on_message(self, message_id, message, sender)
 				if mesh.material.normal and
 				set_texture(mesh.url, "texture1", self.texture_folder, mesh.material.normal.texture) 
 				then
-						options.y = mesh.material.normal.strength
+					options.y = mesh.material.normal.strength
 				end
 
 				if mesh.material.specular.texture and

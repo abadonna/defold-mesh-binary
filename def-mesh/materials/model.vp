@@ -7,11 +7,16 @@ attribute mediump vec4 bone;
 attribute mediump vec3 tangent;
 attribute mediump vec3 bitangent;
 
+uniform highp vec4 animation;
+
 uniform mediump mat4 mtx_worldview;
 uniform mediump mat4 mtx_view;
 uniform mediump mat4 mtx_proj;
 uniform mediump mat4 mtx_normal;
 uniform mediump vec4 light;
+
+
+uniform lowp sampler2D tex_anim;
 
 #ifdef GL_ES
     uniform mediump vec4 bones[450];
@@ -47,13 +52,23 @@ mat4 transpose(highp mat4 m)
 }
 #endif
 
+
+
 mat4 get_bone_matrix(int idx) {
+    
     mat4 mtx_bone;
     int offset = idx * 3;
-    mtx_bone[0] = bones[offset];
-    mtx_bone[1] = bones[offset + 1];
-    mtx_bone[2] = bones[offset + 2];
-    //mtx_bone[3] = vec4(0.,0.,0.,1.);
+    
+    if (animation.x == 0.) {
+        mtx_bone[0] = bones[offset];
+        mtx_bone[1] = bones[offset + 1];
+        mtx_bone[2] = bones[offset + 2];
+    }else {
+        mtx_bone[0] = texture(tex_anim, vec2(offset * animation.x, animation.y));
+        mtx_bone[1] = texture(tex_anim, vec2((offset + 1) * animation.x, animation.y));
+        mtx_bone[2] = texture(tex_anim, vec2((offset + 2) * animation.x, animation.y));
+    }
+
     mtx_bone = transpose(mtx_bone); 
     //transposed matrix simplifies reading 4x3 matrix,
     //using 4x3 lets us to use more bones per mesh

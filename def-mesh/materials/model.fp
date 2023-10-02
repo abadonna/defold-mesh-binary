@@ -6,10 +6,11 @@ varying mediump mat3 var_tbn;
 varying mediump vec3 var_light_dir;
 varying mediump vec3 var_vh;
 
-uniform lowp sampler2D tex0;
-uniform lowp sampler2D tex1;
-uniform lowp sampler2D tex2;
-uniform lowp sampler2D tex3;
+uniform lowp sampler2D tex_diffuse;
+uniform lowp sampler2D tex_normal;
+uniform lowp sampler2D tex_rough;
+uniform lowp sampler2D tex_anim;
+
 uniform lowp sampler2D tex4;
 uniform lowp sampler2D tex5;
 uniform lowp sampler2D tex6;
@@ -45,7 +46,7 @@ float ramp(float factor, vec4 data)
 
 #ifndef GL_ES
 vec4 pcf_4x4(vec2 proj) {
-    vec2 texel = 1.0 / textureSize(tex0, 0);
+    vec2 texel = 1.0 / textureSize(tex_diffuse, 0);
     vec4 sum = vec4(0.); 
     float x, y; 
 
@@ -53,7 +54,7 @@ vec4 pcf_4x4(vec2 proj) {
         for (x = -1.5; x <= 1.5; x += 1.0) {
             vec2 uv = proj.xy + texel* vec2(x, y);
             if (uv.x < 0. ||uv.x > 1. || uv.y < 0. ||uv.y > 1.) {continue;}
-            sum += texture2D(tex0, uv);
+            sum += texture2D(tex_diffuse, uv);
         }
     }
     return sum / 16;
@@ -64,7 +65,7 @@ void main()
 {
     vec4 color = base_color;
 
-    if (options.x == 1.0) {color = texture2D(tex0, var_texcoord0);}
+    if (options.x == 1.0) {color = texture2D(tex_diffuse, var_texcoord0);}
 
     #ifndef GL_ES
         if (options.z == 2. && color.w > 0 && color.w < 1) {
@@ -80,7 +81,7 @@ void main()
     vec3 n = var_normal;
 
     if (options.y > 0.0) {
-        n = texture2D(tex1, var_texcoord0).xyz * 2.0 - 1.0;
+        n = texture2D(tex_normal, var_texcoord0).xyz * 2.0 - 1.0;
         n.xy *= options.y;
         n = normalize(n);
         n = var_tbn * n;
@@ -89,12 +90,12 @@ void main()
 
     float light = max(dot(n, var_light_dir), 0.0);
     if (light > 0.0) {
-        float roughness = options_specular.w > 0.0 ? texture2D(tex2, var_texcoord0).x : options_specular.z;
+        float roughness = options_specular.w > 0.0 ? texture2D(tex_rough, var_texcoord0).x : options_specular.z;
         roughness = ramp(roughness, rough_ramp);
         float k = mix(1.0, 0.4, roughness);
         roughness = 32. / (roughness * roughness);
         roughness = min(500.0, roughness);
-        float sp = options_specular.x > 0.0 ? texture2D(tex2, var_texcoord0).x : options_specular.y;
+        float sp = options_specular.x > 0.0 ? texture2D(tex_rough, var_texcoord0).x : options_specular.y;
         vec3 spec_power = vec3(ramp(sp, spec_ramp));
         if (options_specular.x > 1.0) {spec_power = 1.0 - spec_power;} ///invert flag
 

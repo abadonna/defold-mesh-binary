@@ -154,7 +154,7 @@ M.new = function()
 	end
 
 	mesh.calculate_bones = function()
-		if not mesh.cache.bones then
+		if not mesh.cache.bones  then
 			return
 		end
 
@@ -207,15 +207,6 @@ M.new = function()
 	mesh.set_frame = function(idx1, idx2, factor)	
 		if mesh.frames then
 			idx = math.min(idx1, #mesh.frames)
-			idx2 = idx2 and math.min(idx2, #mesh.frames) or nil
-		
-			if mesh.cache.idx1 ~= idx1 or mesh.cache.idx2 ~= idx2 or mesh.cache.factor ~= factor  then
-				mesh.cache.bones = idx2 and mesh.interpolate(idx, idx2, factor) or mesh.frames[idx]
-				mesh.cache.idx1 = idx1
-				mesh.cache.idx2 = idx2
-				mesh.cache.factor = factor
-				mesh.calculate_bones()
-			end
 
 			if SETTINGS.animate_blendshapes and #mesh.shape_frames >= idx then
 				local input = {}
@@ -232,8 +223,22 @@ M.new = function()
 					mesh.update_vertex_buffer(input)
 				end
 			end
-			
-			mesh.apply_armature()
+
+			if mesh.animate_with_texture then
+				go.set(mesh.url, "animation", vmath.vector4(1./#mesh.frames[1], (idx - 1.)/#mesh.frames, 0., 0.))
+				
+			else
+				idx2 = idx2 and math.min(idx2, #mesh.frames) or nil
+				if mesh.cache.idx1 ~= idx1 or mesh.cache.idx2 ~= idx2 or mesh.cache.factor ~= factor  then
+					mesh.cache.bones = idx2 and mesh.interpolate(idx, idx2, factor) or mesh.frames[idx]
+					mesh.cache.idx1 = idx1
+					mesh.cache.idx2 = idx2
+					mesh.cache.factor = factor
+					mesh.calculate_bones()
+				end
+				
+				mesh.apply_armature()
+			end
 		end
 	end
 
