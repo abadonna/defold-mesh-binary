@@ -225,7 +225,7 @@ M.new = function()
 			end
 
 			if mesh.animate_with_texture then
-				go.set(mesh.url, "animation", vmath.vector4(1./#mesh.frames[1], (idx - 1.)/#mesh.frames, 0., 0.))
+				go.set(mesh.url, "animation", vmath.vector4(1./mesh.animate_tex_width, (idx - 1.)/mesh.animate_tex_height, 0., 0.))
 				
 			else
 				idx2 = idx2 and math.min(idx2, #mesh.frames) or nil

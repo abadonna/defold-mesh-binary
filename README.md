@@ -29,6 +29,9 @@ Export mesh of any complexity from Blender to Defold game engine.
 * Blend shape animations in C
 * Transparent materials
 
+## Experimental
+* animations baked into texture
+
 ## Drawbacks
 * Meshes are not visible in Editor, only in runtime
 There is a dummy model in binary.go, so any mesh can be set on it to make scene more obvious in editor. Dummy model is disabled in runtime. 

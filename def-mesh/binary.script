@@ -77,7 +77,7 @@ function on_message(self, message_id, message, sender)
 			for i, mesh in ipairs(reader.read_mesh()) do --can be multiple meshes if initial mesh contains multiple materials
 
 				if i == 1 and mesh.frames and self.animate_with_texture then
-					anim_texture = create_animation_texture(mesh)
+					anim_texture, twidth, theight = create_animation_texture(mesh)
 				end
 				
 				pprint(mesh.name .. " " .. #mesh.faces .. " triangles")
@@ -113,6 +113,8 @@ function on_message(self, message_id, message, sender)
 
 				if anim_texture then
 					mesh.animate_with_texture = true
+					mesh.animate_tex_width = twidth
+					mesh.animate_tex_height = theight
 					go.set(mesh.url, "texture3", anim_texture)
 				end
 
