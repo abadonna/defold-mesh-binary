@@ -13,7 +13,7 @@ bl_info = {
     "category": "Import-Export"
 }
 
-import bpy, sys, struct
+import bpy, sys, struct, time
 from pathlib import Path
 
 def write_frame_data(precompute, bones, matrix_local, f):
@@ -105,6 +105,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         f.write(struct.pack('fff', *translation))
         f.write(struct.pack('fff', *rotation.to_euler()))
         f.write(struct.pack('fff', *scale))
+        
         
         #---------------------read-materials-----------------------
         def find_nodes_to(socket, type):
@@ -317,6 +318,10 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
             print("USED BONES: ", len(used_bones))
             bones_map = {bone.name: i for i, bone in enumerate(used_bones)}
             f.write(struct.pack('i', len(used_bones)))
+
+            for bone_ in used_bones:
+                f.write(struct.pack('i', len(bone_.name)))
+                f.write(bytes(bone_.name, "ascii"))
             
             for groups in vertex_groups_per_vertex:
                 f.write(struct.pack('i', len(groups)))

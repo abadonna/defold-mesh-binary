@@ -228,6 +228,12 @@ M.read_mesh = function()
 	--reading armature
 	--TODO: keep rigs separate from meshes for optimization
 
+	mesh.bone_names = {}
+	for i = 1, bone_count do
+		table.insert(mesh.bone_names, M.read_string())
+		--print("bone_name:", model.bone_names[i])
+	end
+
 	mesh.skin = {}
 	for i = 1, vertex_count do
 		data = {}

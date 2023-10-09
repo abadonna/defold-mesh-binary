@@ -5,6 +5,22 @@ local M = {}
 
 local vec3 = vmath.vector3
 
+local function quat_to_euler (q) 
+	local sinr_cosp = 2 * (q.w * q.x + q.y * q.z)
+	local cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y)
+	local x = math.atan2(sinr_cosp, cosr_cosp)
+
+	local sinp = math.sqrt(1 + 2 * (q.w * q.y - q.x * q.z))
+	local cosp = math.sqrt(1 - 2 * (q.w * q.y - q.x * q.z))
+	local y = 2 * math.atan2(sinp, cosp) - math.pi / 2
+
+	local siny_cosp = 2 * (q.w * q.z + q.x * q.y)
+	local cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z)
+	local z = math.atan2(siny_cosp, cosy_cosp)
+
+	return math.deg(x), math.deg(y), math.deg(z)
+end
+
 local function mat_to_quat(m)
 	local t = 0
 	local q = nil
@@ -38,6 +54,7 @@ end
 M.new = function()
 	local mesh = {}
 	mesh.color = vmath.vector4(1.0, 1.0, 1.0, 1.0)
+	mesh.bones_go = {}
 
 	mesh.set_shapes = function(input)
 		for name, value in pairs(input) do
@@ -154,7 +171,7 @@ M.new = function()
 	end
 
 	mesh.calculate_bones = function()
-		if not mesh.cache.bones  then
+		if not mesh.cache.bones then
 			return
 		end
 
@@ -204,6 +221,35 @@ M.new = function()
 		
 	end
 
+	mesh.apply_transform = function(bone_id, url)
+		
+		local offset = (bone_id - 1) * 3
+		
+		local v1 = mesh.cache.calculated[offset + 1]
+		local v2 = mesh.cache.calculated[offset + 2]
+		local v3 = mesh.cache.calculated[offset + 3]
+
+		local m = vmath.matrix4()
+		m.c0 = vmath.vector4(v1.x, v2.x, v3.x, 1)
+		m.c1 = vmath.vector4(v1.y, v2.y, v3.y, 1)
+		m.c2 = vmath.vector4(v1.z, v2.z, v3.z, 1)
+		m.c3 = vmath.vector4(v1.w, v2.w, v3.w, 1)
+
+		local x,y,z = quat_to_euler(mat_to_quat(m))
+
+		go.set(url, "euler.x", x)
+		go.set(url, "euler.y", z)
+		go.set(url, "euler.z", -y)
+
+		local p = vmath.vector3(v1.w, v3.w, -v2.w);
+		go.set_position(p, url)
+	end
+
+	mesh.add_bone_go = function(url, bone_id)
+		table.insert(mesh.bones_go, {bone_id = bone_id, url = url})
+		mesh.apply_transform(bone_id, url)
+	end
+
 	mesh.set_frame = function(idx1, idx2, factor)	
 		if mesh.frames then
 			idx = math.min(idx1, #mesh.frames)
@@ -224,20 +270,32 @@ M.new = function()
 				end
 			end
 
-			if mesh.animate_with_texture then
+			if mesh.animate_with_texture then -- TODO: frames interpolation
 				go.set(mesh.url, "animation", vmath.vector4(1./mesh.animate_tex_width, (idx - 1.)/mesh.animate_tex_height, 0., 0.))
-				
-			else
+			end
+
+			if not mesh.animate_with_texture or #mesh.bones_go > 0 then
 				idx2 = idx2 and math.min(idx2, #mesh.frames) or nil
 				if mesh.cache.idx1 ~= idx1 or mesh.cache.idx2 ~= idx2 or mesh.cache.factor ~= factor  then
 					mesh.cache.bones = idx2 and mesh.interpolate(idx, idx2, factor) or mesh.frames[idx]
+
+					if mesh.animate_with_texture then --TODO: frames interpolation
+						mesh.cache.bones = mesh.frames[idx]
+					end
+					
 					mesh.cache.idx1 = idx1
 					mesh.cache.idx2 = idx2
 					mesh.cache.factor = factor
 					mesh.calculate_bones()
 				end
-				
-				mesh.apply_armature()
+
+				if not mesh.animate_with_texture then
+					mesh.apply_armature()
+				end
+			end
+
+			for _, data in ipairs(mesh.bones_go) do
+				mesh.apply_transform(data.bone_id, data.url)
 			end
 		end
 	end

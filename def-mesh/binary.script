@@ -26,6 +26,8 @@ function init(self)
 	self.time = 0
 	self.meshes = {}
 	self.total_frames = 0
+	self.attaches = {}
+	self.bones_go = {}
 	msg.post("#dummy", "disable")
 end
 
@@ -59,6 +61,39 @@ local function set_texture(url, slot, folder, file)
 	end
 	go.set(url, slot, texture_id)
 	return true
+end
+
+local function get_bone_go(self, bone)
+	if self.bones_go[bone] then
+		return self.bones_go[bone]
+	end
+	
+	for _, mesh in pairs(self.meshes) do
+		if mesh.bone_names then
+			for i, name in ipairs(mesh.bone_names) do
+				if name == bone then
+					local id = factory.create("#factory_bone")
+
+					go.set_parent(id, mesh.url)
+					mesh.add_bone_go(id, i)
+
+					self.bones_go[bone] = id
+					return id
+				end
+			end
+		end
+	end
+	error("Bone " .. bone .. " not found!")
+	return nil
+end
+
+local function attach(self)
+	for _, attach in ipairs(self.attaches) do
+		local id = get_bone_go(self, attach.bone)
+		go.set_parent(attach.url, id, true)
+	end
+
+	self.attaches = {}
 end
 
 function on_message(self, message_id, message, sender)
@@ -178,11 +213,19 @@ function on_message(self, message_id, message, sender)
 				self.animations = loadstring(res)()
 			end
 		end
-		
+
+		self.loaded = true
+		attach(self)
 		msg.post(sender, "mesh_loaded", {frames = self.total_frames})
 		
 	elseif message_id == hash("set_frame") then
 		set_frame(self, message.frame)
+
+	elseif message_id == hash("attach_to_bone") then
+		table.insert(self.attaches, {bone = message.bone, url = message.url})
+		if self.loaded then
+			attach(self)
+		end
 
 	elseif message_id == hash("set_shapes") then
 		for _, mesh in pairs(self.meshes) do

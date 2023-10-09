@@ -37,7 +37,9 @@ function create_animation_texture(mesh)
 			index = index + 4 * (tparams.width - #bones)
 		end
 	end
-	
+
+	mesh.cache.bones = mesh.frames[1]
+	mesh.calculate_bones() -- return to first frame
 	
 	if not pcall(function()
 		texture_id = resource.create_texture(path, tparams, tbuffer)

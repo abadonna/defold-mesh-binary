@@ -31,6 +31,7 @@ Export mesh of any complexity from Blender to Defold game engine.
 
 ## Experimental
 * animations baked into texture
+* GameObject can be attached to bone
 
 ## Drawbacks
 * Meshes are not visible in Editor, only in runtime
@@ -38,6 +39,7 @@ There is a dummy model in binary.go, so any mesh can be set on it to make scene 
 
 
 ## TODO
+* Blending baked animations 
 * "Import animation only" option for exporter
 
 ---
