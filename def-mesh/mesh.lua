@@ -55,6 +55,12 @@ M.new = function()
 	local mesh = {}
 	mesh.color = vmath.vector4(1.0, 1.0, 1.0, 1.0)
 	mesh.bones_go = {}
+	mesh.material = {
+		type = 0,
+		color = vmath.vector4(1), 
+		specular = {value = 0},
+		roughness = {value = 0}
+	}
 
 	mesh.set_shapes = function(input)
 		for name, value in pairs(input) do
