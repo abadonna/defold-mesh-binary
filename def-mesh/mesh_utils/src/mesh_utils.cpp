@@ -5,41 +5,36 @@
 
 #include <dmsdk/sdk.h>
 #include <unordered_map>
+#include "model.h"
 
 using namespace Vectormath::Aos;
 
-typedef struct Vertex {
-    Vector3 p;
-    Vector3 n;
-} Vertex;
-
-typedef struct ShapeData {
-    Vector3 p;
-    Vector3 n;
-    Quat q;
-} ShapeData;
-
-
-typedef struct Shape {
-    std::unordered_map<uint32_t, ShapeData>* deltas;
-} Shape;
-
-typedef struct IndexArray {
+struct IndexArray {
     size_t* indices;
     size_t count;
-} IndexArray;
+};
 
-typedef struct MeshData {
+struct MeshData {
     std::unordered_map<size_t, IndexArray>* indices;
     float* tangents;
     float* bitangents;
-} MeshData;
+};
 
-typedef struct VertexData {
+struct Shape {
+    std::unordered_map<uint32_t, ShapeData>* deltas;
+};
+
+struct VertexData {
     std::unordered_map<char*, Shape>* shapes;
     Vertex* vertices;
-} VertexData;
+};
 
+static int Load(lua_State* L) {
+    const char* content =  luaL_checkstring(L, 1);
+    unsigned long size = luaL_checknumber(L, 2);
+    Model *model = new Model(content, size);
+    return 0;
+}
 
 static int LoadMeshData(lua_State* L) {
     MeshData* data = new MeshData();
@@ -415,6 +410,7 @@ static const luaL_reg Module_methods[] =
     {"load_vertex_data", LoadVertexData},
     {"clear_cache", ClearCache},
     {"clear_data", ClearData},
+    {"load", Load},
     {0, 0}
 };
 

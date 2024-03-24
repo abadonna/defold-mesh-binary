@@ -13,8 +13,11 @@ function init(self)
 	math.random()
 	math.random()
 
-	msg.post("/model", "load_mesh", {path = "/assets/joy.bin", texture_folder = "textures/complex"})
-	blink()
+	--msg.post("/model", "load_mesh", {path = "/assets/joy.bin", texture_folder = "textures/complex"})
+	--blink()
+
+	local data = sys.load_resource("/assets/joy.bin")
+	mesh_utils.load(data, #data)
 end
 
 --[[
