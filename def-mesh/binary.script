@@ -107,6 +107,12 @@ function on_message(self, message_id, message, sender)
 		end
 
 		local anim_texture = nil
+
+		local data = sys.load_resource(message.path)
+		local bin = mesh_utils.load("test", data, #data)
+
+		pprint(bin)
+		--[[
 		reader.init_from_resource(message.path)
 		while not reader.eof() do
 			for i, mesh in ipairs(reader.read_mesh()) do --can be multiple meshes if initial mesh contains multiple materials
@@ -192,6 +198,8 @@ function on_message(self, message_id, message, sender)
 				self.meshes[mesh.name] = mesh
 			end
 		end
+
+		--]]
 
 		--set hierarchy
 		for key, mesh in pairs(self.meshes) do

@@ -5,7 +5,7 @@
 
 #include <dmsdk/sdk.h>
 #include <unordered_map>
-#include "model.h"
+#include "binary.h"
 
 using namespace Vectormath::Aos;
 
@@ -29,11 +29,31 @@ struct VertexData {
     Vertex* vertices;
 };
 
+std::unordered_map<std::string, BinaryFile*> files;
+
 static int Load(lua_State* L) {
-    const char* content =  luaL_checkstring(L, 1);
-    unsigned long size = luaL_checknumber(L, 2);
-    Model *model = new Model(content, size);
-    return 0;
+    std::string name = string(luaL_checkstring(L, 1));
+    const char* content =  luaL_checkstring(L, 2);
+    unsigned long size = luaL_checknumber(L, 3);
+
+    BinaryFile* binary;
+    if (auto search = files.find(name); search != files.end()) {
+        binary = search->second;
+        dmLogInfo("file found!");
+    } else {
+        files[name] = new BinaryFile(content, size);
+        binary = files[name];
+    }
+
+    lua_newtable(L);
+    int idx = 1;
+    for(auto model : binary->models) {
+        model.CreateLuaProxy(L);
+        lua_rawseti(L, -2, idx);
+        idx++;
+    }
+    
+    return 1;
 }
 
 static int LoadMeshData(lua_State* L) {
