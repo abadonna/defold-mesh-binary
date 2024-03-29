@@ -1,14 +1,5 @@
 #include "model.h"
 
-void Model::CreateLuaProxy(lua_State* L) {
-	lua_newtable(L);
-	lua_pushstring(L, "name");
-	lua_pushstring(L, this->name.c_str());
-	lua_settable(L, -3);
-}
-
-//----------------------------------------------
-
 Model::Model(Reader* reader){
 	this->meshes.emplace_back();
 	//this->meshes.back().Test();
@@ -56,7 +47,7 @@ Model::Model(Reader* reader){
 	}
 	
 	int faceCount = reader->ReadInt();
-	int faceMap[faceCount + 1];
+	int faceMap[faceCount];
 	
 	dmLogInfo("faces: %d", faceCount);
 	
@@ -68,9 +59,10 @@ Model::Model(Reader* reader){
 
 		int mi = reader->ReadInt();
 		faceMap[i] = mi;
-
+		
 		int flatFlag = reader->ReadInt();
 		if (flatFlag == 1) {
+			face.isFlat = true;
 			face.n = reader->ReadVector3();
 		}
 
@@ -81,9 +73,9 @@ Model::Model(Reader* reader){
 	}
 
 	for (int i = 0; i < faceCount; i++) {
-		Mesh mesh = this->meshes[faceMap[i]];
+		Mesh* mesh = &this->meshes[faceMap[i]];
 		for (int j = 0; j < 6; j++) {
-			mesh.texcoords.push_back(reader->ReadFloat());
+			mesh->texcoords.push_back(reader->ReadFloat());
 		}
 	}
 
@@ -91,48 +83,50 @@ Model::Model(Reader* reader){
 
 	dmLogInfo("materials: %d", materialCount);
 
+	Mesh notUsedMaterialMesh; //? still needed ?
+	
 	for (int i = 0; i < materialCount; i ++) {
-		Mesh mesh = (this->meshes.size() > i) ? this->meshes[i] : Mesh(); //not used material
-		mesh.material.type = reader->ReadInt(); // 0 - opaque, 1 - blend, 2 - hashed
-		mesh.material.color = reader->ReadVector4();
-		mesh.material.specular.value = reader->ReadFloat();
-		mesh.material.roughness.value = reader->ReadFloat();
+		Mesh* mesh = (this->meshes.size() > i) ? &this->meshes[i] : &notUsedMaterialMesh;
+		mesh->material.type = reader->ReadInt(); // 0 - opaque, 1 - blend, 2 - hashed
+		mesh->material.color = reader->ReadVector4();
+		mesh->material.specular.value = reader->ReadFloat();
+		mesh->material.roughness.value = reader->ReadFloat();
 
 		int textureFlag = reader->ReadInt();
 		int rampFlag = 0;
 
 		if (textureFlag > 0) {
-			mesh.material.texture = reader->ReadString(textureFlag);
+			mesh->material.texture = reader->ReadString(textureFlag);
 		}
 		
 		textureFlag = reader->ReadInt(); //normal texture
 		if (textureFlag > 0) {
-			mesh.material.normal.texture = reader->ReadString(textureFlag);
-			mesh.material.normal.value = reader->ReadFloat();
+			mesh->material.normal.texture = reader->ReadString(textureFlag);
+			mesh->material.normal.value = reader->ReadFloat();
 		}
 
 		textureFlag = reader->ReadInt(); //specular texture
 		if (textureFlag > 0) {
-			mesh.material.specular.texture = reader->ReadString(textureFlag);
-			mesh.material.specular.invert = reader->ReadInt();
+			mesh->material.specular.texture = reader->ReadString(textureFlag);
+			mesh->material.specular.invert = reader->ReadInt();
 			rampFlag = reader->ReadInt();
 			if (rampFlag > 0) {
-				mesh.material.specular.ramp.p1 = reader->ReadFloat();
-				mesh.material.specular.ramp.v1 = reader->ReadFloat();
-				mesh.material.specular.ramp.p2 = reader->ReadFloat();
-				mesh.material.specular.ramp.v2 = reader->ReadFloat();
+				mesh->material.specular.ramp.p1 = reader->ReadFloat();
+				mesh->material.specular.ramp.v1 = reader->ReadFloat();
+				mesh->material.specular.ramp.p2 = reader->ReadFloat();
+				mesh->material.specular.ramp.v2 = reader->ReadFloat();
 			}
 		}
 	
 		textureFlag = reader->ReadInt(); //roughness texture
 		if (textureFlag > 0) {
-			mesh.material.roughness.texture = reader->ReadString(textureFlag);
+			mesh->material.roughness.texture = reader->ReadString(textureFlag);
 			rampFlag = reader->ReadInt();
 			if (rampFlag > 0) {
-				mesh.material.roughness.ramp.p1 = reader->ReadFloat();
-				mesh.material.roughness.ramp.v1 = reader->ReadFloat();
-				mesh.material.roughness.ramp.p2 = reader->ReadFloat();
-				mesh.material.roughness.ramp.v2 = reader->ReadFloat();
+				mesh->material.roughness.ramp.p1 = reader->ReadFloat();
+				mesh->material.roughness.ramp.v1 = reader->ReadFloat();
+				mesh->material.roughness.ramp.p2 = reader->ReadFloat();
+				mesh->material.roughness.ramp.v2 = reader->ReadFloat();
 			}
 		}
 	}
@@ -207,6 +201,7 @@ Model::Model(Reader* reader){
 }
 
 Model::~Model(){
+
 	delete [] this->vertices;
 	delete [] this->boneNames;
 	delete [] this->skin;

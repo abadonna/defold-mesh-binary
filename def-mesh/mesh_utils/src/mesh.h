@@ -1,6 +1,8 @@
 #include "utils.h"
 using namespace std;
 
+class ModelInstance;
+
 class Mesh
 {
 	private:
@@ -10,7 +12,7 @@ class Mesh
 		vector<float>texcoords;
 		Material material;
 		
-		void Test();
+		dmBuffer::HBuffer CreateBuffer(ModelInstance* model);
 		Mesh();
 		~Mesh();
 };

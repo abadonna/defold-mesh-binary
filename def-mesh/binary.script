@@ -16,10 +16,10 @@ local buffer_declaraion = {
 	{name = "bitangent", type = buffer.VALUE_TYPE_FLOAT32, count = 3}
 }
 
-local function create_buffer()
-	local buffer = buffer.create(1, buffer_declaraion)
+local function create_buffer(buf)
+	--buf = buf or buffer.create(1, buffer_declaraion)
 	SETTINGS.buffer_count = (SETTINGS.buffer_count and SETTINGS.buffer_count + 1) or 1
-	return resource.create_buffer("/def-mesh/buffers/buffer" .. SETTINGS.buffer_count .. ".bufferc", {buffer = buffer})
+	return resource.create_buffer("/def-mesh/buffers/buffer" .. SETTINGS.buffer_count .. ".bufferc", {buffer = buf})
 end
 
 function init(self)
@@ -44,6 +44,9 @@ local function set_frame(self, frame, frame_blend, blend)
 end
 
 local function set_texture(url, slot, folder, file)
+	if not file then
+		return false
+	end
 	local data = sys.load_resource(folder .. file)
 	if not data then
 		pprint(folder .. file .. " not found")
@@ -109,9 +112,100 @@ function on_message(self, message_id, message, sender)
 		local anim_texture = nil
 
 		local data = sys.load_resource(message.path)
-		local bin = mesh_utils.load("test", data, #data)
+		local bin, models = mesh_utils.load("test", data, #data)
 
-		pprint(bin)
+		pprint(bin, models)
+		local game_objects = {}
+
+		for name, model in pairs(models) do 
+			self.total_frames = model.frames
+			for i, mesh in ipairs(model.meshes) do
+	
+				local f = mesh.material.type == 0 and "#factory" or "#factory_trans"
+
+				local id = factory.create(f, model.position, model.rotation, {}, model.scale)
+				local url = msg.url(nil, id, "mesh")
+
+				game_objects[i == 1 and name or (name .. "_" .. i)] = {id = id, url = url, parent = model.parent}
+
+				if self.opaque ~= hash("") and mesh.material.type == 0 then
+					go.set(url, "material", self.opaque)
+				elseif self.transparent ~= hash("") and mesh.material.type ~= 0 then
+					go.set(url, "material", self.transparent)
+				end
+				
+
+				--[[
+				local values = buffer.get_stream(mesh.buffer, "weight")
+				pprint("weights", values[1], values[2], values[3], values[4])
+
+				local values = buffer.get_stream(mesh.buffer, "texcoord0")
+				pprint("texcoords", values[1], values[2], values[3], values[4])
+				--]]
+						
+				
+				local v = create_buffer(mesh.buffer)
+				go.set(url, "vertices", v)
+
+				local options = vmath.vector4(0.0)
+				local options_specular = vmath.vector4(0.0)
+				options_specular.y = mesh.material.specular.value
+				options_specular.z = mesh.material.roughness.value
+
+				options.z = mesh.material.type
+
+				--[[
+				if anim_texture then
+					mesh.animate_with_texture = true
+					mesh.animate_tex_width = twidth
+					mesh.animate_tex_height = theight
+					go.set(mesh.url, "texture3", anim_texture)
+				end
+				--]]
+
+				if mesh.material.texture then
+					options.x = 1.0
+					set_texture(url, "texture0", self.texture_folder, mesh.material.texture)
+				end
+
+				if mesh.material.normal and
+					set_texture(url, "texture1", self.texture_folder, mesh.material.normal.texture) 
+				then
+					options.y = mesh.material.normal.value
+				end
+
+				if mesh.material.specular.texture and
+					set_texture(url, "texture2", self.texture_folder, mesh.material.specular.texture) 
+				then
+					options_specular.x = 1.0 + mesh.material.specular.invert
+					if mesh.material.specular.ramp then
+						local r = mesh.material.specular.ramp
+						go.set(url, "spec_ramp", vmath.vector4(r.p1, r.v1, r.p2, r.v2))
+					end
+				end
+
+				if mesh.material.roughness.texture and
+					set_texture(url, "texture2", self.texture_folder, mesh.material.roughness.texture) 
+				then
+					-- roughness and specular are usually the same?
+					options_specular.w = 1.0
+					if mesh.material.roughness.ramp then
+						local r = mesh.material.roughness.ramp
+						go.set(url, "rough_ramp", vmath.vector4(r.p1, r.v1, r.p2, r.v2))
+					end
+				end
+
+				go.set(url, "base_color", mesh.material and mesh.material.color or vmath.vector4(0.8,0.8,0.8,1))
+				go.set(url, "options", options)
+				go.set(url, "options_specular", options_specular)
+
+				go.set_parent(id, ".", false)
+				
+			end
+			
+		end	
+		
+
 		--[[
 		reader.init_from_resource(message.path)
 		while not reader.eof() do
@@ -140,8 +234,7 @@ function on_message(self, message_id, message, sender)
 				end
 				
 
-				local v = create_buffer()
-				resource.set_buffer(v, buf)
+				local v = create_buffer(buf)
 				go.set(mesh.url, "vertices", v)
 
 				mesh.apply_armature()
@@ -196,12 +289,20 @@ function on_message(self, message_id, message, sender)
 				go.set(mesh.url, "options_specular", options_specular)
 				
 				self.meshes[mesh.name] = mesh
+				
 			end
 		end
-
 		--]]
+		
 
 		--set hierarchy
+		for key, mesh in pairs(game_objects) do
+			if mesh.parent and game_objects[mesh.parent] then
+				go.set_parent(mesh.id, game_objects[mesh.parent].id, true)
+			end
+		end
+		
+		--[[
 		for key, mesh in pairs(self.meshes) do
 			if mesh.parent and self.meshes[mesh.parent] then
 				go.set_parent(mesh.id, self.meshes[mesh.parent].id, false)
@@ -214,6 +315,7 @@ function on_message(self, message_id, message, sender)
 				end
 			end
 		end
+		--]]
 
 		if message.animations then
 			local res = sys.load_resource(message.animations)

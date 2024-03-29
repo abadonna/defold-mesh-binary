@@ -9,6 +9,10 @@
 
 using namespace Vectormath::Aos;
 
+struct InstanceData {
+    Instance* instance;
+};
+
 struct IndexArray {
     size_t* indices;
     size_t count;
@@ -45,15 +49,25 @@ static int Load(lua_State* L) {
         binary = files[name];
     }
 
+    Instance* instance = binary->CreateInstance();
+
     lua_newtable(L);
-    int idx = 1;
-    for(auto model : binary->models) {
-        model.CreateLuaProxy(L);
-        lua_rawseti(L, -2, idx);
-        idx++;
-    }
+    lua_pushstring(L, "instance");
+    lua_pushlightuserdata(L, instance);
+    //InstanceData* data = (InstanceData*)(lua_newuserdata(L, sizeof(InstanceData)));
+    //data->instance = instance;
+    lua_settable(L, -3);
+
+    static const luaL_Reg f[] =
+    {
+        {"test", InstanceTest},
+        {0, 0}
+    };
+    luaL_register(L, NULL, f);
+
+    instance->CreateLuaProxy(L);
     
-    return 1;
+    return 2;
 }
 
 static int LoadMeshData(lua_State* L) {
