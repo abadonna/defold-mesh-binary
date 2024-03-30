@@ -6,12 +6,16 @@ class ModelInstance;
 class Mesh
 {
 	private:
+		vector<float> tangents;
+		vector<float> bitangents;
+	
+		void CalcTangents(Vertex* vertices);
 		
 	public:
 		vector<Face> faces;
-		vector<float>texcoords;
+		vector<float> texcoords;
 		Material material;
-		
+
 		dmBuffer::HBuffer CreateBuffer(ModelInstance* model);
 		Mesh();
 		~Mesh();

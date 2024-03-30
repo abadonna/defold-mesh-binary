@@ -114,7 +114,7 @@ function on_message(self, message_id, message, sender)
 		local data = sys.load_resource(message.path)
 		local bin, models = mesh_utils.load("test", data, #data)
 
-		pprint(bin, models)
+		--pprint(bin, models)
 		local game_objects = {}
 
 		for name, model in pairs(models) do 

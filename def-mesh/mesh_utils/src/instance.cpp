@@ -38,6 +38,10 @@ ModelInstance::~ModelInstance() {
 	}
 }
 
+Vertex* ModelInstance::GetVertices() {
+	return this->model->vertices;
+}
+
 void ModelInstance::CreateLuaProxy(lua_State* L) {
 	lua_pushstring(L, this->model->name.c_str());
 

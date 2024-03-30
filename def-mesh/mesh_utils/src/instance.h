@@ -12,6 +12,8 @@ class ModelInstance {
 	public:
 		Vertex* blended = NULL;
 		vector<dmBuffer::HBuffer> buffers;
+
+		Vertex* GetVertices();
 		ModelInstance(Model* model);
 		~ModelInstance();
 		void CreateLuaProxy(lua_State* L);
