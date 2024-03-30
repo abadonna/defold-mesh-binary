@@ -38,6 +38,7 @@ function final(self)
 end
 
 local function set_frame(self, frame, frame_blend, blend)
+	self.binary:set_frame(frame, frame_blend, blend)
 	--[[
 	for _, mesh in pairs(self.meshes) do
 		mesh.set_frame(frame, frame_blend, blend)
@@ -116,7 +117,7 @@ function on_message(self, message_id, message, sender)
 		local data = sys.load_resource(message.path)
 		self.binary, models = mesh_utils.load("test", data, #data)
 
-		--pprint(bin, models)
+		pprint(self.binary)
 		local game_objects = {}
 
 		for name, model in pairs(models) do 

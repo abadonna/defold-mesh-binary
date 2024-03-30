@@ -35,6 +35,28 @@ struct VertexData {
 
 std::unordered_map<std::string, BinaryFile*> files;
 
+static int SetFrame(lua_State* L) {
+    lua_getfield(L, 1, "instance");
+    Instance* instance = (Instance*)lua_touserdata(L, -1);
+    //dmLogInfo("FRAME! %s", instance->id.c_str());
+    
+    int frame = luaL_checknumber(L, 2);
+
+    instance->SetFrame(frame);
+    return 0;
+}
+
+static int Test(lua_State* L) {
+    lua_getglobal(L, "go");
+    lua_getfield(L, -1, "set");
+    lua_remove(L, -2);
+
+    lua_pushstring(L, "/go1#sprite");
+    lua_pushstring(L, "tint");
+    dmScript::PushVector4(L, dmVMath::Vector4(1,0,0,1));
+    lua_call(L, 3, 0);
+}
+
 static int Load(lua_State* L) {
     std::string name = string(luaL_checkstring(L, 1));
     const char* content =  luaL_checkstring(L, 2);
@@ -50,7 +72,6 @@ static int Load(lua_State* L) {
     }
 
     Instance* instance = binary->CreateInstance();
-
     lua_newtable(L);
     lua_pushstring(L, "instance");
     lua_pushlightuserdata(L, instance);
@@ -60,7 +81,7 @@ static int Load(lua_State* L) {
 
     static const luaL_Reg f[] =
     {
-        {"test", InstanceTest},
+        {"set_frame", SetFrame},
         {0, 0}
     };
     luaL_register(L, NULL, f);
@@ -445,6 +466,7 @@ static const luaL_reg Module_methods[] =
     {"clear_cache", ClearCache},
     {"clear_data", ClearData},
     {"load", Load},
+    {"test", Test},
     {0, 0}
 };
 

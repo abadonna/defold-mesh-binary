@@ -8,6 +8,10 @@ Mesh::Mesh() {
 Mesh::~Mesh() {
 }
 
+void Mesh::SetFrame(ModelInstance* model, int frame) {
+	
+}
+
 void Mesh::CalcTangents(Vertex* vertices) {
 	int size = this->faces.size();
 	this->tangents.reserve(size * 3);

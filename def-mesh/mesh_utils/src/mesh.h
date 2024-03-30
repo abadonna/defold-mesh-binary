@@ -17,6 +17,8 @@ class Mesh
 		Material material;
 
 		dmBuffer::HBuffer CreateBuffer(ModelInstance* model);
+		void SetFrame(ModelInstance* model, int frame);
+		
 		Mesh();
 		~Mesh();
 };

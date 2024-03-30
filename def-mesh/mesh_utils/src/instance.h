@@ -13,10 +13,13 @@ class ModelInstance {
 		Vertex* blended = NULL;
 		vector<dmBuffer::HBuffer> buffers;
 
-		Vertex* GetVertices();
 		ModelInstance(Model* model);
 		~ModelInstance();
+		
 		void CreateLuaProxy(lua_State* L);
+		void SetFrame(int frame);
+
+		Vertex* GetVertices();
 };
 
 class Instance{
@@ -24,16 +27,9 @@ class Instance{
 		vector<ModelInstance*> models;
 
 	public:
+		void SetFrame(int frame);
 		void CreateLuaProxy(lua_State* L);
+		
 		Instance(vector<Model*>* data);
 		~Instance();
 };
-
-static int InstanceTest(lua_State* L) {
-	//lua_getfield(L, -1, "idx");
-	//int idx = luaL_checknumber(L, -1);
-	//dmLogInfo("input index: %d", idx);
-
-	lua_pushstring(L, "xxx");
-	return 1;
-}

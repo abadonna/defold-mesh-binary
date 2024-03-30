@@ -22,10 +22,17 @@ void Instance::CreateLuaProxy(lua_State* L) {
 	}
 }
 
+void Instance::SetFrame(int frame) {
+	for(auto & model : this->models) {
+		model->SetFrame(frame);
+	}
+}
+
 
 ModelInstance::ModelInstance(Model* model) {
 	this->model = model;
 	this->blended = model->vertices;
+	dmLogInfo("create buffer");
 	for(auto & mesh : this->model->meshes) {
 		dmBuffer::HBuffer buffer = mesh.CreateBuffer(this);
 		this->buffers.push_back(buffer);
@@ -86,5 +93,11 @@ void ModelInstance::CreateLuaProxy(lua_State* L) {
 	lua_settable(L, -3);
 	lua_settable(L, -3);
 
+}
+
+void ModelInstance::SetFrame(int frame) {
+	for(auto & mesh : this->model->meshes) {
+		mesh.SetFrame(this, frame);
+	}
 }
 

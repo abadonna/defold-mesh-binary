@@ -17,9 +17,14 @@ BinaryFile::~BinaryFile() {
 	for (auto & model : this->models) {
 		delete model;
 	}
+
+	for (auto & instance : this->instances) {
+		delete instance;
+	}
 }
 
 Instance* BinaryFile::CreateInstance() {
-	this->instances.emplace_back(&this->models);
-	return &this->instances.back();
+	Instance* instance = new Instance(&this->models);
+	this->instances.push_back(instance);
+	return instance;
 }

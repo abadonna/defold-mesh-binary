@@ -6,7 +6,7 @@ using namespace std;
 class BinaryFile
 {
 	private:
-		vector<Instance> instances;
+		vector<Instance*> instances;
 	
 	public:
 		vector<Model*> models;
