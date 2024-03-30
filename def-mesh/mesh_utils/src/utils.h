@@ -9,7 +9,7 @@ using namespace dmVMath;
 
 struct Face {
 	int v[3];
-	bool isFlat;
+	bool isFlat = false;
 	Vector3 n;
 };
 

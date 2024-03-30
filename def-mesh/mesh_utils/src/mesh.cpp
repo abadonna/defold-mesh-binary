@@ -106,15 +106,17 @@ dmBuffer::HBuffer Mesh::CreateBuffer(ModelInstance* model) {
 			int idx = face.v[i];
 			
 			Vertex* vertex = &model->blended[idx];
-			Vector3 n = face.isFlat ? face.n : vertex->n;
+			Vector3* n = face.isFlat ? &face.n : &vertex->n;
+
+			//dmLogInfo("N %d : %f, %f, %f", face.isFlat, n-getX(), n.getY(), n.getZ());
 			
 			positions[0] = vertex->p.getX();
 			positions[1] = vertex->p.getY();
 			positions[2] = vertex->p.getZ();
 
-			normals[0] = n.getX();
-			normals[1] = n.getY();
-			normals[2] = n.getZ();
+			normals[0] = n->getX();
+			normals[1] = n->getY();
+			normals[2] = n->getZ();
 
 			if (hasNormalMap) {
 			//if not vertex.q then

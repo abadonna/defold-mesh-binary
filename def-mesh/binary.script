@@ -38,9 +38,11 @@ function final(self)
 end
 
 local function set_frame(self, frame, frame_blend, blend)
+	--[[
 	for _, mesh in pairs(self.meshes) do
 		mesh.set_frame(frame, frame_blend, blend)
 	end
+	]]--
 end
 
 local function set_texture(url, slot, folder, file)
@@ -110,9 +112,9 @@ function on_message(self, message_id, message, sender)
 		end
 
 		local anim_texture = nil
-
+		local models
 		local data = sys.load_resource(message.path)
-		local bin, models = mesh_utils.load("test", data, #data)
+		self.binary, models = mesh_utils.load("test", data, #data)
 
 		--pprint(bin, models)
 		local game_objects = {}
@@ -135,10 +137,10 @@ function on_message(self, message_id, message, sender)
 				end
 				
 
+			
+				--local values = buffer.get_stream(mesh.buffer, "normal")
+				--pprint("normals", values[1], values[2], values[3])
 				--[[
-				local values = buffer.get_stream(mesh.buffer, "weight")
-				pprint("weights", values[1], values[2], values[3], values[4])
-
 				local values = buffer.get_stream(mesh.buffer, "texcoord0")
 				pprint("texcoords", values[1], values[2], values[3], values[4])
 				--]]
