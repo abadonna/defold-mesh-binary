@@ -180,7 +180,8 @@ Model::Model(Reader* reader){
 	this->frames.reserve(frameCount);
 
 	for (int i = 0; i < frameCount; i++) {
-		vector<Vector4> bones(boneCount);
+		vector<Vector4> bones;
+		bones.reserve(boneCount * 3);
 		for (int j = 0; j < boneCount; j++) {
 			//3x4 transform matrix
 			bones.push_back(reader->ReadVector4());

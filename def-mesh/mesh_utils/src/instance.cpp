@@ -24,7 +24,7 @@ void Instance::CreateLuaProxy(lua_State* L) {
 
 void Instance::SetFrame(lua_State* L, int frame) {
 	for(auto & model : this->models) {
-		model->SetFrame(L, frame);
+		model->SetFrame(L, frame, -1, 0);
 	}
 }
 
@@ -125,11 +125,17 @@ void ModelInstance::CreateLuaProxy(lua_State* L) {
 
 }
 
-void ModelInstance::SetFrame(lua_State* L, int frame) {
-	//this->model->meshes[0].SetFrame(L, this, &this->urls[0], frame, -1, 0);
+void ModelInstance::SetFrame(lua_State* L,  int idx1, int idx2, float factor) {
+	int last_frame = this->model->frames.size() - 1;
+	if (last_frame < 0) return;
+
+	idx1 = (idx1 < last_frame) ? idx1 : last_frame;
+	idx2 = (idx2 < last_frame) ? idx2 : last_frame;
+	
+	///this->model->meshes[2].SetFrame(L, this, &this->urls[2], idx1, idx2, factor);
 	int size = this->model->meshes.size();
 	for (int i = 0; i < size; i++) {
-		this->model->meshes[i].SetFrame(L, this, &this->urls[i], frame, -1, 0);
+		this->model->meshes[i].SetFrame(L, this, &this->urls[i], idx1, idx2, factor);
 	}
 }
 

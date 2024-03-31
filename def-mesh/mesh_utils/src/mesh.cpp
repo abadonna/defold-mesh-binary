@@ -50,8 +50,7 @@ void Mesh::ApplyArmature(lua_State* L, ModelInstance* mi, URL* url) {
 
 		for (int i = 0; i < 3; i ++) {
 			//go.set(mesh.url, "bones", mesh.cache.calculated[offset + i], {index = offset + i})
-			//dmLogInfo("index: %d", offset + i);
-	
+			
 			lua_getglobal(L, "go");
 			lua_getfield(L, -1, "set");
 			lua_remove(L, -2);
@@ -74,16 +73,11 @@ void Mesh::ApplyArmature(lua_State* L, ModelInstance* mi, URL* url) {
 }
 
 void Mesh::SetFrame(lua_State* L, ModelInstance* mi, URL* url, int idx1, int idx2, float factor) {
-	int last_frame = mi->model->frames.size() - 1;
-	if (last_frame < 0) return;
-
-	idx1 = (idx1 < last_frame) ? idx1 : last_frame;
 	
 	//todo: blendshapes
 	//todo: baked
 
 	//if not mesh.animate_with_texture or #mesh.bones_go > 0 then
-	idx2 = (idx2 < last_frame) ? idx2 : last_frame;
 	
 	if (mi->frame1 != idx1 || mi->frame2 != idx2 || mi->factor != factor) {
 
@@ -98,11 +92,11 @@ void Mesh::SetFrame(lua_State* L, ModelInstance* mi, URL* url, int idx1, int idx
 		mi->factor = factor;
 	
 		this->CalculateBones(mi);
+	}
 
-		if (!mi->useBakedAnimations) this->ApplyArmature(L, mi, url);
+	if (!mi->useBakedAnimations) this->ApplyArmature(L, mi, url);
 
 		//todo bones_go
-	}
 }
 
 void Mesh::CalculateTangents(Vertex* vertices) {

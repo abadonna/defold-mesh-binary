@@ -32,7 +32,7 @@ class ModelInstance {
 		~ModelInstance();
 		
 		void CreateLuaProxy(lua_State* L);
-		void SetFrame(lua_State* L, int frame);
+		void SetFrame(lua_State* L, int idx1, int idx2, float factor);
 
 		Vertex* GetVertices();
 };
