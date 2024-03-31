@@ -24,7 +24,7 @@ BinaryFile::~BinaryFile() {
 }
 
 Instance* BinaryFile::CreateInstance() {
-	Instance* instance = new Instance(&this->models);
+	Instance* instance = new Instance(&this->models, false);
 	this->instances.push_back(instance);
 	return instance;
 }

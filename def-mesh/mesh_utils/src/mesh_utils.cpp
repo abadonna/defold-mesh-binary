@@ -42,7 +42,7 @@ static int SetFrame(lua_State* L) {
     
     int frame = luaL_checknumber(L, 2);
 
-    instance->SetFrame(frame);
+    instance->SetFrame(L, frame);
     return 0;
 }
 

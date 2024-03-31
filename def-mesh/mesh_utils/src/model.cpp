@@ -151,39 +151,41 @@ Model::Model(Reader* reader){
 	
 	this->skin = new vector<SkinData>[vertexCount];
 	for (int i = 0; i < vertexCount; i++) {
+		this->skin[i].reserve(4);
 		int weightCount = reader->ReadInt();
 		for (int j = 0; j < weightCount; j++) {
-			SkinData data = (SkinData) {
-				.idx = reader->ReadInt(),
-				.weight = reader->ReadFloat()
-			};
+			SkinData data;
+			data.idx = reader->ReadInt();
+			data.weight = reader->ReadFloat();
 			this->skin[i].push_back(data);
 		}
 	}
 
 	
-	bool precomputed = (reader->ReadInt() == 1);
+	this->isPrecomputed = (reader->ReadInt() == 1);
 	
 
-	if (!precomputed) {
+	if (!this->isPrecomputed) {
 		for (int i = 0; i < boneCount; i++) {
 			//3x4 transform matrix
-			this->inv_local_bones[0] = reader->ReadVector4();
-			this->inv_local_bones[1] = reader->ReadVector4();
-			this->inv_local_bones[2] = reader->ReadVector4();
+			this->invLocalBones[0] = reader->ReadVector4();
+			this->invLocalBones[1] = reader->ReadVector4();
+			this->invLocalBones[2] = reader->ReadVector4();
 		}
 	}
 
 	int frameCount = reader->ReadInt();
 	dmLogInfo("frames: %d", frameCount);
 
+	this->frames.reserve(frameCount);
+
 	for (int i = 0; i < frameCount; i++) {
-		Vector4 bones[3];
+		vector<Vector4> bones(boneCount);
 		for (int j = 0; j < boneCount; j++) {
 			//3x4 transform matrix
-			bones[0] = reader->ReadVector4();
-			bones[1] = reader->ReadVector4();
-			bones[2] = reader->ReadVector4();
+			bones.push_back(reader->ReadVector4());
+			bones.push_back(reader->ReadVector4());
+			bones.push_back(reader->ReadVector4());
 		}
 		
 		this->frames.push_back(bones);

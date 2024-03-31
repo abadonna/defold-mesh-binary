@@ -26,8 +26,8 @@ struct ShapeData {
 
 
 struct SkinData {
-	int idx;
-	float weight;
+	int idx = -1;
+	float weight = 0;
 };
 
 struct Transform3d {

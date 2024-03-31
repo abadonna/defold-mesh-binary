@@ -29,6 +29,13 @@ function init(self)
 	self.attaches = {}
 	self.bones_go = {}
 	msg.post("#dummy", "disable")
+	go.set2 = function(url, prop, value, params) 
+		params.index = 1;
+		if params.index < 0 then
+			pprint("SET", url, prop, value, params)
+		end
+		go.set(url, prop, value, params)
+	end
 end
 
 function final(self)
@@ -117,7 +124,7 @@ function on_message(self, message_id, message, sender)
 		local data = sys.load_resource(message.path)
 		self.binary, models = mesh_utils.load("test", data, #data)
 
-		pprint(self.binary)
+		--pprint(self.binary, models)
 		local game_objects = {}
 
 		for name, model in pairs(models) do 
@@ -128,6 +135,7 @@ function on_message(self, message_id, message, sender)
 
 				local id = factory.create(f, model.position, model.rotation, {}, model.scale)
 				local url = msg.url(nil, id, "mesh")
+				mesh:set_url(url);
 
 				game_objects[i == 1 and name or (name .. "_" .. i)] = {id = id, url = url, parent = model.parent}
 
@@ -138,14 +146,16 @@ function on_message(self, message_id, message, sender)
 				end
 				
 
-			
-				--local values = buffer.get_stream(mesh.buffer, "normal")
-				--pprint("normals", values[1], values[2], values[3])
-				--[[
-				local values = buffer.get_stream(mesh.buffer, "texcoord0")
-				pprint("texcoords", values[1], values[2], values[3], values[4])
-				--]]
-						
+			--[[
+				local values = buffer.get_stream(mesh.buffer, "weight")
+				pprint("weight1", values[101], values[102], values[103], values[104])
+				pprint("weight2", values[5], values[6], values[7], values[8])
+
+
+				values = buffer.get_stream(mesh.buffer, "bone")
+				pprint("bone1", values[101], values[102], values[103], values[104])
+				pprint("bone2", values[201], values[202], values[203], values[204])
+						--]]
 				
 				local v = create_buffer(mesh.buffer)
 				go.set(url, "vertices", v)

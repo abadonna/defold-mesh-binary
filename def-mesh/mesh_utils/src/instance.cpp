@@ -1,9 +1,9 @@
 #include "instance.h"
 #include "model.h"
 
-Instance::Instance(vector<Model*>* data) {
+Instance::Instance(vector<Model*>* data, bool baked) {
 	for(int i = 0; i < data->size(); i ++) {
-		ModelInstance* mi = new ModelInstance(data->at(i));
+		ModelInstance* mi = new ModelInstance(data->at(i), baked);
 		this->models.push_back(mi);
 	}
 }
@@ -22,31 +22,49 @@ void Instance::CreateLuaProxy(lua_State* L) {
 	}
 }
 
-void Instance::SetFrame(int frame) {
+void Instance::SetFrame(lua_State* L, int frame) {
 	for(auto & model : this->models) {
-		model->SetFrame(frame);
+		model->SetFrame(L, frame);
 	}
 }
 
+static int SetURL(lua_State* L) {
+	lua_getfield(L, 1, "instance");
+	ModelInstance* mi = (ModelInstance* )lua_touserdata(L, -1);
+	
+	URL url = *dmScript::CheckURL(L, 2);
 
-ModelInstance::ModelInstance(Model* model) {
+	int idx = mi->urls.size();
+	mi->urls.push_back(url);
+	mi->model->meshes[idx].ApplyArmature(L, mi, &url);
+
+	//char test[255];
+	//dmScript::UrlToString(&url, test, 255);
+	//dmLogInfo("url recieved: %s", test);
+
+	return 0;
+}
+
+
+ModelInstance::ModelInstance(Model* model, bool baked) {
+	this->useBakedAnimations = baked;
 	this->model = model;
 	this->blended = model->vertices;
-	dmLogInfo("create buffer");
+
+	this->urls.reserve(this->model->meshes.size());
+
 	for(auto & mesh : this->model->meshes) {
 		dmBuffer::HBuffer buffer = mesh.CreateBuffer(this);
 		this->buffers.push_back(buffer);
 	}
+
+	this->bones = model->frames.size() > 0 ? &model->frames[0] : NULL;
 }
 
 ModelInstance::~ModelInstance() {
 	for(auto & buffer : this->buffers) {
 		dmBuffer::Destroy(buffer);
 	}
-}
-
-Vertex* ModelInstance::GetVertices() {
-	return this->model->vertices;
 }
 
 void ModelInstance::CreateLuaProxy(lua_State* L) {
@@ -80,6 +98,18 @@ void ModelInstance::CreateLuaProxy(lua_State* L) {
 	int idx = 1;
 	for(auto & mesh : this->model->meshes) {
 		lua_newtable(L);
+
+		static const luaL_Reg f[] =
+		{
+			{"set_url", SetURL},
+			{0, 0}
+		};
+		luaL_register(L, NULL, f);
+
+		lua_pushstring(L, "instance");
+		lua_pushlightuserdata(L, this);
+		lua_settable(L, -3);
+		
 		lua_pushstring(L, "buffer");
 		dmScript::LuaHBuffer luabuf(this->buffers[idx-1], dmScript::OWNER_LUA);
 		dmScript::PushBuffer(L, luabuf);
@@ -95,9 +125,11 @@ void ModelInstance::CreateLuaProxy(lua_State* L) {
 
 }
 
-void ModelInstance::SetFrame(int frame) {
-	for(auto & mesh : this->model->meshes) {
-		mesh.SetFrame(this, frame);
+void ModelInstance::SetFrame(lua_State* L, int frame) {
+	//this->model->meshes[0].SetFrame(L, this, &this->urls[0], frame, -1, 0);
+	int size = this->model->meshes.size();
+	for (int i = 0; i < size; i++) {
+		this->model->meshes[i].SetFrame(L, this, &this->urls[i], frame, -1, 0);
 	}
 }
 

@@ -7,7 +7,6 @@ class Model
 {
 	private:
 		string* boneNames  = NULL;
-		Vector4 inv_local_bones[3];
 		
 	
 	public:
@@ -17,10 +16,12 @@ class Model
 		Transform3d world;
 		Vertex* vertices = NULL;
 		vector<Mesh>meshes;
-		vector<Vector4*> frames;
+		vector< vector<Vector4> > frames;
 		unordered_map<string, unordered_map<uint32_t, ShapeData> > shapes;
 		vector< unordered_map<string, float> > shapeFrames;
 		vector<SkinData>* skin = NULL;
+		Vector4 invLocalBones[3];
+		bool isPrecomputed = false;
 		
 		Model(Reader* reader);
 		~Model();

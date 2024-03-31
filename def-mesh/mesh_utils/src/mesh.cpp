@@ -1,4 +1,4 @@
-#include "mesh.h"
+#include "model.h"
 #include "instance.h"
 #include <dmsdk/sdk.h>
 
@@ -8,11 +8,104 @@ Mesh::Mesh() {
 Mesh::~Mesh() {
 }
 
-void Mesh::SetFrame(ModelInstance* model, int frame) {
+void Mesh::CalculateBones(ModelInstance* mi) {
+	if (mi->bones == NULL) return;
+
+	if (mi->model->isPrecomputed) {
+		mi->calculated = mi->bones;
+		return;
+	}
+
+	/*
+	local inv_local = vmath.inv(mesh.local_.matrix)
+	local bones = {}
+	for idx = 1, #mesh.cache.bones, 3 do
+	local bone = vmath.matrix4()
+	bone.c0 = mesh.cache.bones[idx]
+	bone.c1 = mesh.cache.bones[idx + 1]
+	bone.c2 = mesh.cache.bones[idx + 2]
+
+	local bone_local = vmath.matrix4()
+	bone_local.c0 = mesh.inv_local_bones[idx]
+	bone_local.c1 = mesh.inv_local_bones[idx + 1]
+	bone_local.c2 = mesh.inv_local_bones[idx + 2]
+
+	bone = mesh.local_.matrix * bone_local * bone * inv_local
+	table.insert(bones, bone.c0)
+	table.insert(bones, bone.c1)
+	table.insert(bones, bone.c2)
+	end
+
+	mesh.cache.calculated = bones
+	*/
+}
+
+void Mesh::ApplyArmature(lua_State* L, ModelInstance* mi, URL* url) {
+	if (mi->bones == NULL) return;
+
+	if (mi->calculated == NULL) this->CalculateBones(mi);
+	
+	for (int idx : this->usedBonesIndex) { // set only used bones, critical for performance
+		int offset = idx * 3;
+
+		for (int i = 0; i < 3; i ++) {
+			//go.set(mesh.url, "bones", mesh.cache.calculated[offset + i], {index = offset + i})
+			//dmLogInfo("index: %d", offset + i);
+	
+			lua_getglobal(L, "go");
+			lua_getfield(L, -1, "set");
+			lua_remove(L, -2);
+
+			dmScript::PushURL(L, *url);
+			lua_pushstring(L, "bones");
+			dmScript::PushVector4(L, mi->calculated->at(offset + i));
+
+			lua_newtable(L);
+			lua_pushstring(L, "index");
+			lua_pushnumber(L, offset + i + 1);
+			lua_settable(L, -3);
+			
+			lua_call(L, 4, 0);
+			
+		}
+		
+	}
 	
 }
 
-void Mesh::CalcTangents(Vertex* vertices) {
+void Mesh::SetFrame(lua_State* L, ModelInstance* mi, URL* url, int idx1, int idx2, float factor) {
+	int last_frame = mi->model->frames.size() - 1;
+	if (last_frame < 0) return;
+
+	idx1 = (idx1 < last_frame) ? idx1 : last_frame;
+	
+	//todo: blendshapes
+	//todo: baked
+
+	//if not mesh.animate_with_texture or #mesh.bones_go > 0 then
+	idx2 = (idx2 < last_frame) ? idx2 : last_frame;
+	
+	if (mi->frame1 != idx1 || mi->frame2 != idx2 || mi->factor != factor) {
+
+		if ( (idx2 > -1) && (!mi->useBakedAnimations)) {
+			//mesh.cache.bones = mesh.interpolate(idx, idx2, factor)
+		} else {
+			mi->bones = &mi->model->frames[idx1];
+		}
+
+		mi->frame1 = idx1;
+		mi->frame2 = idx2;
+		mi->factor = factor;
+	
+		this->CalculateBones(mi);
+
+		if (!mi->useBakedAnimations) this->ApplyArmature(L, mi, url);
+
+		//todo bones_go
+	}
+}
+
+void Mesh::CalculateTangents(Vertex* vertices) {
 	int size = this->faces.size();
 	this->tangents.reserve(size * 3);
 	this->bitangents.reserve(size * 3);
@@ -56,11 +149,11 @@ void Mesh::CalcTangents(Vertex* vertices) {
 	}
 }
 
-dmBuffer::HBuffer Mesh::CreateBuffer(ModelInstance* model) {
+dmBuffer::HBuffer Mesh::CreateBuffer(ModelInstance* mi) {
 
 	bool hasNormalMap = !this->material.normal.texture.empty();
 	if (this->tangents.size() == 0 && hasNormalMap) {
-		this->CalcTangents(model->GetVertices());
+		this->CalculateTangents(mi->model->vertices);
 	}
 	
 	const dmBuffer::StreamDeclaration streams_decl[] = {
@@ -102,14 +195,12 @@ dmBuffer::HBuffer Mesh::CreateBuffer(ModelInstance* model) {
 	
 
 	int count = 0;
-
-	dmLogInfo("----------------------");
-	
+	dmLogInfo("-------------");
 	for(auto & face : this->faces) {
 		for (int i = 0; i < 3; i++) {
 			int idx = face.v[i];
 			
-			Vertex* vertex = &model->blended[idx];
+			Vertex* vertex = &mi->blended[idx];
 			Vector3* n = face.isFlat ? &face.n : &vertex->n;
 
 			//dmLogInfo("N %d : %f, %f, %f", face.isFlat, n-getX(), n.getY(), n.getZ());
@@ -148,17 +239,32 @@ dmBuffer::HBuffer Mesh::CreateBuffer(ModelInstance* model) {
 				tangents += stride;
 				bitangents += stride;
 			}
-			
 
-			weights[0] = 0;
-			weights[1] = 0;
-			weights[2] = 0;
-			weights[3] = 0;
+			int boneCount = 0;
+			vector<SkinData>* skin;
 			
-			bones[0] = 0;
-			bones[1] = 0;
-			bones[2] = 0;
-			bones[3] = 0;
+			if (mi->model->skin != NULL) {
+				skin = &mi->model->skin[idx];
+				boneCount = skin->size();
+
+				for (int j = 0; j < boneCount; j++) {
+					this->usedBonesIndex.insert(skin->at(j).idx);
+				}
+
+			}
+
+			weights[0] = boneCount > 0 ? skin->at(0).weight : 0;
+			weights[1] = boneCount > 1 ? skin->at(1).weight : 0;
+			weights[2] = boneCount > 2 ? skin->at(2).weight : 0;
+			weights[3] = boneCount > 3 ? skin->at(3).weight : 0;
+			
+			bones[0] = boneCount > 0 ? skin->at(0).idx : 0;
+			bones[1] = boneCount > 1 ? skin->at(1).idx : 0;
+			bones[2] = boneCount > 2 ? skin->at(2).idx : 0;
+			bones[3] = boneCount > 3 ? skin->at(3).idx : 0;
+
+			//dmLogInfo("mesh bone: %d", bones[0]);
+			
 			
 			positions += stride;
 			normals += stride;
