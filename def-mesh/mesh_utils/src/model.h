@@ -20,7 +20,7 @@ class Model
 		unordered_map<string, unordered_map<uint32_t, ShapeData> > shapes;
 		vector< unordered_map<string, float> > shapeFrames;
 		vector<SkinData>* skin = NULL;
-		Vector4 invLocalBones[3];
+		vector<Vector4> invLocalBones;
 		bool isPrecomputed = false;
 		
 		Model(Reader* reader);

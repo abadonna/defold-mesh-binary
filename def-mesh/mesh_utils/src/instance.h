@@ -27,12 +27,14 @@ class ModelInstance {
 		float factor = 0;
 		vector<Vector4>* bones = NULL;
 		vector<Vector4>* calculated = NULL;
+		vector<Vector4> temp;
 
 		ModelInstance(Model* model, bool baked);
 		~ModelInstance();
 		
 		void CreateLuaProxy(lua_State* L);
 		void SetFrame(lua_State* L, int idx1, int idx2, float factor);
+		void CalculateBones();
 
 		Vertex* GetVertices();
 };

@@ -131,11 +131,69 @@ void ModelInstance::SetFrame(lua_State* L,  int idx1, int idx2, float factor) {
 
 	idx1 = (idx1 < last_frame) ? idx1 : last_frame;
 	idx2 = (idx2 < last_frame) ? idx2 : last_frame;
+
+	//todo: blendshapes
+	//todo: baked
+
+	//if not mesh.animate_with_texture or #mesh.bones_go > 0 then
+
+	if (this->frame1 != idx1 || this->frame2 != idx2 || this->factor != factor) {
+
+		if ( (idx2 > -1) && (!this->useBakedAnimations)) {
+			//mesh.cache.bones = mesh.interpolate(idx, idx2, factor)
+		} else {
+			this->bones = &this->model->frames[idx1];
+		}
+
+		this->frame1 = idx1;
+		this->frame2 = idx2;
+		this->factor = factor;
+
+		this->CalculateBones();
+	}
 	
-	///this->model->meshes[2].SetFrame(L, this, &this->urls[2], idx1, idx2, factor);
+	
 	int size = this->model->meshes.size();
 	for (int i = 0; i < size; i++) {
-		this->model->meshes[i].SetFrame(L, this, &this->urls[i], idx1, idx2, factor);
+		if (!this->useBakedAnimations) this->model->meshes[i].ApplyArmature(L, this, &this->urls[i]);
+
+		//todo bones_go
 	}
+}
+
+void ModelInstance::CalculateBones() {
+	if (this->bones == NULL) return;
+
+	if (this->model->isPrecomputed) {
+		this->calculated = this->bones;
+		return;
+	}
+	
+	Matrix4 invLocal = dmVMath::Inverse(this->model->local.matrix);
+	this->temp.clear();
+	this->temp.reserve(this->bones->size() * 3);
+	
+	for (int idx = 0; idx < this->bones->size(); idx += 3) {
+		Matrix4 bone = Matrix4::identity();
+		bone.setCol0(this->bones->at(idx));
+		bone.setCol1(this->bones->at(idx + 1));
+		bone.setCol2(this->bones->at(idx + 2));
+		
+		Matrix4 localBone = Matrix4::identity();
+		localBone.setCol0(this->model->invLocalBones[idx]);
+		localBone.setCol1(this->model->invLocalBones[idx + 1]);
+		localBone.setCol2(this->model->invLocalBones[idx + 2]);
+
+		bone = this->model->local.matrix * localBone * bone * invLocal;
+
+		this->temp.push_back(bone[0]);
+		this->temp.push_back(bone[1]);
+		this->temp.push_back(bone[2]);
+		
+	}
+
+	this->calculated = &this->temp;
+	//this->calculated = this->bones;
+
 }
 

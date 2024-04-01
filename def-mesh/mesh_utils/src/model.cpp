@@ -164,13 +164,14 @@ Model::Model(Reader* reader){
 	
 	this->isPrecomputed = (reader->ReadInt() == 1);
 	
-
 	if (!this->isPrecomputed) {
+		this->invLocalBones.reserve(boneCount * 3);
 		for (int i = 0; i < boneCount; i++) {
 			//3x4 transform matrix
-			this->invLocalBones[0] = reader->ReadVector4();
-			this->invLocalBones[1] = reader->ReadVector4();
-			this->invLocalBones[2] = reader->ReadVector4();
+			this->invLocalBones.push_back(reader->ReadVector4());
+			this->invLocalBones.push_back(reader->ReadVector4());
+			this->invLocalBones.push_back(reader->ReadVector4());
+			
 		}
 	}
 

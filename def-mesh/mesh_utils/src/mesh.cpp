@@ -8,42 +8,10 @@ Mesh::Mesh() {
 Mesh::~Mesh() {
 }
 
-void Mesh::CalculateBones(ModelInstance* mi) {
-	if (mi->bones == NULL) return;
-
-	if (mi->model->isPrecomputed) {
-		mi->calculated = mi->bones;
-		return;
-	}
-
-	/*
-	local inv_local = vmath.inv(mesh.local_.matrix)
-	local bones = {}
-	for idx = 1, #mesh.cache.bones, 3 do
-	local bone = vmath.matrix4()
-	bone.c0 = mesh.cache.bones[idx]
-	bone.c1 = mesh.cache.bones[idx + 1]
-	bone.c2 = mesh.cache.bones[idx + 2]
-
-	local bone_local = vmath.matrix4()
-	bone_local.c0 = mesh.inv_local_bones[idx]
-	bone_local.c1 = mesh.inv_local_bones[idx + 1]
-	bone_local.c2 = mesh.inv_local_bones[idx + 2]
-
-	bone = mesh.local_.matrix * bone_local * bone * inv_local
-	table.insert(bones, bone.c0)
-	table.insert(bones, bone.c1)
-	table.insert(bones, bone.c2)
-	end
-
-	mesh.cache.calculated = bones
-	*/
-}
-
 void Mesh::ApplyArmature(lua_State* L, ModelInstance* mi, URL* url) {
 	if (mi->bones == NULL) return;
 
-	if (mi->calculated == NULL) this->CalculateBones(mi);
+	if (mi->calculated == NULL) mi->CalculateBones();
 	
 	for (int idx : this->usedBonesIndex) { // set only used bones, critical for performance
 		int offset = idx * 3;
@@ -70,33 +38,6 @@ void Mesh::ApplyArmature(lua_State* L, ModelInstance* mi, URL* url) {
 		
 	}
 	
-}
-
-void Mesh::SetFrame(lua_State* L, ModelInstance* mi, URL* url, int idx1, int idx2, float factor) {
-	
-	//todo: blendshapes
-	//todo: baked
-
-	//if not mesh.animate_with_texture or #mesh.bones_go > 0 then
-	
-	if (mi->frame1 != idx1 || mi->frame2 != idx2 || mi->factor != factor) {
-
-		if ( (idx2 > -1) && (!mi->useBakedAnimations)) {
-			//mesh.cache.bones = mesh.interpolate(idx, idx2, factor)
-		} else {
-			mi->bones = &mi->model->frames[idx1];
-		}
-
-		mi->frame1 = idx1;
-		mi->frame2 = idx2;
-		mi->factor = factor;
-	
-		this->CalculateBones(mi);
-	}
-
-	if (!mi->useBakedAnimations) this->ApplyArmature(L, mi, url);
-
-		//todo bones_go
 }
 
 void Mesh::CalculateTangents(Vertex* vertices) {

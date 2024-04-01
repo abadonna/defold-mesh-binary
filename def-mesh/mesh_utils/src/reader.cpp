@@ -73,13 +73,13 @@ Transform3d Reader::ReadTransform() {
 
 	Matrix4 mR = Matrix4::rotationX(euler.getX()) * Matrix4::rotationY(euler.getY()) * Matrix4::rotationZ(euler.getZ()); 
 	Matrix4 mT = Matrix4::translation(p);
-	Matrix4 mS = Matrix4();
+	Matrix4 mS = Matrix4::identity();
 	mS[0][0] = s.getX();
 	mS[1][1] = s.getY();
 	mS[2][2] = s.getZ();
 
-	res.matrix =  Transpose(mT * mR * mS);
-	
+	res.matrix = Transpose(mT * mR * mS);
+
 	return res;
 }
 
