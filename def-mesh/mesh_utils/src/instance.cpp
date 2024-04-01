@@ -62,9 +62,6 @@ ModelInstance::ModelInstance(Model* model, bool baked) {
 }
 
 ModelInstance::~ModelInstance() {
-	for(auto & buffer : this->buffers) {
-		dmBuffer::Destroy(buffer);
-	}
 }
 
 void ModelInstance::CreateLuaProxy(lua_State* L) {
