@@ -36,13 +36,16 @@ struct VertexData {
 std::unordered_map<std::string, BinaryFile*> files;
 
 static int SetFrame(lua_State* L) {
+    int count = lua_gettop(L);
+
     lua_getfield(L, 1, "instance");
     Instance* instance = (Instance*)lua_touserdata(L, -1);
-    //dmLogInfo("FRAME! %s", instance->id.c_str());
     
-    int frame = luaL_checknumber(L, 2);
+    int frame1 = luaL_checknumber(L, 2);
+    int frame2 = (count > 2) ? luaL_checknumber(L, 3) : -1;
+    float factor = (count > 3) ? luaL_checknumber(L, 4) : 0;
 
-    instance->SetFrame(L, frame);
+    instance->SetFrame(L, frame1, frame2, factor);
     return 0;
 }
 

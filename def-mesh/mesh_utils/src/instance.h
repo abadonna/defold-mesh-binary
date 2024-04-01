@@ -14,6 +14,9 @@ class Model;
 
 class ModelInstance {
 	private:
+		vector<Vector4> temp;
+		vector<Vector4> interpolated;
+		void Interpolate(int idx1, int idx2, float factor);
 	
 	public:
 		Model* model;
@@ -27,7 +30,7 @@ class ModelInstance {
 		float factor = 0;
 		vector<Vector4>* bones = NULL;
 		vector<Vector4>* calculated = NULL;
-		vector<Vector4> temp;
+		
 
 		ModelInstance(Model* model, bool baked);
 		~ModelInstance();
@@ -44,7 +47,7 @@ class Instance{
 		vector<ModelInstance*> models;
 
 	public:
-		void SetFrame(lua_State* L, int frame);
+		void SetFrame(lua_State* L, int idx1, int idx2, float factor);
 		void CreateLuaProxy(lua_State* L);
 		
 		Instance(vector<Model*>* data, bool baked);

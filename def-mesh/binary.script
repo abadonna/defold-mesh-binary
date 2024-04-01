@@ -45,7 +45,7 @@ function final(self)
 end
 
 local function set_frame(self, frame, frame_blend, blend)
-	self.binary:set_frame(frame, frame_blend, blend)
+	self.binary:set_frame(frame, frame_blend == nil and -1 or frame_blend, blend or 0)
 	--[[
 	for _, mesh in pairs(self.meshes) do
 		mesh.set_frame(frame, frame_blend, blend)
