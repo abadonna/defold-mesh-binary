@@ -9,10 +9,6 @@
 
 using namespace Vectormath::Aos;
 
-struct InstanceData {
-    Instance* instance;
-};
-
 struct IndexArray {
     size_t* indices;
     size_t count;
@@ -49,6 +45,25 @@ static int SetFrame(lua_State* L) {
     return 0;
 }
 
+static int Delete(lua_State* L) {
+    int count = lua_gettop(L);
+
+    lua_getfield(L, 1, "instance");
+    Instance* instance = (Instance*)lua_touserdata(L, -1);
+    lua_getfield(L, 1, "path");
+    string path = string(luaL_checkstring(L, -1));
+
+    BinaryFile* binary = files[path];
+    delete instance;
+    binary->instances --;
+    if (binary->instances == 0) {
+        files.erase(path);
+        delete binary;
+    }
+    
+    return 0;
+}
+
 static int Test(lua_State* L) {
     lua_getglobal(L, "go");
     lua_getfield(L, -1, "set");
@@ -61,30 +76,33 @@ static int Test(lua_State* L) {
 }
 
 static int Load(lua_State* L) {
-    std::string name = string(luaL_checkstring(L, 1));
+    std::string path = string(luaL_checkstring(L, 1));
     const char* content =  luaL_checkstring(L, 2);
     unsigned long size = luaL_checknumber(L, 3);
 
     BinaryFile* binary;
-    if (auto search = files.find(name); search != files.end()) {
+    if (auto search = files.find(path); search != files.end()) {
         binary = search->second;
         dmLogInfo("file found!");
     } else {
-        files[name] = new BinaryFile(content, size);
-        binary = files[name];
+        files[path] = new BinaryFile(content, size);
+        binary = files[path];
     }
 
     Instance* instance = binary->CreateInstance();
     lua_newtable(L);
     lua_pushstring(L, "instance");
     lua_pushlightuserdata(L, instance);
-    //InstanceData* data = (InstanceData*)(lua_newuserdata(L, sizeof(InstanceData)));
-    //data->instance = instance;
+    lua_settable(L, -3);
+
+    lua_pushstring(L, "path");
+    lua_pushstring(L, path.c_str());
     lua_settable(L, -3);
 
     static const luaL_Reg f[] =
     {
         {"set_frame", SetFrame},
+        {"delete", Delete},
         {0, 0}
     };
     luaL_register(L, NULL, f);

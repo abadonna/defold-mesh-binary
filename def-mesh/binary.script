@@ -29,18 +29,11 @@ function init(self)
 	self.attaches = {}
 	self.bones_go = {}
 	msg.post("#dummy", "disable")
-	go.set2 = function(url, prop, value, params) 
-		params.index = 1;
-		if params.index < 0 then
-			pprint("SET", url, prop, value, params)
-		end
-		go.set(url, prop, value, params)
-	end
 end
 
 function final(self)
-	for _, mesh in pairs(self.meshes) do
-		mesh_utils.clear_data(mesh);
+	if self.binary then
+		self.binary:delete()
 	end
 end
 
@@ -122,7 +115,7 @@ function on_message(self, message_id, message, sender)
 		local anim_texture = nil
 		local models
 		local data = sys.load_resource(message.path)
-		self.binary, models = mesh_utils.load("test", data, #data)
+		self.binary, models = mesh_utils.load(message.path, data, #data)
 
 		--pprint(self.binary, models)
 		local game_objects = {}
