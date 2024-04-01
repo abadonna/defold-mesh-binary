@@ -245,8 +245,6 @@ void ModelInstance::Interpolate(int idx1, int idx2, float factor) {
 		m2.setCol1(src->at(i + 1));
 		m2.setCol2(src->at(i + 2));
 
-		Matrix4 m = Matrix4::identity();
-
 		//dual quats?
 		//https://github.com/PacktPublishing/OpenGL-Build-High-Performance-Graphics/blob/master/Module%201/Chapter08/DualQuaternionSkinning/main.cpp
 		//https://subscription.packtpub.com/book/application_development/9781788296724/1/ch01lvl1sec09/8-skeletal-and-physically-based-simulation-on-the-gpu
@@ -258,18 +256,11 @@ void ModelInstance::Interpolate(int idx1, int idx2, float factor) {
 		Vector3 t2 = Vector3(m2[0][3], m2[1][3], m2[2][3]);
 		Vector3 t = Lerp(factor, t1, t2);
 
-		if (!this->model->isPrecomputed) {
-			Quat q1 = MatToQuat(m1);
-			Quat q2 = MatToQuat(m2);
-			Quat q =  Slerp(factor, q1, q2);
-			m = Matrix4::rotation(q);
-		} else {
-			//precomputed, blending will be incorrect anyway
-			m.setCol0(Lerp(factor, m1.getCol0(), m2.getCol0()));
-			m.setCol1(Lerp(factor, m1.getCol1(), m2.getCol1()));
-			m.setCol2(Lerp(factor, m1.getCol2(), m2.getCol2()));
-		}
-
+		Quat q1 = MatToQuat(m1);
+		Quat q2 = MatToQuat(m2);
+		Quat q =  Slerp(factor, q1, q2);
+		Matrix4 m = Matrix4::rotation(q);
+		
 		m[0][3] = t.getX();
 		m[1][3] = t.getY();
 		m[2][3] = t.getZ();
@@ -279,8 +270,7 @@ void ModelInstance::Interpolate(int idx1, int idx2, float factor) {
 			this->interpolated[i] = m.getCol0();
 			this->interpolated[i + 1] = m.getCol1();
 			this->interpolated[i + 2] = m.getCol2();
-		}else
-		{
+		} else {
 			this->interpolated.push_back(m.getCol0());
 			this->interpolated.push_back(m.getCol1());
 			this->interpolated.push_back(m.getCol2());
