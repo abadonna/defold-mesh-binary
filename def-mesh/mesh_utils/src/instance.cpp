@@ -343,13 +343,13 @@ void ModelInstance::CalculateShapes(unordered_map<string, float>* values) {
 			ShapeData* delta = &shape_it->second;
 			ShapeData* v = &this->blended[idx];
 			
-			if (v->q.getW() == 0) v->q = Quat::identity(); //v was just inserted in map
+			//if (v->q.getW() == 0) v->q = Quat::identity(); //v was just inserted in map
 	
 			if (value > 0) {
 				weights[idx] += value;
 				v->p += delta->p * value;
 				v->n += delta->n * value;
-				v->q *= Lerp(value, iq, delta->q);
+				//v->q *= Lerp(value, iq, delta->q);
 			}
 
 		}
@@ -371,7 +371,7 @@ void ModelInstance::CalculateShapes(unordered_map<string, float>* values) {
 		} else {
 			v->p = vertex.p;
 			v->n = vertex.n;
-			v->q = iq;
+			//v->q = iq;
 		}
 
 		//v->n = Normalize(v->n);
@@ -396,6 +396,9 @@ void ModelInstance::ApplyShapes(lua_State* L) {
 		dmBuffer::GetStream(this->buffers[i].m_Buffer, dmHashString64("position"), (void**)&positions, &items_count, &components, &stride);
 		dmBuffer::GetStream(this->buffers[i].m_Buffer, dmHashString64("normal"), (void**)&normals, &items_count, &components, &stride);
 
+		//dmBuffer::GetStream(this->buffers[i].m_Buffer, dmHashString64("tangent"), (void**)&tangents, &items_count, &components, &stride);
+		//dmBuffer::GetStream(this->buffers[i].m_Buffer, dmHashString64("bitangent"), (void**)&bitangents, &items_count, &components, &stride);
+
 		for (auto it = this->blended.begin(); it != this->blended.end(); ++it) {
 			ShapeData* vertex = &it->second;
 
@@ -404,7 +407,9 @@ void ModelInstance::ApplyShapes(lua_State* L) {
 				for (int k = 0; k < 3; k++) {
 					if (mesh->faces[j].v[k] != it->first) continue;
 
-					int idx = stride * (j * 3 + k);
+					int count = j * 3 + k;
+					int idx = stride * count;
+					
 					
 					positions[idx] = vertex->p.getX();
 					positions[idx + 1] = vertex->p.getY();
@@ -413,6 +418,24 @@ void ModelInstance::ApplyShapes(lua_State* L) {
 					normals[idx] = vertex->n.getX();
 					normals[idx + 1] = vertex->n.getY();
 					normals[idx + 2] = vertex->n.getZ();
+
+					//Updating tangents is slower, probably we can skip it
+					
+					/*
+					count *= 3;
+					
+					Vector3 v = Vector3(mesh->tangents[count], mesh->tangents[count + 1], mesh->tangents[count + 2]);
+					v = rotate(vertex->q, v);
+					tangents[idx] = v.getX();
+					tangents[idx + 1] = v.getY();
+					tangents[idx + 2] = v.getZ();
+
+					v = Vector3(mesh->bitangents[count], mesh->bitangents[count + 1], mesh->bitangents[count + 2]);
+					v = rotate(vertex->q, v);  
+					bitangents[idx] = v.getX();
+					bitangents[idx + 1] = v.getY();
+					bitangents[idx + 2] = v.getZ();
+					*/
 				}
 			}
 		}

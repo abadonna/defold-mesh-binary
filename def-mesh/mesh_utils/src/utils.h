@@ -18,10 +18,8 @@ struct Vertex {
 	Vector3 n;
 };
 
-struct ShapeData {
-	Vector3 p;
-	Vector3 n;
-	Quat q;
+struct ShapeData : Vertex {
+	//Quat q;
 };
 
 

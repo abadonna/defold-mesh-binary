@@ -10,8 +10,8 @@ Mesh::~Mesh() {
 
 void Mesh::CalculateTangents(Vertex* vertices) {
 	int size = this->faces.size();
-	this->tangents.reserve(size * 3);
-	this->bitangents.reserve(size * 3);
+	this->tangents.reserve(size * 9);
+	this->bitangents.reserve(size * 9);
 	
 	for (int i = 0; i < size; i++) {
 		Face face = this->faces[i];
@@ -117,7 +117,6 @@ dmScript::LuaHBuffer Mesh::CreateBuffer(ModelInstance* mi) {
 			normals[2] = n->getZ();
 
 			if (hasNormalMap) {
-			//if not vertex.q then
 				tangents[0] = this->tangents[count];
 				tangents[1] = this->tangents[count + 1];
 				tangents[2] = this->tangents[count + 2];
@@ -125,18 +124,6 @@ dmScript::LuaHBuffer Mesh::CreateBuffer(ModelInstance* mi) {
 				bitangents[0] = this->bitangents[count];
 				bitangents[1] = this->bitangents[count + 1];
 				bitangents[2] = this->bitangents[count + 2];
-				/*
-				else
-				local t = vmath.rotate(vertex.q, vec3(mesh.tangents[count], mesh.tangents[count + 1], mesh.tangents[count + 2]))
-				tangents[count] = t.x
-				tangents[count + 1] = t.y
-				tangents[count + 2] = t.z
-
-				local bt = vmath.rotate(vertex.q, vec3(mesh.bitangents[count], mesh.bitangents[count + 1], mesh.bitangents[count + 2]))
-				bitangents[count] = bt.x
-				bitangents[count + 1] = bt.y
-				bitangents[count + 2] = bt.z
-				end */
 
 				count += 3;
 				tangents += stride;

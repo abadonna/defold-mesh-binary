@@ -39,7 +39,7 @@ Model::Model(Reader* reader){
 			ShapeData data;
 			data.p = reader->ReadVector3();
 			data.n = reader->ReadVector3();
-			data.q = Quat::rotation(this->vertices[idx].n, this->vertices[idx].n + data.n);
+			//data.q = Quat::rotation(this->vertices[idx].n, this->vertices[idx].n + data.n);
 			shape[idx] = data;
 		}
 
