@@ -16,13 +16,17 @@ class ModelInstance {
 	private:
 		vector<Vector4> temp;
 		vector<Vector4> interpolated;
+		unordered_map<string, float> shapeValues;
 		void Interpolate(int idx1, int idx2, float factor);
+		void CalculateShapes(unordered_map<string, float>* values);
+		void ApplyShapes(lua_State* L);
+		void ApplyArmature(lua_State* L, int meshIdx);
 	
 	public:
 		Model* model;
 		bool useBakedAnimations = false;
-		Vertex* blended = NULL;
-		vector<dmBuffer::HBuffer> buffers;
+		unordered_map<int, ShapeData> blended;
+		vector<dmScript::LuaHBuffer> buffers;
 		vector<URL> urls;
 		
 		int frame1 = -1;
@@ -30,13 +34,13 @@ class ModelInstance {
 		float factor = 0;
 		vector<Vector4>* bones = NULL;
 		vector<Vector4>* calculated = NULL;
-		
 
 		ModelInstance(Model* model, bool baked);
 		~ModelInstance();
 		
 		void CreateLuaProxy(lua_State* L);
 		void SetFrame(lua_State* L, int idx1, int idx2, float factor);
+		void SetShapes(lua_State* L, unordered_map<string, float>* values);
 		void CalculateBones();
 
 		Vertex* GetVertices();
@@ -48,6 +52,7 @@ class Instance{
 
 	public:
 		void SetFrame(lua_State* L, int idx1, int idx2, float factor);
+		void SetShapes(lua_State* L, unordered_map<string, float>* values);
 		void CreateLuaProxy(lua_State* L);
 		
 		Instance(vector<Model*>* data, bool baked);

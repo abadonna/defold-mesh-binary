@@ -8,38 +8,6 @@ Mesh::Mesh() {
 Mesh::~Mesh() {
 }
 
-void Mesh::ApplyArmature(lua_State* L, ModelInstance* mi, URL* url) {
-	if (mi->bones == NULL) return;
-
-	if (mi->calculated == NULL) mi->CalculateBones();
-	
-	for (int idx : this->usedBonesIndex) { // set only used bones, critical for performance
-		int offset = idx * 3;
-
-		for (int i = 0; i < 3; i ++) {
-			//go.set(mesh.url, "bones", mesh.cache.calculated[offset + i], {index = offset + i})
-			
-			lua_getglobal(L, "go");
-			lua_getfield(L, -1, "set");
-			lua_remove(L, -2);
-
-			dmScript::PushURL(L, *url);
-			lua_pushstring(L, "bones");
-			dmScript::PushVector4(L, mi->calculated->at(offset + i));
-
-			lua_newtable(L);
-			lua_pushstring(L, "index");
-			lua_pushnumber(L, offset + i + 1);
-			lua_settable(L, -3);
-			
-			lua_call(L, 4, 0);
-			
-		}
-		
-	}
-	
-}
-
 void Mesh::CalculateTangents(Vertex* vertices) {
 	int size = this->faces.size();
 	this->tangents.reserve(size * 3);
@@ -84,7 +52,7 @@ void Mesh::CalculateTangents(Vertex* vertices) {
 	}
 }
 
-dmBuffer::HBuffer Mesh::CreateBuffer(ModelInstance* mi) {
+dmScript::LuaHBuffer Mesh::CreateBuffer(ModelInstance* mi) {
 
 	bool hasNormalMap = !this->material.normal.texture.empty();
 	if (this->tangents.size() == 0 && hasNormalMap) {
@@ -130,12 +98,12 @@ dmBuffer::HBuffer Mesh::CreateBuffer(ModelInstance* mi) {
 	
 
 	int count = 0;
-	dmLogInfo("-------------");
+
 	for(auto & face : this->faces) {
 		for (int i = 0; i < 3; i++) {
 			int idx = face.v[i];
 			
-			Vertex* vertex = &mi->blended[idx];
+			Vertex* vertex = &mi->model->vertices[idx];
 			Vector3* n = face.isFlat ? &face.n : &vertex->n;
 
 			//dmLogInfo("N %d : %f, %f, %f", face.isFlat, n-getX(), n.getY(), n.getZ());
@@ -221,5 +189,5 @@ dmBuffer::HBuffer Mesh::CreateBuffer(ModelInstance* mi) {
 		tc += stride;
 	}
 
-	return buffer;
+	return dmScript::LuaHBuffer(buffer, dmScript::OWNER_C);
 }

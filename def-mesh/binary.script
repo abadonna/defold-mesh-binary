@@ -16,10 +16,17 @@ local buffer_declaraion = {
 	{name = "bitangent", type = buffer.VALUE_TYPE_FLOAT32, count = 3}
 }
 
+
 local function create_buffer(buf)
 	--buf = buf or buffer.create(1, buffer_declaraion)
 	SETTINGS.buffer_count = (SETTINGS.buffer_count and SETTINGS.buffer_count + 1) or 1
-	return resource.create_buffer("/def-mesh/buffers/buffer" .. SETTINGS.buffer_count .. ".bufferc", {buffer = buf})
+	local path = "/def-mesh/buffers/buffer" .. SETTINGS.buffer_count .. ".bufferc"
+	return resource.create_buffer(path, {buffer = buf, transfer_ownership = false}), path
+	--todo: resource.release() ?
+end
+
+function native_update_buffer(mesh_url, buffer)
+	resource.set_buffer(go.get(mesh_url, "vertices"), buffer, {transfer_ownership = false})
 end
 
 function init(self)
@@ -32,6 +39,10 @@ function init(self)
 end
 
 function final(self)
+	for key, mesh in pairs(self.game_objects) do
+		resource.release(mesh.path)
+	end
+	
 	if self.binary then
 		self.binary:delete()
 	end
@@ -39,11 +50,6 @@ end
 
 local function set_frame(self, frame, frame_blend, blend)
 	self.binary:set_frame(frame, frame_blend == nil and -1 or frame_blend, blend or 0)
-	--[[
-	for _, mesh in pairs(self.meshes) do
-		mesh.set_frame(frame, frame_blend, blend)
-	end
-	]]--
 end
 
 local function set_texture(url, slot, folder, file)
@@ -118,7 +124,7 @@ function on_message(self, message_id, message, sender)
 		self.binary, models = mesh_utils.load(message.path, data, #data)
 
 		--pprint(self.binary, models)
-		local game_objects = {}
+		self.game_objects = {}
 
 		for name, model in pairs(models) do 
 			self.total_frames = model.frames
@@ -129,8 +135,6 @@ function on_message(self, message_id, message, sender)
 				local id = factory.create(f, model.position, model.rotation, {}, model.scale)
 				local url = msg.url(nil, id, "mesh")
 				mesh:set_url(url);
-
-				game_objects[i == 1 and name or (name .. "_" .. i)] = {id = id, url = url, parent = model.parent}
 
 				if self.opaque ~= hash("") and mesh.material.type == 0 then
 					go.set(url, "material", self.opaque)
@@ -150,8 +154,17 @@ function on_message(self, message_id, message, sender)
 				pprint("bone2", values[201], values[202], values[203], values[204])
 						--]]
 				
-				local v = create_buffer(mesh.buffer)
+				local v, path = create_buffer(mesh.buffer)
 				go.set(url, "vertices", v)
+
+				self.game_objects[i == 1 and name or (name .. "_" .. i)] = 
+				{
+					id = id, 
+					url = url, 
+					path = path,
+					parent = model.parent
+				}
+				
 
 				local options = vmath.vector4(0.0)
 				local options_specular = vmath.vector4(0.0)
@@ -211,117 +224,14 @@ function on_message(self, message_id, message, sender)
 			
 		end	
 		
-
-		--[[
-		reader.init_from_resource(message.path)
-		while not reader.eof() do
-			for i, mesh in ipairs(reader.read_mesh()) do --can be multiple meshes if initial mesh contains multiple materials
-
-				if i == 1 and mesh.frames and self.animate_with_texture then
-					anim_texture, twidth, theight = create_animation_texture(mesh)
-				end
-				
-				pprint(mesh.name .. " " .. #mesh.faces .. " triangles")
-
-				if mesh.frames then
-					self.total_frames = #mesh.frames
-				end
-
-				local buf = mesh.create_buffer()
-				local f = mesh.material.type == 0 and "#factory" or "#factory_trans"
-				
-				mesh.id = factory.create(f, mesh.position, mesh.rotation, {}, mesh.scale)
-				mesh.url = msg.url(nil, mesh.id, "mesh")
-
-				if self.opaque ~= hash("") and mesh.material.type == 0 then
-					go.set(mesh.url, "material", self.opaque)
-				elseif self.transparent ~= hash("") and mesh.material.type ~= 0 then
-					go.set(mesh.url, "material", self.transparent)
-				end
-				
-
-				local v = create_buffer(buf)
-				go.set(mesh.url, "vertices", v)
-
-				mesh.apply_armature()
-				local options = vmath.vector4(0.0)
-				local options_specular = vmath.vector4(0.0)
-				options_specular.y = mesh.material.specular.value
-				options_specular.z = mesh.material.roughness.value
-
-				options.z = mesh.material.type
-
-				if anim_texture then
-					mesh.animate_with_texture = true
-					mesh.animate_tex_width = twidth
-					mesh.animate_tex_height = theight
-					go.set(mesh.url, "texture3", anim_texture)
-				end
-
-				if mesh.material.texture then
-					options.x = 1.0
-					set_texture(mesh.url, "texture0", self.texture_folder, mesh.material.texture)
-				end
-
-				if mesh.material.normal and
-				set_texture(mesh.url, "texture1", self.texture_folder, mesh.material.normal.texture) 
-				then
-					options.y = mesh.material.normal.strength
-				end
-
-				if mesh.material.specular.texture and
-				set_texture(mesh.url, "texture2", self.texture_folder, mesh.material.specular.texture) 
-				then
-					options_specular.x = 1.0 + mesh.material.specular.invert
-					if mesh.material.specular.ramp then
-						local r = mesh.material.specular.ramp
-						go.set(mesh.url, "spec_ramp", vmath.vector4(r.p1, r.v1, r.p2, r.v2))
-					end
-				end
-				
-				if mesh.material.roughness.texture and
-				set_texture(mesh.url, "texture2", self.texture_folder, mesh.material.roughness.texture) 
-				then
-					-- roughness and specular are usually the same?
-					options_specular.w = 1.0
-					if mesh.material.roughness.ramp then
-						local r = mesh.material.roughness.ramp
-						go.set(mesh.url, "rough_ramp", vmath.vector4(r.p1, r.v1, r.p2, r.v2))
-					end
-				end
-
-				go.set(mesh.url, "base_color", mesh.material and mesh.material.color or vmath.vector4(0.8,0.8,0.8,1))
-				go.set(mesh.url, "options", options)
-				go.set(mesh.url, "options_specular", options_specular)
-				
-				self.meshes[mesh.name] = mesh
-				
-			end
-		end
-		--]]
-		
-
 		--set hierarchy
-		for key, mesh in pairs(game_objects) do
-			if mesh.parent and game_objects[mesh.parent] then
-				go.set_parent(mesh.id, game_objects[mesh.parent].id, true)
+		for key, mesh in pairs(self.game_objects) do
+			if mesh.parent and self.game_objects[mesh.parent] then
+				go.set_parent(mesh.id, self.game_objects[mesh.parent].id, true)
 			end
 		end
-		
-		--[[
-		for key, mesh in pairs(self.meshes) do
-			if mesh.parent and self.meshes[mesh.parent] then
-				go.set_parent(mesh.id, self.meshes[mesh.parent].id, false)
-			else
-				go.set_parent(mesh.id, ".", false)
-				if mesh.parent then
-					go.set_position(mesh.world_.position, mesh.id)
-					go.set_scale(mesh.world_.scale, mesh.id)
-					go.set_rotation(mesh.world_.rotation, mesh.id)
-				end
-			end
-		end
-		--]]
+
+		self.binary:set_frame(0);
 
 		if message.animations then
 			local res = sys.load_resource(message.animations)
@@ -344,9 +254,7 @@ function on_message(self, message_id, message, sender)
 		end
 
 	elseif message_id == hash("set_shapes") then
-		for _, mesh in pairs(self.meshes) do
-			mesh.set_shapes(message.shapes)
-		end
+		self.binary:set_shapes(message.shapes)
 
 	elseif message_id == hash("play") then
 		local animation = message.anim and self.animations[message.anim] or {start = message.start, finish = message.finish}

@@ -28,6 +28,12 @@ void Instance::SetFrame(lua_State* L, int idx1, int idx2, float factor) {
 	}
 }
 
+void Instance::SetShapes(lua_State* L, unordered_map<string, float>* values) {
+	for(auto & model : this->models) {
+		model->SetShapes(L, values);
+	}
+}
+
 static int SetURL(lua_State* L) {
 	lua_getfield(L, 1, "instance");
 	ModelInstance* mi = (ModelInstance* )lua_touserdata(L, -1);
@@ -36,7 +42,6 @@ static int SetURL(lua_State* L) {
 
 	int idx = mi->urls.size();
 	mi->urls.push_back(url);
-	mi->model->meshes[idx].ApplyArmature(L, mi, &url);
 
 	//char test[255];
 	//dmScript::UrlToString(&url, test, 255);
@@ -49,12 +54,12 @@ static int SetURL(lua_State* L) {
 ModelInstance::ModelInstance(Model* model, bool baked) {
 	this->useBakedAnimations = baked;
 	this->model = model;
-	this->blended = model->vertices;
 
 	this->urls.reserve(this->model->meshes.size());
+	this->buffers.reserve(this->model->meshes.size());
 
 	for(auto & mesh : this->model->meshes) {
-		dmBuffer::HBuffer buffer = mesh.CreateBuffer(this);
+		auto buffer = mesh.CreateBuffer(this);
 		this->buffers.push_back(buffer);
 	}
 
@@ -62,6 +67,9 @@ ModelInstance::ModelInstance(Model* model, bool baked) {
 }
 
 ModelInstance::~ModelInstance() {
+	for (auto& buffer : this->buffers) {
+		dmBuffer::Destroy(buffer.m_Buffer);
+	}
 }
 
 void ModelInstance::CreateLuaProxy(lua_State* L) {
@@ -108,8 +116,7 @@ void ModelInstance::CreateLuaProxy(lua_State* L) {
 		lua_settable(L, -3);
 
 		lua_pushstring(L, "buffer");
-		dmScript::LuaHBuffer luabuf(this->buffers[idx-1], dmScript::OWNER_LUA);
-		dmScript::PushBuffer(L, luabuf);
+		dmScript::PushBuffer(L, this->buffers[idx-1]);
 		lua_settable(L, -3);
 
 		mesh.material.CreateLuaProxy(L);
@@ -152,9 +159,34 @@ void ModelInstance::SetFrame(lua_State* L,  int idx1, int idx2, float factor) {
 
 	int size = this->model->meshes.size();
 	for (int i = 0; i < size; i++) {
-		if (!this->useBakedAnimations) this->model->meshes[i].ApplyArmature(L, this, &this->urls[i]);
+		this->ApplyArmature(L, i);
 
 		//todo bones_go
+	}
+}
+
+void ModelInstance::ApplyArmature(lua_State* L, int meshIdx) {
+	if (this->useBakedAnimations) return;
+	
+	for (int idx : this->model->meshes[meshIdx].usedBonesIndex) { // set only used bones, critical for performance
+		int offset = idx * 3;
+
+		for (int i = 0; i < 3; i ++) {
+			lua_getglobal(L, "go");
+			lua_getfield(L, -1, "set");
+			lua_remove(L, -2);
+
+			dmScript::PushURL(L, this->urls[meshIdx]);
+			lua_pushstring(L, "bones");
+			dmScript::PushVector4(L, this->calculated->at(offset + i));
+
+			lua_newtable(L);
+			lua_pushstring(L, "index");
+			lua_pushnumber(L, offset + i + 1);
+			lua_settable(L, -3);
+
+			lua_call(L, 4, 0);
+		}
 	}
 }
 
@@ -277,3 +309,118 @@ void ModelInstance::Interpolate(int idx1, int idx2, float factor) {
 	this->bones = &interpolated;
 }
 
+void ModelInstance::SetShapes(lua_State* L, unordered_map<string, float>* values) {
+	unordered_map<string, float> modified;
+
+	for (auto it = values->begin(); it != values->end(); ++it) {
+		string name = it->first;
+		float value = it->second;
+		if (CONTAINS(&this->model->shapes, name) && (this->shapeValues[name] != value)) {
+				this->shapeValues[name] = value;
+				modified[name] = value;
+		}
+	}
+
+	if (modified.size() > 0) {
+		this->CalculateShapes(&modified);
+		this->ApplyShapes(L);
+	}
+}
+
+void ModelInstance::CalculateShapes(unordered_map<string, float>* values) {
+	Quat iq = Quat::identity();
+	this->blended.clear();
+	
+	float* weights = new float[this->model->vertexCount]();
+	
+	for (auto it = values->begin(); it != values->end(); ++it) {
+		string name = it->first;
+		float value = it->second;
+
+		auto shape = this->model->shapes[name];
+		for (auto shape_it = shape.begin(); shape_it != shape.end(); ++shape_it) {
+			int idx = shape_it->first;
+			ShapeData* delta = &shape_it->second;
+			ShapeData* v = &this->blended[idx];
+			
+			if (v->q.getW() == 0) v->q = Quat::identity(); //v was just inserted in map
+	
+			if (value > 0) {
+				weights[idx] += value;
+				v->p += delta->p * value;
+				v->n += delta->n * value;
+				v->q *= Lerp(value, iq, delta->q);
+			}
+
+		}
+	}
+
+	for (auto it = this->blended.begin(); it != this->blended.end(); ++it) {
+		int idx = it->first;
+		ShapeData* v = &it->second;
+		float total = weights[idx];
+		Vertex vertex = this->model->vertices[idx];
+		
+		if (total > 1) {
+			v->p = vertex.p + v->p / total;
+			v->n = vertex.n + v->n / total;
+		}
+		else if (total > 0) {
+			v->p = vertex.p + v->p;
+			v->n = vertex.n + v->n;
+		} else {
+			v->p = vertex.p;
+			v->n = vertex.n;
+			v->q = iq;
+		}
+
+		//v->n = Normalize(v->n);
+	}
+	
+	delete [] weights;
+}
+
+void ModelInstance::ApplyShapes(lua_State* L) {
+	int size = this->model->meshes.size();
+	for (int i = 0; i < size; i++) {
+		Mesh* mesh = &this->model->meshes[i];
+
+		float* positions = 0x0;
+		float* normals = 0x0;
+		float* tangents = 0x0;
+		float* bitangents = 0x0;
+		uint32_t components = 0;
+		uint32_t stride = 0;
+		uint32_t items_count = 0;
+
+		dmBuffer::GetStream(this->buffers[i].m_Buffer, dmHashString64("position"), (void**)&positions, &items_count, &components, &stride);
+		dmBuffer::GetStream(this->buffers[i].m_Buffer, dmHashString64("normal"), (void**)&normals, &items_count, &components, &stride);
+
+		for (auto it = this->blended.begin(); it != this->blended.end(); ++it) {
+			ShapeData* vertex = &it->second;
+
+			int numFaces = mesh->faces.size();
+			for(int j = 0; j < numFaces; j ++) {
+				for (int k = 0; k < 3; k++) {
+					if (mesh->faces[j].v[k] != it->first) continue;
+
+					int idx = stride * (j * 3 + k);
+					
+					positions[idx] = vertex->p.getX();
+					positions[idx + 1] = vertex->p.getY();
+					positions[idx + 2] = vertex->p.getZ();
+
+					normals[idx] = vertex->n.getX();
+					normals[idx + 1] = vertex->n.getY();
+					normals[idx + 2] = vertex->n.getZ();
+				}
+			}
+		}
+
+		lua_getglobal(L, "native_update_buffer");
+		
+		dmScript::PushURL(L, this->urls[i]);
+		dmScript::PushBuffer(L, this->buffers[i]);
+		lua_call(L, 2, 0);
+	}
+}

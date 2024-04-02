@@ -31,6 +31,31 @@ struct VertexData {
 
 std::unordered_map<std::string, BinaryFile*> files;
 
+static int SetShapes(lua_State* L) {
+    int count = lua_gettop(L);
+
+    lua_getfield(L, 1, "instance");
+    Instance* instance = (Instance*)lua_touserdata(L, -1);
+
+    lua_pop(L, 1);
+    lua_pushnil(L);
+
+    unordered_map<string, float> values;
+
+    while (lua_next(L, -2) != 0)
+    {
+        string name = string(luaL_checkstring(L, -2));
+        float value = luaL_checknumber(L, -1);
+        values[name] = value;
+        lua_pop(L, 1);
+    }
+
+    instance->SetShapes(L, &values);
+
+    return 0;
+}
+
+
 static int SetFrame(lua_State* L) {
     int count = lua_gettop(L);
 
@@ -64,17 +89,6 @@ static int Delete(lua_State* L) {
     return 0;
 }
 
-static int Test(lua_State* L) {
-    lua_getglobal(L, "go");
-    lua_getfield(L, -1, "set");
-    lua_remove(L, -2);
-
-    lua_pushstring(L, "/go1#sprite");
-    lua_pushstring(L, "tint");
-    dmScript::PushVector4(L, dmVMath::Vector4(1,0,0,1));
-    lua_call(L, 3, 0);
-}
-
 static int Load(lua_State* L) {
     std::string path = string(luaL_checkstring(L, 1));
     const char* content =  luaL_checkstring(L, 2);
@@ -101,6 +115,7 @@ static int Load(lua_State* L) {
 
     static const luaL_Reg f[] =
     {
+        {"set_shapes", SetShapes},
         {"set_frame", SetFrame},
         {"delete", Delete},
         {0, 0}
@@ -487,7 +502,6 @@ static const luaL_reg Module_methods[] =
     {"clear_cache", ClearCache},
     {"clear_data", ClearData},
     {"load", Load},
-    {"test", Test},
     {0, 0}
 };
 

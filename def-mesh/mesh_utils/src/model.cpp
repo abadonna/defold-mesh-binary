@@ -16,8 +16,8 @@ Model::Model(Reader* reader){
 	this->local = reader->ReadTransform();
 	this->world = reader->ReadTransform();
 
-	int vertexCount = reader->ReadInt();
-	dmLogInfo("vertices: %d", vertexCount);
+	this->vertexCount = reader->ReadInt();
+	dmLogInfo("vertices: %d", this->vertexCount);
 
 	this->vertices = new Vertex[vertexCount];
 	for (int i = 0; i < vertexCount; i++) {
@@ -30,7 +30,7 @@ Model::Model(Reader* reader){
 
 	for (int j = 0; j < shapeCount; j++) {
 		string name = reader->ReadString();
-		unordered_map<uint32_t, ShapeData> shape;
+		unordered_map<int, ShapeData> shape;
 		
 		int deltaCount = reader->ReadInt();
 		

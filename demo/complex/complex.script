@@ -14,7 +14,7 @@ function init(self)
 	math.random()
 
 	msg.post("/model", "load_mesh", {path = "/assets/joy.bin", texture_folder = "textures/complex"})
-	--blink()
+	blink()
 
 end
 

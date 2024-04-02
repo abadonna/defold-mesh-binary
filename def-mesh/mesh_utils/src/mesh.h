@@ -11,18 +11,16 @@ class Mesh
 	private:
 		vector<float> tangents;
 		vector<float> bitangents;
-		set<int> usedBonesIndex;
 	
 		void CalculateTangents(Vertex* vertices);
 		
 	public:
 		vector<Face> faces;
 		vector<float> texcoords;
+		set<int> usedBonesIndex;
 		Material material;
 
-		dmBuffer::HBuffer CreateBuffer(ModelInstance* model);
-		void ApplyArmature(lua_State* L, ModelInstance* mi, URL* url);
-		
+		dmScript::LuaHBuffer CreateBuffer(ModelInstance* model);
 		
 		Mesh();
 		~Mesh();

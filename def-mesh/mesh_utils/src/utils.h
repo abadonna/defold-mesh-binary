@@ -62,6 +62,11 @@ struct RoughnessMap {
 	Ramp ramp;
 };
 
+inline template <typename K, typename T>
+bool CONTAINS(unordered_map<K, T>* map, K key){
+	return map->find(key) != map->end();
+}
+
 struct Material {
 	int type; // 0 - opaque, 1 - blend, 2 - hashed
 	Vector4 color;
