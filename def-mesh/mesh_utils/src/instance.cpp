@@ -310,14 +310,14 @@ void ModelInstance::Interpolate(int idx1, int idx2, float factor) {
 }
 
 void ModelInstance::SetShapes(lua_State* L, unordered_map<string, float>* values) {
-	unordered_map<string, float> modified;
+	vector<string> modified;
 
 	for (auto it = values->begin(); it != values->end(); ++it) {
 		string name = it->first;
 		float value = it->second;
 		if (CONTAINS(&this->model->shapes, name) && (this->shapeValues[name] != value)) {
 				this->shapeValues[name] = value;
-				modified[name] = value;
+				modified.emplace_back(name);
 		}
 	}
 
@@ -327,57 +327,62 @@ void ModelInstance::SetShapes(lua_State* L, unordered_map<string, float>* values
 	}
 }
 
-void ModelInstance::CalculateShapes(unordered_map<string, float>* values) {
+void ModelInstance::CalculateShapes(vector<string>* shapeNames) {
 	Quat iq = Quat::identity();
 	this->blended.clear();
+	unordered_map<int, bool> modified;
 	
-	float* weights = new float[this->model->vertexCount]();
-	
-	for (auto it = values->begin(); it != values->end(); ++it) {
-		string name = it->first;
-		float value = it->second;
-
-		auto shape = this->model->shapes[name];
-		for (auto shape_it = shape.begin(); shape_it != shape.end(); ++shape_it) {
-			int idx = shape_it->first;
-			ShapeData* delta = &shape_it->second;
-			ShapeData* v = &this->blended[idx];
-			
-			//if (v->q.getW() == 0) v->q = Quat::identity(); //v was just inserted in map
-	
-			if (value > 0) {
-				weights[idx] += value;
-				v->p += delta->p * value;
-				v->n += delta->n * value;
-				//v->q *= Lerp(value, iq, delta->q);
-			}
-
+	for (auto &name : *shapeNames) {
+		for (auto &it: this->model->shapes[name]) {
+			modified[it.first] = true;
 		}
 	}
 
-	for (auto it = this->blended.begin(); it != this->blended.end(); ++it) {
-		int idx = it->first;
-		ShapeData* v = &it->second;
-		float total = weights[idx];
+	for (auto &it : modified) {
+		int idx = it.first;
+		ShapeData v;
+		v.p = Vector3(0);
+		v.n = Vector3(0);
+		//v.q = Quat::identity();
+		float weight =  0;
+
+		for (auto &s : this->shapeValues) {
+			float value = s.second;
+			if (value == 0) continue;
+			
+			auto shape = &this->model->shapes[s.first];
+			if (CONTAINS(shape, idx)) {
+				ShapeData* delta = &shape->at(idx);
+				weight += value;
+				v.p +=  delta->p * value;
+				v.n += delta->n * value;
+				//v.q *= Lerp(value, iq, delta->q);
+			}
+		}
+
 		Vertex vertex = this->model->vertices[idx];
 		
-		if (total > 1) {
-			v->p = vertex.p + v->p / total;
-			v->n = vertex.n + v->n / total;
+		if (weight > 1) {
+			v.p = vertex.p + v.p / weight;
+			v.n = vertex.n + v.n / weight;
 		}
-		else if (total > 0) {
-			v->p = vertex.p + v->p;
-			v->n = vertex.n + v->n;
+		else if (weight > 0) {
+			v.p = vertex.p + v.p;
+			v.n = vertex.n + v.n;
 		} else {
-			v->p = vertex.p;
-			v->n = vertex.n;
-			//v->q = iq;
+			v.p = vertex.p;
+			v.n = vertex.n;
+			//v.q = iq;
 		}
 
-		//v->n = Normalize(v->n);
+		this->blended[idx] = v;
 	}
-	
-	delete [] weights;
+
+	for (auto it = this->shapeValues.begin(); it != this->shapeValues.end();) {
+		if (it->second == 0) {
+			it = this->shapeValues.erase(it);
+		} else ++it;
+	}
 }
 
 void ModelInstance::ApplyShapes(lua_State* L) {
