@@ -316,6 +316,7 @@ void ModelInstance::SetShapes(lua_State* L, unordered_map<string, float>* values
 	for (auto & it : *values) {
 		string name = it.first;
 		float value = it.second;
+		directShapeValues[name] = value;
 		if (CONTAINS(&this->model->shapes, name) && (this->shapeValues[name] != value)) {
 				this->shapeValues[name] = value;
 				modified.emplace_back(name);
@@ -325,6 +326,12 @@ void ModelInstance::SetShapes(lua_State* L, unordered_map<string, float>* values
 	if (modified.size() > 0) {
 		this->CalculateShapes(&modified);
 		this->ApplyShapes(L);
+	}
+
+	for (auto it = this->directShapeValues.begin(); it != this->directShapeValues.end();) {
+		if (it->second == 0) {
+			it = this->directShapeValues.erase(it);
+		} else ++it;
 	}
 }
 
@@ -338,6 +345,7 @@ void ModelInstance::SetShapeFrame(lua_State* L, int idx1, int idx2, float factor
 	for (auto & it : this->model->shapeFrames[idx1]) {
 		string name = it.first;
 		float value = it.second;
+		if (CONTAINS(&this->directShapeValues, name)) continue;
 		//if math.abs(mesh.shape_values[name] - value) >= SETTINGS.blendshape_treshold then
 		if (this->shapeValues[name] != value) {
 			this->shapeValues[name] = value;
