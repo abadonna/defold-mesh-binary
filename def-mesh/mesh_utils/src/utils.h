@@ -7,6 +7,11 @@
 using namespace std;
 using namespace dmVMath;
 
+struct BoneGO {
+	int bone;
+	dmGameObject::HInstance gameObject;
+};
+
 struct Face {
 	int v[3];
 	bool isFlat = false;

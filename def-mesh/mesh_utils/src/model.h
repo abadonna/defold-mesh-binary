@@ -6,7 +6,7 @@ using namespace std;
 class Model
 {
 	private:
-		string* boneNames  = NULL;
+		vector<string> boneNames;
 		
 	
 	public:
@@ -23,6 +23,8 @@ class Model
 		vector<SkinData>* skin = NULL;
 		vector<Vector4> invLocalBones;
 		bool isPrecomputed = false;
+
+		int FindBone(string bone);
 		
 		Model(Reader* reader);
 		~Model();

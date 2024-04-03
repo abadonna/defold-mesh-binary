@@ -11,6 +11,24 @@ using namespace Vectormath::Aos;
 
 std::unordered_map<std::string, BinaryFile*> files;
 
+static int AttachBoneGO(lua_State* L) {
+    int count = lua_gettop(L);
+
+    lua_getfield(L, 1, "instance");
+    Instance* instance = (Instance*)lua_touserdata(L, -1);
+
+    dmGameObject::HInstance go = dmScript::CheckGOInstance(L, 2);
+    string bone = string(luaL_checkstring(L, 3));
+
+    URL* url = instance->AttachGameObject(go, bone);
+    if (url != NULL) {
+        dmScript::PushURL(L, *url);
+        return 1;
+    }
+    
+    return 0;
+}
+
 static int SetShapes(lua_State* L) {
     int count = lua_gettop(L);
 
@@ -95,6 +113,7 @@ static int Load(lua_State* L) {
 
     static const luaL_Reg f[] =
     {
+        {"attach_bone_go", AttachBoneGO},
         {"set_shapes", SetShapes},
         {"set_frame", SetFrame},
         {"delete", Delete},

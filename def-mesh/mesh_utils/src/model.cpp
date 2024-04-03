@@ -149,10 +149,9 @@ Model::Model(Reader* reader){
 	}
 
 	//reading armature
-
-	this->boneNames = new string[boneCount];
+	this->boneNames.reserve(boneCount);
 	for (int i = 0; i < boneCount; i++) {
-		this->boneNames[i] = reader->ReadString();
+		this->boneNames.push_back(reader->ReadString());
 	}
 
 	
@@ -214,10 +213,18 @@ Model::Model(Reader* reader){
 Model::~Model(){
 
 	delete [] this->vertices;
-	delete [] this->boneNames;
 	delete [] this->skin;
 	/*
 	for (auto it = this->meshes.begin(); it !=  this->meshes.end(); it++) {
 		delete *it;
 	}*/
+}
+
+int Model::FindBone(string bone) {
+	for (int i = 0; i < this->boneNames.size(); i++) {
+		if (bone == this->boneNames[i])
+			return i;
+	}
+
+	return -1;
 }

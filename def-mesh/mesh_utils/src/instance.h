@@ -14,6 +14,7 @@ class Model;
 
 class ModelInstance {
 	private:
+		vector<BoneGO> boneObjects;
 		vector<Vector4> temp;
 		vector<Vector4> interpolated;
 		unordered_map<string, float> shapeValues;
@@ -22,7 +23,9 @@ class ModelInstance {
 		void CalculateShapes(vector<string>* shapeNames);
 		void ApplyShapes(lua_State* L);
 		void ApplyArmature(lua_State* L, int meshIdx);
+		void ApplyTransform(BoneGO* obj);
 		void SetShapeFrame(lua_State* L, int idx1, int idx2, float factor);
+		
 	
 	public:
 		Model* model;
@@ -44,6 +47,7 @@ class ModelInstance {
 		void SetFrame(lua_State* L, int idx1, int idx2, float factor);
 		void SetShapes(lua_State* L, unordered_map<string, float>* values);
 		void CalculateBones();
+		URL* AttachGameObject(dmGameObject::HInstance go, string bone);
 
 		Vertex* GetVertices();
 };
@@ -56,6 +60,7 @@ class Instance{
 		void SetFrame(lua_State* L, int idx1, int idx2, float factor);
 		void SetShapes(lua_State* L, unordered_map<string, float>* values);
 		void CreateLuaProxy(lua_State* L);
+		URL* AttachGameObject(dmGameObject::HInstance go, string bone);
 		
 		Instance(vector<Model*>* data, bool baked);
 		~Instance();

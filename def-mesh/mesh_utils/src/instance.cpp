@@ -34,6 +34,15 @@ void Instance::SetShapes(lua_State* L, unordered_map<string, float>* values) {
 	}
 }
 
+URL* Instance::AttachGameObject(dmGameObject::HInstance go, string bone) {
+	for(auto & mi : this->models) {
+		URL* url = mi->AttachGameObject(go, bone);
+		if (url != NULL) return url;
+	}
+	dmLogInfo("Bone \"%s\" not found!", bone.c_str());
+	return NULL;
+}
+
 static int SetURL(lua_State* L) {
 	lua_getfield(L, 1, "instance");
 	ModelInstance* mi = (ModelInstance* )lua_touserdata(L, -1);
@@ -160,8 +169,10 @@ void ModelInstance::SetFrame(lua_State* L,  int idx1, int idx2, float factor) {
 	int size = this->model->meshes.size();
 	for (int i = 0; i < size; i++) {
 		this->ApplyArmature(L, i);
+	}
 
-		//todo bones_go
+	for(auto & obj : this->boneObjects) {
+		this->ApplyTransform(&obj);
 	}
 }
 
@@ -484,3 +495,38 @@ void ModelInstance::ApplyShapes(lua_State* L) {
 		}
 	}
 }
+
+URL* ModelInstance::AttachGameObject(dmGameObject::HInstance go, string bone) {
+	int idx = this->model->FindBone(bone);
+	if (idx > -1) {
+		BoneGO object;
+		object.bone = idx;
+		object.gameObject = go;
+		this->boneObjects.push_back(object);
+		this->ApplyTransform(&object);
+		return &this->urls[0];
+	}
+	return NULL;
+}
+
+void ModelInstance::ApplyTransform(BoneGO* obj) {
+	int offset = obj->bone * 3;
+
+	Vector4 v1 = this->calculated->at(offset);
+	Vector4 v2 = this->calculated->at(offset + 1);
+	Vector4 v3 = this->calculated->at(offset + 2);
+
+	Matrix4 m;
+
+	m.setCol0(v1);
+	m.setCol1(v2);
+	m.setCol2(v3);
+	m.setCol3(Vector4(1));
+	
+	m = Transpose(m);
+	Quat q = MatToQuat(m);
+	dmGameObject::SetRotation(obj->gameObject, Quat(q.getX(), q.getZ(), -q.getY(), q.getW()));
+	dmGameObject::SetPosition(obj->gameObject, dmVMath::Point3(v1.getW(), v3.getW(), -v2.getW()));
+}
+
+

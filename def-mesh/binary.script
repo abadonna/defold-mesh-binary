@@ -18,11 +18,9 @@ local buffer_declaraion = {
 
 
 local function create_buffer(buf)
-	--buf = buf or buffer.create(1, buffer_declaraion)
 	SETTINGS.buffer_count = (SETTINGS.buffer_count and SETTINGS.buffer_count + 1) or 1
 	local path = "/def-mesh/buffers/buffer" .. SETTINGS.buffer_count .. ".bufferc"
 	return resource.create_buffer(path, {buffer = buf, transfer_ownership = false}), path
-	--todo: resource.release() ?
 end
 
 function native_update_buffer(mesh_url, buffer)
@@ -79,7 +77,17 @@ local function get_bone_go(self, bone)
 	if self.bones_go[bone] then
 		return self.bones_go[bone]
 	end
-	
+
+	local id = factory.create("#factory_bone")
+
+	local parent = self.binary:attach_bone_go(id, bone)
+	if parent then
+		go.set_parent(id, parent)
+		self.bones_go[bone] = id
+
+		return id
+	end
+	--[[
 	for _, mesh in pairs(self.meshes) do
 		if mesh.bone_names then
 			for i, name in ipairs(mesh.bone_names) do
@@ -94,8 +102,9 @@ local function get_bone_go(self, bone)
 				end
 			end
 		end
+		
 	end
-	error("Bone " .. bone .. " not found!")
+	error("Bone " .. bone .. " not found!")--]]
 	return nil
 end
 
@@ -142,18 +151,6 @@ function on_message(self, message_id, message, sender)
 					go.set(url, "material", self.transparent)
 				end
 				
-
-			--[[
-				local values = buffer.get_stream(mesh.buffer, "weight")
-				pprint("weight1", values[101], values[102], values[103], values[104])
-				pprint("weight2", values[5], values[6], values[7], values[8])
-
-
-				values = buffer.get_stream(mesh.buffer, "bone")
-				pprint("bone1", values[101], values[102], values[103], values[104])
-				pprint("bone2", values[201], values[202], values[203], values[204])
-						--]]
-				
 				local v, path = create_buffer(mesh.buffer)
 				go.set(url, "vertices", v)
 
@@ -165,7 +162,6 @@ function on_message(self, message_id, message, sender)
 					parent = model.parent
 				}
 				
-
 				local options = vmath.vector4(0.0)
 				local options_specular = vmath.vector4(0.0)
 				options_specular.y = mesh.material.specular.value
