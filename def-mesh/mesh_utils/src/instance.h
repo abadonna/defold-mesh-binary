@@ -21,6 +21,7 @@ class ModelInstance {
 		void CalculateShapes(vector<string>* shapeNames);
 		void ApplyShapes(lua_State* L);
 		void ApplyArmature(lua_State* L, int meshIdx);
+		void SetShapeFrame(lua_State* L, int idx1, int idx2, float factor);
 	
 	public:
 		Model* model;

@@ -70,6 +70,13 @@ Model::Model(Reader* reader){
 			this->meshes.emplace_back();
 		}
 		this->meshes[mi].faces.push_back(face);
+
+		if (shapeCount > 0) {
+			int idx = (this->meshes[mi].faces.size() - 1) * 3;
+			this->meshes[mi].vertexMap[face.v[0]].push_back(idx);
+			this->meshes[mi].vertexMap[face.v[1]].push_back(idx + 1);
+			this->meshes[mi].vertexMap[face.v[2]].push_back(idx + 2);
+		}
 	}
 
 	for (int i = 0; i < faceCount; i++) {

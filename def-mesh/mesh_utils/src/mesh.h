@@ -18,6 +18,7 @@ class Mesh
 		vector<Face> faces;
 		vector<float> texcoords;
 		set<int> usedBonesIndex;
+		unordered_map< int, vector<int> > vertexMap;
 		Material material;
 
 		dmScript::LuaHBuffer CreateBuffer(ModelInstance* model);

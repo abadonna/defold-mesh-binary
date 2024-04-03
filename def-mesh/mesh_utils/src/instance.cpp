@@ -136,7 +136,7 @@ void ModelInstance::SetFrame(lua_State* L,  int idx1, int idx2, float factor) {
 	idx1 = (idx1 < last_frame) ? idx1 : last_frame;
 	idx2 = (idx2 < last_frame) ? idx2 : last_frame;
 
-	//todo: blendshapes
+	this->SetShapeFrame(L, idx1, idx2, factor);
 	//todo: baked
 
 	//if not mesh.animate_with_texture or #mesh.bones_go > 0 then
@@ -310,14 +310,38 @@ void ModelInstance::Interpolate(int idx1, int idx2, float factor) {
 }
 
 void ModelInstance::SetShapes(lua_State* L, unordered_map<string, float>* values) {
+	if (this->model->shapes.empty()) return;
 	vector<string> modified;
 
-	for (auto it = values->begin(); it != values->end(); ++it) {
-		string name = it->first;
-		float value = it->second;
+	for (auto & it : *values) {
+		string name = it.first;
+		float value = it.second;
 		if (CONTAINS(&this->model->shapes, name) && (this->shapeValues[name] != value)) {
 				this->shapeValues[name] = value;
 				modified.emplace_back(name);
+		}
+	}
+
+	if (modified.size() > 0) {
+		this->CalculateShapes(&modified);
+		this->ApplyShapes(L);
+	}
+}
+
+void ModelInstance::SetShapeFrame(lua_State* L, int idx1, int idx2, float factor) {
+	//todo: blending
+	//if SETTINGS.animate_blendshapes and #mesh.shape_frames >= idx then
+	if (this->model->shapes.empty() || this->model->shapeFrames.size() < idx1) return;
+
+	vector<string> modified;
+	
+	for (auto & it : this->model->shapeFrames[idx1]) {
+		string name = it.first;
+		float value = it.second;
+		//if math.abs(mesh.shape_values[name] - value) >= SETTINGS.blendshape_treshold then
+		if (this->shapeValues[name] != value) {
+			this->shapeValues[name] = value;
+			modified.emplace_back(name);
 		}
 	}
 
@@ -389,6 +413,8 @@ void ModelInstance::ApplyShapes(lua_State* L) {
 	int size = this->model->meshes.size();
 	for (int i = 0; i < size; i++) {
 		Mesh* mesh = &this->model->meshes[i];
+		
+		bool needUpdate = false;
 
 		float* positions = 0x0;
 		float* normals = 0x0;
@@ -404,51 +430,49 @@ void ModelInstance::ApplyShapes(lua_State* L) {
 		//dmBuffer::GetStream(this->buffers[i].m_Buffer, dmHashString64("tangent"), (void**)&tangents, &items_count, &components, &stride);
 		//dmBuffer::GetStream(this->buffers[i].m_Buffer, dmHashString64("bitangent"), (void**)&bitangents, &items_count, &components, &stride);
 
-		for (auto it = this->blended.begin(); it != this->blended.end(); ++it) {
-			ShapeData* vertex = &it->second;
+		for (auto & it : this->blended) {	
+			ShapeData vertex = it.second;
+			if (!CONTAINS(&mesh->vertexMap, it.first)) continue;
+			needUpdate = true;
 
-			int numFaces = mesh->faces.size();
-			for(int j = 0; j < numFaces; j ++) {
-				for (int k = 0; k < 3; k++) {
-					if (mesh->faces[j].v[k] != it->first) continue;
+			for (auto & count : mesh->vertexMap[it.first]) {
 
-					int count = j * 3 + k;
-					int idx = stride * count;
+				int idx = stride * count;
+
+				positions[idx] = vertex.p.getX();
+				positions[idx + 1] = vertex.p.getY();
+				positions[idx + 2] = vertex.p.getZ();
+
+				normals[idx] = vertex.n.getX();
+				normals[idx + 1] = vertex.n.getY();
+				normals[idx + 2] = vertex.n.getZ();
+
+				//Updating tangents is slower, probably we can skip it
 					
+				/*
+				count *= 3;
 					
-					positions[idx] = vertex->p.getX();
-					positions[idx + 1] = vertex->p.getY();
-					positions[idx + 2] = vertex->p.getZ();
+				Vector3 v = Vector3(mesh->tangents[count], mesh->tangents[count + 1], mesh->tangents[count + 2]);
+				v = rotate(vertex->q, v);
+				tangents[idx] = v.getX();
+				tangents[idx + 1] = v.getY();
+				tangents[idx + 2] = v.getZ();
 
-					normals[idx] = vertex->n.getX();
-					normals[idx + 1] = vertex->n.getY();
-					normals[idx + 2] = vertex->n.getZ();
-
-					//Updating tangents is slower, probably we can skip it
-					
-					/*
-					count *= 3;
-					
-					Vector3 v = Vector3(mesh->tangents[count], mesh->tangents[count + 1], mesh->tangents[count + 2]);
-					v = rotate(vertex->q, v);
-					tangents[idx] = v.getX();
-					tangents[idx + 1] = v.getY();
-					tangents[idx + 2] = v.getZ();
-
-					v = Vector3(mesh->bitangents[count], mesh->bitangents[count + 1], mesh->bitangents[count + 2]);
-					v = rotate(vertex->q, v);  
-					bitangents[idx] = v.getX();
-					bitangents[idx + 1] = v.getY();
-					bitangents[idx + 2] = v.getZ();
-					*/
-				}
+				v = Vector3(mesh->bitangents[count], mesh->bitangents[count + 1], mesh->bitangents[count + 2]);
+				v = rotate(vertex->q, v);  
+				bitangents[idx] = v.getX();
+				bitangents[idx + 1] = v.getY();
+				bitangents[idx + 2] = v.getZ();
+				*/
 			}
 		}
 
-		lua_getglobal(L, "native_update_buffer");
-		
-		dmScript::PushURL(L, this->urls[i]);
-		dmScript::PushBuffer(L, this->buffers[i]);
-		lua_call(L, 2, 0);
+		if (needUpdate) {
+			lua_getglobal(L, "native_update_buffer");
+			
+			dmScript::PushURL(L, this->urls[i]);
+			dmScript::PushBuffer(L, this->buffers[i]);
+			lua_call(L, 2, 0);
+		}
 	}
 }
