@@ -10,10 +10,10 @@ unsigned nextPOT(unsigned x) {
 
 Model::Model(Reader* reader){
 	this->meshes.emplace_back();
-	//this->meshes.back().Test();
 
 	this->name = reader->ReadString();
-	dmLogInfo("reading: %s", this->name.c_str());
+	dmLogInfo("-------------");
+	dmLogInfo("%s", this->name.c_str());
 
 	int parentFlag = reader->ReadInt();
 
@@ -146,9 +146,6 @@ Model::Model(Reader* reader){
 		}
 	}
 
-	//dmLogInfo("specular_value: %f", this->meshes[0].material.specular.value);
-	
-
 	int boneCount = reader->ReadInt();
 	dmLogInfo("bones: %d", boneCount);
 	
@@ -162,7 +159,6 @@ Model::Model(Reader* reader){
 		this->boneNames.push_back(reader->ReadString());
 	}
 
-	
 	this->skin = new vector<SkinData>[vertexCount];
 	for (int i = 0; i < vertexCount; i++) {
 		this->skin[i].reserve(4);
@@ -175,7 +171,6 @@ Model::Model(Reader* reader){
 		}
 	}
 
-	
 	this->isPrecomputed = (reader->ReadInt() == 1);
 	
 	if (!this->isPrecomputed) {

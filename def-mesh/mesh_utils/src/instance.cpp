@@ -430,7 +430,7 @@ void ModelInstance::SetShapes(lua_State* L, unordered_map<string, float>* values
 
 void ModelInstance::SetShapeFrame(lua_State* L, int idx1, int idx2, float factor) {
 	//todo: blending
-	//if SETTINGS.animate_blendshapes and #mesh.shape_frames >= idx then
+	
 	if (this->model->shapes.empty() || this->model->shapeFrames.size() < idx1) return;
 
 	vector<string> modified;
@@ -439,8 +439,8 @@ void ModelInstance::SetShapeFrame(lua_State* L, int idx1, int idx2, float factor
 		string name = it.first;
 		float value = it.second;
 		if (CONTAINS(&this->directShapeValues, name)) continue;
-		//if math.abs(mesh.shape_values[name] - value) >= SETTINGS.blendshape_treshold then
-		if (this->shapeValues[name] != value) {
+		if (this->shapeValues[name] != value 
+			/*&& fabs(this->shapeValues[name] - value) > this->threshold*/) {
 			this->shapeValues[name] = value;
 			modified.emplace_back(name);
 		}

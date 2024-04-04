@@ -1,12 +1,10 @@
-local SETTINGS = require "def-mesh.settings"
-
 go.property('opaque', resource.material())
 go.property('transparent', resource.material())
 go.property("bakeAnimations", false)
 
 local function create_buffer(buf)
-	SETTINGS.buffer_count = (SETTINGS.buffer_count and SETTINGS.buffer_count + 1) or 1
-	local path = "/def-mesh/buffers/buffer" .. SETTINGS.buffer_count .. ".bufferc"
+	BUFFER_COUNT = BUFFER_COUNT and BUFFER_COUNT + 1 or 1
+	local path = "/def-mesh/buffers/buffer" .. BUFFER_COUNT .. ".bufferc"
 	return resource.create_buffer(path, {buffer = buf, transfer_ownership = false}), path
 end
 
@@ -178,7 +176,6 @@ function on_message(self, message_id, message, sender)
 
 				if mesh.material.texture then
 					options.x = 1.0
-					set_texture(self, url, "texture4", self.texture_folder, mesh.material.texture)
 					set_texture(self, url, "texture0", self.texture_folder, mesh.material.texture)
 				end
 

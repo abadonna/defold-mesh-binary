@@ -19,6 +19,8 @@ class ModelInstance {
 		vector<Vector4> interpolated;
 		unordered_map<string, float> shapeValues;
 		unordered_map<string, float> directShapeValues;
+		float threshold = 0;
+		
 		void Interpolate(int idx1, int idx2, float factor);
 		void CalculateShapes(vector<string>* shapeNames);
 		void ApplyShapes(lua_State* L);
