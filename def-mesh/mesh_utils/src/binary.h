@@ -12,6 +12,6 @@ class BinaryFile
 
 		Instance* CreateInstance(bool useBakedAnimations);
 	
-		BinaryFile(const char* file, unsigned long size);
+		BinaryFile(const char* file);
 		~BinaryFile();
 };

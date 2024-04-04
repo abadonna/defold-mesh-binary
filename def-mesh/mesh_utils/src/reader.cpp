@@ -1,8 +1,7 @@
 #include "reader.h"
 
-Reader::Reader(const char* file, unsigned long fsize) {
+Reader::Reader(const char* file) {
 	this->data = file;
-	this->size = fsize;
 }
 
 Reader::~Reader() {
@@ -11,23 +10,20 @@ Reader::~Reader() {
 //-----------------------------------------------------------------
 
 bool Reader::IsEOF() {
-	return this->index >= this->size;
+	return *this->data == '\0';
 }
 
 int Reader::ReadInt() {
-	const unsigned char *b = (const unsigned char *)(this->data + this->index);
-	int temp = ((b[3] << 24) |
-	(b[2] << 16) |
-	(b[1] <<  8) |
-	b[0]);
+	const unsigned char *b = (const unsigned char *)this->data;
+	int value = b[0] | ((int)b[1] << 8) | ((int)b[2] << 16) | ((int)b[3] << 24);
 
-	this->index += 4;
-	return temp;
+	this->data += 4;
+	return value;
 }
 
 string Reader::ReadString(int size) {
-	string res = string(&this->data[this->index], size);
-	this->index += size;
+	string res = string(this->data, size);
+	this->data += size;
 	return res;
 }
 
@@ -38,14 +34,14 @@ string Reader::ReadString() {
 
 //https://stackoverflow.com/questions/3991478/building-a-32-bit-float-out-of-its-4-composite-bytes
 float Reader::ReadFloat() {
-	const unsigned char *b = (const unsigned char *)(this->data + this->index);
+	const unsigned char *b = (const unsigned char *)this->data;
 	uint32_t temp = 0;
 	temp = ((b[3] << 24) |
 	(b[2] << 16) |
 	(b[1] <<  8) |
 	b[0]);
 
-	this->index += 4;
+	this->data += 4;
 	return *((float *) &temp);
 }
 

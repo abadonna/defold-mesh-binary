@@ -4,9 +4,7 @@
 class Reader
 {
 	private:
-		int index = 0;
 		const char* data; 
-		unsigned long size;
 
 	public:
 		bool IsEOF();
@@ -17,6 +15,6 @@ class Reader
 		string ReadString();
 		string ReadString(int size);
 		Transform3d ReadTransform();
-		Reader(const char* file, unsigned long fsize);
+		Reader(const char* file);
 		~Reader();
 };

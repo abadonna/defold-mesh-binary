@@ -115,7 +115,7 @@ function on_message(self, message_id, message, sender)
 		local anim_texture = nil
 		local models
 		local data = sys.load_resource(message.path)
-		self.binary, models = mesh_utils.load(message.path, data, #data, self.bakeAnimations)
+		self.binary, models = mesh_utils.load(message.path, data, self.bakeAnimations)
 
 		--pprint(self.binary, models)
 		self.game_objects = {}

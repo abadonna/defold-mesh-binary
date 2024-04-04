@@ -1,7 +1,7 @@
 #include "binary.h"
 
-BinaryFile::BinaryFile(const char* file, unsigned long size) {
-	Reader* reader = new Reader(file, size);
+BinaryFile::BinaryFile(const char* file) {
+	Reader* reader = new Reader(file);
 
 	while (!reader->IsEOF()) {
 		Model* model = new Model(reader);

@@ -91,15 +91,13 @@ static int Delete(lua_State* L) {
 static int Load(lua_State* L) {
     std::string path = string(luaL_checkstring(L, 1));
     const char* content =  luaL_checkstring(L, 2);
-    unsigned long size = luaL_checknumber(L, 3);
-    bool useBakedAnimations = lua_toboolean(L, 4);
+    bool useBakedAnimations = lua_toboolean(L, 3);
 
     BinaryFile* binary;
     if (auto search = files.find(path); search != files.end()) {
         binary = search->second;
-        dmLogInfo("file found!");
     } else {
-        files[path] = new BinaryFile(content, size);
+        files[path] = new BinaryFile(content);
         binary = files[path];
     }
 

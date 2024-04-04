@@ -132,9 +132,11 @@ ModelInstance::ModelInstance(Model* model, bool useBakedAnimations) {
 }
 
 ModelInstance::~ModelInstance() {
+	/*
 	for (auto& buffer : this->buffers) {
 		dmBuffer::Destroy(buffer.m_Buffer);
-	}
+	}*/  
+	//resource will destroy buffer anyway
 }
 
 void ModelInstance::CreateLuaProxy(lua_State* L) {
