@@ -1,20 +1,8 @@
-
 local SETTINGS = require "def-mesh.settings"
 
 go.property('opaque', resource.material())
 go.property('transparent', resource.material())
 go.property("bakeAnimations", false)
-
-local buffer_declaraion = {
-	{name = "position", type = buffer.VALUE_TYPE_FLOAT32, count = 3},	
-	{name = "normal", type = buffer.VALUE_TYPE_FLOAT32, count = 3},
-	{name = "texcoord0", type = buffer.VALUE_TYPE_FLOAT32, count = 2},
-	{name = "weight", type = buffer.VALUE_TYPE_FLOAT32, count = 4},
-	{name = "bone", type = buffer.VALUE_TYPE_UINT8, count = 4},
-	{name = "tangent", type = buffer.VALUE_TYPE_FLOAT32, count = 3},
-	{name = "bitangent", type = buffer.VALUE_TYPE_FLOAT32, count = 3}
-}
-
 
 local function create_buffer(buf)
 	SETTINGS.buffer_count = (SETTINGS.buffer_count and SETTINGS.buffer_count + 1) or 1
@@ -32,6 +20,7 @@ function init(self)
 	self.total_frames = 0
 	self.attaches = {}
 	self.bones_go = {}
+	self.textures = {}
 	msg.post("#dummy", "disable")
 end
 
@@ -41,8 +30,10 @@ function final(self)
 	end
 	
 	if self.binary then
-		if self.binary:delete() then
-			--todo: clean up textures, no more instances
+		if self.binary:delete() then --clean up textures, no more instances
+			for texture, _ in pairs(self.textures) do
+				resource.release(texture)
+			end
 		end
 	end
 end
@@ -51,7 +42,7 @@ local function set_frame(self, frame, frame_blend, blend)
 	self.binary:set_frame(frame, frame_blend == nil and -1 or frame_blend, blend or 0)
 end
 
-local function set_texture(url, slot, folder, file)
+local function set_texture(self, url, slot, folder, file)
 	if not file then
 		return false
 	end
@@ -67,10 +58,10 @@ local function set_texture(url, slot, folder, file)
 	local texture_id = hash(path)
 	if not pcall(function()
 		texture_id = resource.create_texture(path, img.header, img.buffer)
-		--todo: release texture if last instance deleted
 	end) then
 		--already exists?
 	end
+	self.textures[texture_id] = true
 	go.set(url, slot, texture_id)
 	return true
 end
@@ -144,7 +135,6 @@ function on_message(self, message_id, message, sender)
 					}
 
 					anim_texture = resource.create_texture(tpath, tparams, tbuffer)
-					--TODO: release
 				end
 
 			end
@@ -182,24 +172,24 @@ function on_message(self, message_id, message, sender)
 				options.z = mesh.material.type
 
 				if anim_texture then
-					--mesh.animate_tex_width = twidth
-					--mesh.animate_tex_height = theight
+					self.textures[anim_texture] = true;
 					go.set(url, "texture3", anim_texture)
 				end
 
 				if mesh.material.texture then
 					options.x = 1.0
-					set_texture(url, "texture0", self.texture_folder, mesh.material.texture)
+					set_texture(self, url, "texture4", self.texture_folder, mesh.material.texture)
+					set_texture(self, url, "texture0", self.texture_folder, mesh.material.texture)
 				end
 
 				if mesh.material.normal and
-					set_texture(url, "texture1", self.texture_folder, mesh.material.normal.texture) 
+					set_texture(self, url, "texture1", self.texture_folder, mesh.material.normal.texture) 
 				then
 					options.y = mesh.material.normal.value
 				end
 
 				if mesh.material.specular.texture and
-					set_texture(url, "texture2", self.texture_folder, mesh.material.specular.texture) 
+					set_texture(self, url, "texture2", self.texture_folder, mesh.material.specular.texture) 
 				then
 					options_specular.x = 1.0 + mesh.material.specular.invert
 					if mesh.material.specular.ramp then
@@ -209,7 +199,7 @@ function on_message(self, message_id, message, sender)
 				end
 
 				if mesh.material.roughness.texture and
-					set_texture(url, "texture2", self.texture_folder, mesh.material.roughness.texture) 
+					set_texture(self, url, "texture2", self.texture_folder, mesh.material.roughness.texture) 
 				then
 					-- roughness and specular are usually the same?
 					options_specular.w = 1.0
