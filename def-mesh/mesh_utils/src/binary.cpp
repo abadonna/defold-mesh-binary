@@ -17,8 +17,8 @@ BinaryFile::~BinaryFile() {
 	}
 }
 
-Instance* BinaryFile::CreateInstance() {
-	Instance* instance = new Instance(&this->models, false);
+Instance* BinaryFile::CreateInstance(bool useBakedAnimations) {
+	Instance* instance = new Instance(&this->models, useBakedAnimations);
 	this->instances ++;
 	return instance;
 }

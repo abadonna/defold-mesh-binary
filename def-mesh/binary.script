@@ -1,10 +1,9 @@
-require "def-mesh.texture"
-local reader = require "def-mesh.reader"
+
 local SETTINGS = require "def-mesh.settings"
 
 go.property('opaque', resource.material())
 go.property('transparent', resource.material())
-go.property("animate_with_texture", false)
+go.property("bakeAnimations", false)
 
 local buffer_declaraion = {
 	{name = "position", type = buffer.VALUE_TYPE_FLOAT32, count = 3},	
@@ -66,6 +65,7 @@ local function set_texture(url, slot, folder, file)
 	local texture_id = hash(path)
 	if not pcall(function()
 		texture_id = resource.create_texture(path, img.header, img.buffer)
+		--todo: release texture if last instance deleted
 	end) then
 		--already exists?
 	end
@@ -87,24 +87,7 @@ local function get_bone_go(self, bone)
 
 		return id
 	end
-	--[[
-	for _, mesh in pairs(self.meshes) do
-		if mesh.bone_names then
-			for i, name in ipairs(mesh.bone_names) do
-				if name == bone then
-					local id = factory.create("#factory_bone")
-
-					go.set_parent(id, mesh.url)
-					mesh.add_bone_go(id, i)
-
-					self.bones_go[bone] = id
-					return id
-				end
-			end
-		end
-		
-	end
-	error("Bone " .. bone .. " not found!")--]]
+	
 	return nil
 end
 
@@ -130,13 +113,40 @@ function on_message(self, message_id, message, sender)
 		local anim_texture = nil
 		local models
 		local data = sys.load_resource(message.path)
-		self.binary, models = mesh_utils.load(message.path, data, #data)
+		self.binary, models = mesh_utils.load(message.path, data, #data, self.bakeAnimations)
 
 		--pprint(self.binary, models)
 		self.game_objects = {}
 
 		for name, model in pairs(models) do 
 			self.total_frames = model.frames
+			local anim_texture
+			if model.frames > 1 and self.bakeAnimations then
+				
+				local tpath = string.match(message.path, "(%a-)[$%.]") .. "_" .. name
+				tpath = "/__anim_" .. tpath:gsub("[%./]", "") ..".texturec"
+
+				anim_texture = hash(tpath)
+
+				if not pcall(function()
+					local info = resource.get_texture_info(tpath)
+					
+				end) then
+					local twidth, theight, tbuffer = model:get_animation_buffer()
+					
+					local tparams = {
+						width          = twidth,
+						height         = theight,
+						type           = resource.TEXTURE_TYPE_2D,
+						format         = resource.TEXTURE_FORMAT_RGBA32F,
+					}
+
+					anim_texture = resource.create_texture(tpath, tparams, tbuffer)
+					--TODO: release
+				end
+
+			end
+			
 			for i, mesh in ipairs(model.meshes) do
 	
 				local f = mesh.material.type == 0 and "#factory" or "#factory_trans"
@@ -169,14 +179,11 @@ function on_message(self, message_id, message, sender)
 
 				options.z = mesh.material.type
 
-				--[[
 				if anim_texture then
-					mesh.animate_with_texture = true
-					mesh.animate_tex_width = twidth
-					mesh.animate_tex_height = theight
-					go.set(mesh.url, "texture3", anim_texture)
+					--mesh.animate_tex_width = twidth
+					--mesh.animate_tex_height = theight
+					go.set(url, "texture3", anim_texture)
 				end
-				--]]
 
 				if mesh.material.texture then
 					options.x = 1.0

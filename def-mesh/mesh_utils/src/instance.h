@@ -40,7 +40,7 @@ class ModelInstance {
 		vector<Vector4>* bones = NULL;
 		vector<Vector4>* calculated = NULL;
 
-		ModelInstance(Model* model, bool baked);
+		ModelInstance(Model* model, bool useBakedAnimations);
 		~ModelInstance();
 		
 		void CreateLuaProxy(lua_State* L);
@@ -62,6 +62,6 @@ class Instance{
 		void CreateLuaProxy(lua_State* L);
 		URL* AttachGameObject(dmGameObject::HInstance go, string bone);
 		
-		Instance(vector<Model*>* data, bool baked);
+		Instance(vector<Model*>* data, bool useBakedAnimations);
 		~Instance();
 };

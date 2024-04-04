@@ -23,6 +23,8 @@ class Model
 		vector<SkinData>* skin = NULL;
 		vector<Vector4> invLocalBones;
 		bool isPrecomputed = false;
+		int animationTextureWidth = 0;
+		int animationTextureHeight = 0;
 
 		int FindBone(string bone);
 		

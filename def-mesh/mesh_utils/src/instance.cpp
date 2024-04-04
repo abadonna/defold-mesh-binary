@@ -1,9 +1,9 @@
 #include "instance.h"
 #include "model.h"
 
-Instance::Instance(vector<Model*>* data, bool baked) {
+Instance::Instance(vector<Model*>* data, bool useBakedAnimations) {
 	for(int i = 0; i < data->size(); i ++) {
-		ModelInstance* mi = new ModelInstance(data->at(i), baked);
+		ModelInstance* mi = new ModelInstance(data->at(i), useBakedAnimations);
 		this->models.push_back(mi);
 	}
 }
@@ -60,8 +60,64 @@ static int SetURL(lua_State* L) {
 }
 
 
-ModelInstance::ModelInstance(Model* model, bool baked) {
-	this->useBakedAnimations = baked;
+
+static int GetAnimationTextureBuffer(lua_State* L) {
+	lua_getfield(L, 1, "instance");
+	ModelInstance* mi = (ModelInstance* )lua_touserdata(L, -1);
+
+	int frameCount = mi->model->frames.size();
+	
+	int width = mi->model->animationTextureWidth;
+	int height = mi->model->animationTextureHeight;
+
+	const dmBuffer::StreamDeclaration streams_decl[] = {
+		{dmHashString64("rgba"), dmBuffer::VALUE_TYPE_FLOAT32, 4}
+	};
+	
+	dmBuffer::HBuffer buffer = 0x0;
+	dmBuffer::Create(width * height, streams_decl, 1, &buffer);
+
+	float* stream = 0x0;
+
+	uint32_t components = 0;
+	uint32_t stride = 0;
+	uint32_t items_count = 0;
+
+	dmBuffer::GetStream(buffer, dmHashString64("rgba"), (void**)&stream, &items_count, &components, &stride);
+	
+	for (int f = 0; f < height; f++) {
+		if (f < frameCount) {
+			mi->bones = &mi->model->frames[f];
+			mi->CalculateBones();
+			
+			for(auto & bone : *mi->calculated) {
+				stream[0] = bone.getX();
+				stream[1] = bone.getY();
+				stream[2] = bone.getZ();
+				stream[3] = bone.getW();
+				stream += stride;
+			}
+	
+			stream += stride * (width - mi->calculated->size());
+		}
+	}
+
+	//mi->bones = &mi->model->frames[0];
+	//mi->CalculateBones(); // return to first frame
+	
+	
+	lua_pushnumber(L, width);
+	lua_pushnumber(L, height);
+
+	dmScript::LuaHBuffer luabuf(buffer, dmScript::OWNER_LUA);
+	dmScript::PushBuffer(L, luabuf);
+
+	return 3;
+}
+
+
+ModelInstance::ModelInstance(Model* model, bool useBakedAnimations) {
+	this->useBakedAnimations = useBakedAnimations;
 	this->model = model;
 
 	this->urls.reserve(this->model->meshes.size());
@@ -85,6 +141,17 @@ void ModelInstance::CreateLuaProxy(lua_State* L) {
 	lua_pushstring(L, this->model->name.c_str());
 
 	lua_newtable(L);
+
+	static const luaL_Reg f[] =
+	{
+		{"get_animation_buffer", GetAnimationTextureBuffer},
+		{0, 0}
+	};
+	luaL_register(L, NULL, f);
+
+	lua_pushstring(L, "instance");
+	lua_pushlightuserdata(L, this);
+	lua_settable(L, -3);
 
 	lua_pushstring(L, "parent");
 	lua_pushstring(L, this->model->parent.c_str());
@@ -140,39 +207,52 @@ void ModelInstance::CreateLuaProxy(lua_State* L) {
 
 void ModelInstance::SetFrame(lua_State* L,  int idx1, int idx2, float factor) {
 	int last_frame = this->model->frames.size() - 1;
-	if (last_frame < 0) return;
-
+	
 	idx1 = (idx1 < last_frame) ? idx1 : last_frame;
 	idx2 = (idx2 < last_frame) ? idx2 : last_frame;
 
 	this->SetShapeFrame(L, idx1, idx2, factor);
-	//todo: baked
 
-	//if not mesh.animate_with_texture or #mesh.bones_go > 0 then
+	int meshCount = this->model->meshes.size();
 
-	if (this->frame1 != idx1 || this->frame2 != idx2 || this->factor != factor) {
+	if (this->useBakedAnimations) { // TODO: frames interpolation
+		Vector4 v(1.0 / this->model->animationTextureWidth, (float)idx1 / this->model->animationTextureHeight, 0, 0);
+		for (int i = 0; i < meshCount; i++) {
+			lua_getglobal(L, "go");
+			lua_getfield(L, -1, "set");
+			lua_remove(L, -2);
 
-		if ((idx2 > -1) && (!this->useBakedAnimations)) {
-			this->Interpolate(idx1, idx2, factor);
-		} else {
-			this->bones = &this->model->frames[idx1];
+			dmScript::PushURL(L, this->urls[i]);
+			lua_pushstring(L, "animation");
+			dmScript::PushVector4(L, v);
+			lua_call(L, 3, 0);
+		}
+	}
+
+	if (!this->useBakedAnimations || this->boneObjects.size() > 0) {
+
+		if (this->frame1 != idx1 || this->frame2 != idx2 || this->factor != factor) {
+
+			if ((idx2 > -1) && (!this->useBakedAnimations)) {
+				this->Interpolate(idx1, idx2, factor);
+			} else {
+				this->bones = &this->model->frames[idx1];
+			}
+
+			this->frame1 = idx1;
+			this->frame2 = idx2;
+			this->factor = factor;
+
+			this->CalculateBones();
+		}
+		
+		for (int i = 0; i < meshCount; i++) {
+			this->ApplyArmature(L, i);
 		}
 
-		this->frame1 = idx1;
-		this->frame2 = idx2;
-		this->factor = factor;
-
-		this->CalculateBones();
-	}
-
-
-	int size = this->model->meshes.size();
-	for (int i = 0; i < size; i++) {
-		this->ApplyArmature(L, i);
-	}
-
-	for(auto & obj : this->boneObjects) {
-		this->ApplyTransform(&obj);
+		for(auto & obj : this->boneObjects) {
+			this->ApplyTransform(&obj);
+		}
 	}
 }
 

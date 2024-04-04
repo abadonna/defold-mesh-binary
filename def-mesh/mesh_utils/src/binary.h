@@ -10,7 +10,7 @@ class BinaryFile
 	public:
 		int instances = 0;
 
-		Instance* CreateInstance();
+		Instance* CreateInstance(bool useBakedAnimations);
 	
 		BinaryFile(const char* file, unsigned long size);
 		~BinaryFile();

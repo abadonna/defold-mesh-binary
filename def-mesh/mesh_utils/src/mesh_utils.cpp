@@ -53,7 +53,6 @@ static int SetShapes(lua_State* L) {
     return 0;
 }
 
-
 static int SetFrame(lua_State* L) {
     int count = lua_gettop(L);
 
@@ -91,6 +90,7 @@ static int Load(lua_State* L) {
     std::string path = string(luaL_checkstring(L, 1));
     const char* content =  luaL_checkstring(L, 2);
     unsigned long size = luaL_checknumber(L, 3);
+    bool useBakedAnimations = lua_toboolean(L, 4);
 
     BinaryFile* binary;
     if (auto search = files.find(path); search != files.end()) {
@@ -101,7 +101,7 @@ static int Load(lua_State* L) {
         binary = files[path];
     }
 
-    Instance* instance = binary->CreateInstance();
+    Instance* instance = binary->CreateInstance(useBakedAnimations);
     lua_newtable(L);
     lua_pushstring(L, "instance");
     lua_pushlightuserdata(L, instance);

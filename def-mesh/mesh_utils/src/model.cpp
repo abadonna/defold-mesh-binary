@@ -1,5 +1,13 @@
 #include "model.h"
 
+unsigned nextPOT(unsigned x) {
+	if (x <= 1) return 2;
+	int power = 2;
+	x--;
+	while (x >>= 1) power <<= 1;
+	return power;
+}
+
 Model::Model(Reader* reader){
 	this->meshes.emplace_back();
 	//this->meshes.back().Test();
@@ -207,17 +215,15 @@ Model::Model(Reader* reader){
 		
 		this->shapeFrames.push_back(shapes);
 	}
+
+	this->animationTextureWidth = nextPOT(this->frames[0].size());
+	this->animationTextureHeight = nextPOT(frameCount);
 	
 }
 
 Model::~Model(){
-
 	delete [] this->vertices;
 	delete [] this->skin;
-	/*
-	for (auto it = this->meshes.begin(); it !=  this->meshes.end(); it++) {
-		delete *it;
-	}*/
 }
 
 int Model::FindBone(string bone) {
