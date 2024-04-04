@@ -81,6 +81,8 @@ static int Delete(lua_State* L) {
     if (binary->instances == 0) {
         files.erase(path);
         delete binary;
+        lua_pushnumber(L, 1);
+        return 1;
     }
     
     return 0;

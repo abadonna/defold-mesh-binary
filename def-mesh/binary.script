@@ -41,7 +41,9 @@ function final(self)
 	end
 	
 	if self.binary then
-		self.binary:delete()
+		if self.binary:delete() then
+			--todo: clean up textures, no more instances
+		end
 	end
 end
 
