@@ -209,17 +209,17 @@ function on_message(self, message_id, message, sender)
 				go.set(url, "base_color", mesh.material and mesh.material.color or vmath.vector4(0.8,0.8,0.8,1))
 				go.set(url, "options", options)
 				go.set(url, "options_specular", options_specular)
-
-				go.set_parent(id, ".", false)
 				
 			end
 			
 		end	
 		
 		--set hierarchy
-		for key, mesh in pairs(self.game_objects) do
+		for _, mesh in pairs(self.game_objects) do
 			if mesh.parent and self.game_objects[mesh.parent] then
 				go.set_parent(mesh.id, self.game_objects[mesh.parent].id, true)
+			else
+				go.set_parent(mesh.id, ".", false)
 			end
 		end
 

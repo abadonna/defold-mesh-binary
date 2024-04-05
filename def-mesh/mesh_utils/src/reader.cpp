@@ -36,6 +36,7 @@ string Reader::ReadString() {
 float Reader::ReadFloat() {
 	const unsigned char *b = (const unsigned char *)this->data;
 	uint32_t temp = 0;
+
 	temp = ((b[3] << 24) |
 	(b[2] << 16) |
 	(b[1] <<  8) |
@@ -46,11 +47,20 @@ float Reader::ReadFloat() {
 }
 
 Vector3 Reader::ReadVector3() {
-	return Vector3(ReadFloat(), ReadFloat(), ReadFloat());
+	//return Vector3( ReadFloat(),  ReadFloat(),  ReadFloat());/*
+	float x = ReadFloat();
+	float y = ReadFloat();
+	float z = ReadFloat();
+	return Vector3(x, y, z);
 }
 
 Vector4 Reader::ReadVector4() {
-	return Vector4(ReadFloat(), ReadFloat(), ReadFloat(), ReadFloat());
+	//return Vector4(ReadFloat(), ReadFloat(), ReadFloat(), ReadFloat());
+	float x = ReadFloat();
+	float y = ReadFloat();
+	float z = ReadFloat();
+	float w = ReadFloat();
+	return Vector4(x, y, z, w);
 }
 
 Transform3d Reader::ReadTransform() {

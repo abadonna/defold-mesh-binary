@@ -155,9 +155,11 @@ void ModelInstance::CreateLuaProxy(lua_State* L) {
 	lua_pushlightuserdata(L, this);
 	lua_settable(L, -3);
 
-	lua_pushstring(L, "parent");
-	lua_pushstring(L, this->model->parent.c_str());
-	lua_settable(L, -3);
+	if (!this->model->parent.empty()) {
+		lua_pushstring(L, "parent");
+		lua_pushstring(L, this->model->parent.c_str());
+		lua_settable(L, -3);
+	}
 
 	lua_pushstring(L, "frames");
 	lua_pushnumber(L, this->model->frames.size());
