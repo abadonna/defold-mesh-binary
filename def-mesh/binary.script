@@ -217,14 +217,14 @@ function on_message(self, message_id, message, sender)
 		--set hierarchy
 		for _, mesh in pairs(self.game_objects) do
 			if mesh.parent and self.game_objects[mesh.parent] then
-				go.set_parent(mesh.id, self.game_objects[mesh.parent].id, true)
+				go.set_parent(mesh.id, self.game_objects[mesh.parent].id, false)			
 			else
 				go.set_parent(mesh.id, ".", false)
 			end
 		end
 
 		self.binary:set_frame(0);
-
+		
 		if message.animations then
 			local res = sys.load_resource(message.animations)
 			if res then
@@ -292,6 +292,5 @@ function update(self, dt)
 			set_frame(self, self.frame)
 		end
 	end
-
 	
 end
