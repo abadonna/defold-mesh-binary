@@ -1,6 +1,8 @@
 # defold-mesh-binary
 Export mesh of any complexity from Blender to Defold game engine.
 
+**The code was rewritten with C++ for better performance, previous version is in** [lua-mesh branch](https://github.com/abadonna/defold-mesh-binary/tree/lua-mesh)
+
 [demo on github pages](https://abadonna.github.io/defold-mesh-binary/)
 
 ## Usage
@@ -26,12 +28,12 @@ Export mesh of any complexity from Blender to Defold game engine.
 * Multiple materials per mesh
 * Bones
 * Bone animations on GPU
-* Blend shape animations in C
+* Blend shape animations
 * Transparent materials
 
 ## Experimental
-* animations baked into texture
-* GameObject can be attached to bone
+* animations baked into textures
+* GameObjects can be attached to bones
 
 ## Drawbacks
 * Meshes are not visible in Editor, only in runtime
@@ -39,7 +41,7 @@ There is a dummy model in binary.go, so any mesh can be set on it to make scene 
 
 
 ## TODO
-* Blending baked animations 
+* Blending baked animations
 * "Import animation only" option for exporter
 
 ---
