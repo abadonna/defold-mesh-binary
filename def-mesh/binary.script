@@ -61,7 +61,7 @@ local function set_texture(self, url, slot, folder, file)
 	end
 	self.textures[texture_id] = true
 	go.set(url, slot, texture_id)
-	return true
+	return true, img.header.width, img.header.height
 end
 
 local function get_bone_go(self, bone)
@@ -175,8 +175,11 @@ function on_message(self, message_id, message, sender)
 				end
 
 				if mesh.material.texture then
+					local res, w, h = set_texture(self, url, "texture0", self.texture_folder, mesh.material.texture)
 					options.x = 1.0
-					set_texture(self, url, "texture0", self.texture_folder, mesh.material.texture)
+					if res then
+						go.set(url, "texel", vmath.vector4(1./w, 1./h, 0, 0))
+					end
 				end
 
 				if mesh.material.normal and
@@ -209,7 +212,6 @@ function on_message(self, message_id, message, sender)
 				go.set(url, "base_color", mesh.material and mesh.material.color or vmath.vector4(0.8,0.8,0.8,1))
 				go.set(url, "options", options)
 				go.set(url, "options_specular", options_specular)
-				
 			end
 			
 		end	

@@ -1,61 +1,36 @@
+#version 140
 
-attribute highp vec4 position;
-attribute mediump vec2 texcoord0;
-attribute mediump vec3 normal;
-attribute mediump vec4 weight;
-attribute mediump vec4 bone;
-attribute mediump vec3 tangent;
-attribute mediump vec3 bitangent;
+in highp vec4 position;
+in highp vec2 texcoord0;
+in highp vec3 normal;
+in vec4 weight;
+in vec4 bone;
 
-uniform highp vec4 animation;
+uniform sampler2D tex_anim;
 
-uniform mediump mat4 mtx_worldview;
-uniform mediump mat4 mtx_view;
-uniform mediump mat4 mtx_proj;
-uniform mediump mat4 mtx_normal;
-uniform mediump vec4 light;
+uniform uniforms_vp {
+    highp vec4 animation;
 
-
-uniform lowp sampler2D tex_anim;
+    highp mat4 mtx_worldview;
+    highp mat4 mtx_view;
+    highp mat4 mtx_proj;
+    highp mat4 mtx_normal;
+    mediump vec4 light;
 
 #ifdef GL_ES
-    uniform mediump vec4 bones[450];
+    vec4 bones[450];
 #else
-    uniform mediump vec4 bones[800];
+    vec4 bones[800];
 #endif
+};
 
-uniform lowp vec4 options; 
-
-varying highp vec4 var_position;
-varying highp vec3 var_normal;
-varying mediump vec2 var_texcoord0;
-varying mediump vec3 var_light_dir;
-varying mediump vec3 var_vh;
-varying mediump mat3 var_tbn;
-
-#if __VERSION__ < 200
-highp mat4 transpose_(highp mat4 m)
-{
-    highp vec4 i0 = m[0];
-    highp vec4 i1 = m[1];
-    highp vec4 i2 = m[2];
-    highp vec4 i3 = m[3];
-
-    highp mat4 res = mat4(
-        vec4(i0.x, i1.x, i2.x, i3.x),
-        vec4(i0.y, i1.y, i2.y, i3.y),
-        vec4(i0.z, i1.z, i2.z, i3.z),
-        vec4(i0.w, i1.w, i2.w, i3.w)
-    );
-
-    return res;
-}
-#endif
-
-
+out highp vec4 var_position;
+out highp vec3 var_normal;
+out highp vec2 var_texcoord0;
+out vec3 var_light_dir;
+out vec3 var_vh;
 
 mat4 get_bone_matrix(int idx) {
-    
     highp mat4 mtx_bone;
     int offset = idx * 3;
     
@@ -69,11 +44,7 @@ mat4 get_bone_matrix(int idx) {
         mtx_bone[2] = texture(tex_anim, vec2((offset + 2) * animation.x, animation.y));
     }
 
-    #if __VERSION__ < 200
-        mtx_bone = transpose_(mtx_bone); 
-    #else
-        mtx_bone = transpose(mtx_bone); 
-    #endif
+    mtx_bone = transpose(mtx_bone); 
         
     //transposed matrix simplifies reading 4x3 matrix,
     //using 4x3 lets us to use more bones per mesh
@@ -81,43 +52,30 @@ mat4 get_bone_matrix(int idx) {
     return mtx_bone;
 }
 
-vec4 apply_bones(vec3 pos) {
+vec4 apply_bones(vec3 pos, out vec3 n) {
     vec4 result = vec4(0.0);
+    vec3 no_trans = vec3(0.0);
+    
     for (int i = 0; i < 4; i++) {
         if (weight[i] == 0.0) {break;}
         mat4 m = get_bone_matrix(int(bone[i]));
-        vec4 v =  m * vec4(pos.x, pos.y, pos.z, 1.0);
-        result = result + v * weight[i];
-    }
-    return vec4(result.x, result.z, -result.y, 1.0); //to fix blender coordinates
-}
+        vec4 v = m * vec4(pos.x, pos.y, pos.z, 1.0);
+        result += v * weight[i];
 
-vec3 apply_bones_no_trans(vec3 pos) {
-    vec3 result = vec3(0.0);
-    for (int i = 0; i < 4; i++) {
-        if (weight[i] == 0.0) {break;}
-        mat3 m = mat3(get_bone_matrix(int(bone[i])));
-        vec3 v =  m * pos;
-        result = result + v * weight[i];
+        vec3 v2 = mat3(m) * normal;
+        no_trans += v2 * weight[i];
     }
-    return vec3(result.x, result.z, -result.y); //to fix blender
+    n = vec3(no_trans.x, no_trans.z, -no_trans.y);
+    return vec4(result.x, result.z, -result.y, 1.0); //to fix blender coordinates
 }
 
 void main()
 {
-    vec4 p = vec4(position.x, position.z, -position.y, 1.0);
-    vec3 n = vec3(normal.x, normal.z, -normal.y);
-    vec3 t = vec3(tangent.x, tangent.z, -tangent.y);
-    vec3 b = vec3(bitangent.x, bitangent.z, -bitangent.y);
+    highp vec4 p = vec4(position.x, position.z, -position.y, 1.0);
+    highp vec3 n = vec3(normal.x, normal.z, -normal.y);
     
     if (weight.x > 0.0) {
-        p = apply_bones(position.xyz);
-        n = apply_bones_no_trans(normal); 
-        //need to fix scales on normal as well, but for simplicity let's keep it as is.
-        if (options.y > 0.0) {
-            t = apply_bones_no_trans(tangent);
-            b = apply_bones_no_trans(bitangent);
-        }
+        p = apply_bones(position.xyz, n);
     }
     
     p = mtx_worldview * p;
@@ -129,11 +87,6 @@ void main()
     
     var_position = p;
     var_texcoord0 = texcoord0;
-    
-    vec3 T = normalize(vec3(mtx_worldview * vec4(t, 0.0)));
-    vec3 B = normalize(vec3(mtx_worldview * vec4(b, 0.0)));
-    vec3 N = normalize(vec3(mtx_worldview * vec4(n, 0.0)));
-    var_tbn = mat3(T, B, N);
     
     var_normal = normalize((mtx_normal * vec4(n, 1.0)).xyz);
     gl_Position = mtx_proj * p;

@@ -33,14 +33,10 @@ vertex_constants {
   name: "animation"
   type: CONSTANT_TYPE_USER
   value {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 0.0
   }
 }
 fragment_constants {
-  name: "tint"
+  name: "texel"
   type: CONSTANT_TYPE_USER
   value {
     x: 1.0
@@ -53,20 +49,12 @@ fragment_constants {
   name: "options"
   type: CONSTANT_TYPE_USER
   value {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 0.0
   }
 }
 fragment_constants {
   name: "options_specular"
   type: CONSTANT_TYPE_USER
   value {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 0.0
   }
 }
 fragment_constants {
@@ -74,9 +62,6 @@ fragment_constants {
   type: CONSTANT_TYPE_USER
   value {
     x: -1.0
-    y: 0.0
-    z: 0.0
-    w: 0.0
   }
 }
 fragment_constants {
@@ -84,9 +69,6 @@ fragment_constants {
   type: CONSTANT_TYPE_USER
   value {
     x: -1.0
-    y: 0.0
-    z: 0.0
-    w: 0.0
   }
 }
 samplers {
@@ -95,7 +77,6 @@ samplers {
   wrap_v: WRAP_MODE_CLAMP_TO_EDGE
   filter_min: FILTER_MODE_MIN_LINEAR
   filter_mag: FILTER_MODE_MAG_LINEAR
-  max_anisotropy: 1.0
 }
 samplers {
   name: "tex_normal"
@@ -103,7 +84,6 @@ samplers {
   wrap_v: WRAP_MODE_CLAMP_TO_EDGE
   filter_min: FILTER_MODE_MIN_LINEAR
   filter_mag: FILTER_MODE_MAG_LINEAR
-  max_anisotropy: 1.0
 }
 samplers {
   name: "tex_rough"
@@ -111,7 +91,6 @@ samplers {
   wrap_v: WRAP_MODE_CLAMP_TO_EDGE
   filter_min: FILTER_MODE_MIN_LINEAR
   filter_mag: FILTER_MODE_MAG_LINEAR
-  max_anisotropy: 1.0
 }
 samplers {
   name: "tex_anim"
@@ -119,7 +98,6 @@ samplers {
   wrap_v: WRAP_MODE_CLAMP_TO_EDGE
   filter_min: FILTER_MODE_MIN_NEAREST
   filter_mag: FILTER_MODE_MAG_NEAREST
-  max_anisotropy: 1.0
 }
 samplers {
   name: "tex4"
@@ -127,7 +105,6 @@ samplers {
   wrap_v: WRAP_MODE_CLAMP_TO_EDGE
   filter_min: FILTER_MODE_MIN_LINEAR
   filter_mag: FILTER_MODE_MAG_LINEAR
-  max_anisotropy: 1.0
 }
 samplers {
   name: "tex5"
@@ -135,7 +112,6 @@ samplers {
   wrap_v: WRAP_MODE_CLAMP_TO_EDGE
   filter_min: FILTER_MODE_MIN_LINEAR
   filter_mag: FILTER_MODE_MAG_LINEAR
-  max_anisotropy: 1.0
 }
 samplers {
   name: "tex6"
@@ -143,7 +119,6 @@ samplers {
   wrap_v: WRAP_MODE_CLAMP_TO_EDGE
   filter_min: FILTER_MODE_MIN_LINEAR
   filter_mag: FILTER_MODE_MAG_LINEAR
-  max_anisotropy: 1.0
 }
 samplers {
   name: "tex7"
@@ -151,6 +126,4 @@ samplers {
   wrap_v: WRAP_MODE_CLAMP_TO_EDGE
   filter_min: FILTER_MODE_MIN_LINEAR
   filter_mag: FILTER_MODE_MAG_LINEAR
-  max_anisotropy: 1.0
 }
-max_page_count: 0
