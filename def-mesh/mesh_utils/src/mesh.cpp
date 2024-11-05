@@ -8,76 +8,25 @@ Mesh::Mesh() {
 Mesh::~Mesh() {
 }
 
-void Mesh::CalculateTangents(Vertex* vertices) {
-	int size = this->faces.size();
-	this->tangents.reserve(size * 9);
-	this->bitangents.reserve(size * 9);
-	
-	for (int i = 0; i < size; i++) {
-		Face face = this->faces[i];
-		Vertex v[3] = {vertices[face.v[0]], vertices[face.v[1]], vertices[face.v[2]]};
-
-		int idx = i * 6;
-		Vector3 uv1 = Vector3(this->texcoords[idx], this->texcoords[idx + 1], 0);
-		Vector3 uv2 = Vector3(this->texcoords[idx + 2], this->texcoords[idx + 3], 0);
-		Vector3 uv3 = Vector3(this->texcoords[idx + 4], this->texcoords[idx + 5], 0);
-
-		Vector3 delta_pos1 = v[1].p - v[0].p;
-		Vector3 delta_pos2 = v[2].p - v[0].p;
-
-		Vector3 delta_uv1 = uv2 - uv1;
-		Vector3 delta_uv2 = uv3 - uv1;
-
-		float r = 1.0 / (delta_uv1.getX() * delta_uv2.getY() - delta_uv1.getY() * delta_uv2.getX());
-		Vector3 tangent = (delta_pos1 * delta_uv2.getY() - delta_pos2 * delta_uv1.getY()) * r;
-		Vector3 bitangent = (delta_pos2 * delta_uv1.getX() - delta_pos1 * delta_uv2.getX()) * r;
-
-		//move bitangent computation to vertex shader? E.g. pass bitangent sign as tangent.w and use cross(T,N)
-
-		for (int j = 0; j < 3; j++) {
-			if (fabs(r) < HUGE_VAL && Dot(Cross(v[j].n, tangent), bitangent) < 0.0) {
-				this->tangents.push_back(-tangent.getX());
-				this->tangents.push_back(-tangent.getY());
-				this->tangents.push_back(-tangent.getZ());
-			} else {
-				this->tangents.push_back(tangent.getX());
-				this->tangents.push_back(tangent.getY());
-				this->tangents.push_back(tangent.getZ());
-			}
-
-			this->bitangents.push_back(bitangent.getX());
-			this->bitangents.push_back(bitangent.getY());
-			this->bitangents.push_back(bitangent.getZ());
-		}
-	}
-}
-
 dmScript::LuaHBuffer Mesh::CreateBuffer(ModelInstance* mi) {
 
 	bool hasNormalMap = !this->material.normal.texture.empty();
-	if (this->tangents.size() == 0 && hasNormalMap) {
-		this->CalculateTangents(mi->model->vertices);
-	}
 	
 	const dmBuffer::StreamDeclaration streams_decl[] = {
 		{dmHashString64("position"), dmBuffer::VALUE_TYPE_FLOAT32, 3},
 		{dmHashString64("normal"), dmBuffer::VALUE_TYPE_FLOAT32, 3},
 		{dmHashString64("texcoord0"), dmBuffer::VALUE_TYPE_FLOAT32, 2},
 		{dmHashString64("weight"), dmBuffer::VALUE_TYPE_FLOAT32, 4},
-		{dmHashString64("bone"), dmBuffer::VALUE_TYPE_UINT8, 4},
-		{dmHashString64("tangent"), dmBuffer::VALUE_TYPE_FLOAT32, 3},
-		{dmHashString64("bitangent"), dmBuffer::VALUE_TYPE_FLOAT32, 3},
-
+		{dmHashString64("bone"), dmBuffer::VALUE_TYPE_UINT8, 4}
 	};
 	dmBuffer::HBuffer buffer = 0x0;
-	dmBuffer::Result r = dmBuffer::Create(this->faces.size() * 3, streams_decl, 7, &buffer);
+	dmBuffer::Result r = dmBuffer::Create(this->faces.size() * 3, streams_decl, 5, &buffer);
 	
 
 	float* positions = 0x0;
 	float* normals = 0x0;
 	float* weights = 0x0;
-	float* tangents = 0x0;
-	float* bitangents = 0x0;
+	
 	uint8_t* bones = 0x0;
 	
 	uint32_t components = 0;
@@ -86,19 +35,12 @@ dmScript::LuaHBuffer Mesh::CreateBuffer(ModelInstance* mi) {
 
 	dmBuffer::GetStream(buffer, dmHashString64("position"), (void**)&positions, &items_count, &components, &stride);
 	dmBuffer::GetStream(buffer, dmHashString64("normal"), (void**)&normals, &items_count, &components, &stride);
-	dmBuffer::GetStream(buffer, dmHashString64("tangent"), (void**)&tangents, &items_count, &components, &stride);
-	dmBuffer::GetStream(buffer, dmHashString64("bitangent"), (void**)&bitangents, &items_count, &components, &stride);
-	
 	
 	uint32_t stride_weight = 0;
 	dmBuffer::GetStream(buffer, dmHashString64("weight"), (void**)&weights, &items_count, &components, &stride_weight);
 	uint32_t stride_bone = 0;
 	dmBuffer::GetStream(buffer, dmHashString64("bone"), (void**)&bones, &items_count, &components, &stride_bone);
 	
-	
-
-	int count = 0;
-
 	for(auto & face : this->faces) {
 		for (int i = 0; i < 3; i++) {
 			int idx = face.v[i];
@@ -115,20 +57,6 @@ dmScript::LuaHBuffer Mesh::CreateBuffer(ModelInstance* mi) {
 			normals[0] = n->getX();
 			normals[1] = n->getY();
 			normals[2] = n->getZ();
-
-			if (hasNormalMap) {
-				tangents[0] = this->tangents[count];
-				tangents[1] = this->tangents[count + 1];
-				tangents[2] = this->tangents[count + 2];
-
-				bitangents[0] = this->bitangents[count];
-				bitangents[1] = this->bitangents[count + 1];
-				bitangents[2] = this->bitangents[count + 2];
-
-				count += 3;
-				tangents += stride;
-				bitangents += stride;
-			}
 
 			int boneCount = 0;
 			vector<SkinData>* skin;
@@ -167,7 +95,7 @@ dmScript::LuaHBuffer Mesh::CreateBuffer(ModelInstance* mi) {
 	
 	float* tc = 0x0;
 	dmBuffer::GetStream(buffer, dmHashString64("texcoord0"), (void**)&tc, &items_count, &components, &stride);
-	count = 0;
+	int count = 0;
 
 	for (int i = 0; i < items_count; ++i)
 	{

@@ -521,17 +521,13 @@ void ModelInstance::ApplyShapes(lua_State* L) {
 
 		float* positions = 0x0;
 		float* normals = 0x0;
-		float* tangents = 0x0;
-		float* bitangents = 0x0;
+		
 		uint32_t components = 0;
 		uint32_t stride = 0;
 		uint32_t items_count = 0;
 
 		dmBuffer::GetStream(this->buffers[i].m_Buffer, dmHashString64("position"), (void**)&positions, &items_count, &components, &stride);
 		dmBuffer::GetStream(this->buffers[i].m_Buffer, dmHashString64("normal"), (void**)&normals, &items_count, &components, &stride);
-
-		//dmBuffer::GetStream(this->buffers[i].m_Buffer, dmHashString64("tangent"), (void**)&tangents, &items_count, &components, &stride);
-		//dmBuffer::GetStream(this->buffers[i].m_Buffer, dmHashString64("bitangent"), (void**)&bitangents, &items_count, &components, &stride);
 
 		for (auto & it : this->blended) {	
 			ShapeData vertex = it.second;
@@ -550,23 +546,6 @@ void ModelInstance::ApplyShapes(lua_State* L) {
 				normals[idx + 1] = vertex.n.getY();
 				normals[idx + 2] = vertex.n.getZ();
 
-				//Updating tangents is slower, probably we can skip it
-					
-				/*
-				count *= 3;
-					
-				Vector3 v = Vector3(mesh->tangents[count], mesh->tangents[count + 1], mesh->tangents[count + 2]);
-				v = rotate(vertex->q, v);
-				tangents[idx] = v.getX();
-				tangents[idx + 1] = v.getY();
-				tangents[idx + 2] = v.getZ();
-
-				v = Vector3(mesh->bitangents[count], mesh->bitangents[count + 1], mesh->bitangents[count + 2]);
-				v = rotate(vertex->q, v);  
-				bitangents[idx] = v.getX();
-				bitangents[idx + 1] = v.getY();
-				bitangents[idx + 2] = v.getZ();
-				*/
 			}
 		}
 

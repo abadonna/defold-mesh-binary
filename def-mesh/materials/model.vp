@@ -1,18 +1,16 @@
 
 attribute highp vec4 position;
-attribute mediump vec2 texcoord0;
-attribute mediump vec3 normal;
+attribute highp vec2 texcoord0;
+attribute highp vec3 normal;
 attribute mediump vec4 weight;
 attribute mediump vec4 bone;
-attribute mediump vec3 tangent;
-attribute mediump vec3 bitangent;
 
 uniform highp vec4 animation;
 
-uniform mediump mat4 mtx_worldview;
-uniform mediump mat4 mtx_view;
-uniform mediump mat4 mtx_proj;
-uniform mediump mat4 mtx_normal;
+uniform highp mat4 mtx_worldview;
+uniform highp mat4 mtx_view;
+uniform highp mat4 mtx_proj;
+uniform highp mat4 mtx_normal;
 uniform mediump vec4 light;
 
 
@@ -28,10 +26,9 @@ uniform lowp vec4 options;
 
 varying highp vec4 var_position;
 varying highp vec3 var_normal;
-varying mediump vec2 var_texcoord0;
+varying highp vec2 var_texcoord0;
 varying mediump vec3 var_light_dir;
 varying mediump vec3 var_vh;
-varying mediump mat3 var_tbn;
 
 #if __VERSION__ < 200
 highp mat4 transpose_(highp mat4 m)
@@ -105,19 +102,12 @@ vec3 apply_bones_no_trans(vec3 pos) {
 
 void main()
 {
-    vec4 p = vec4(position.x, position.z, -position.y, 1.0);
-    vec3 n = vec3(normal.x, normal.z, -normal.y);
-    vec3 t = vec3(tangent.x, tangent.z, -tangent.y);
-    vec3 b = vec3(bitangent.x, bitangent.z, -bitangent.y);
+    highp vec4 p = vec4(position.x, position.z, -position.y, 1.0);
+    highp vec3 n = vec3(normal.x, normal.z, -normal.y);
     
     if (weight.x > 0.0) {
         p = apply_bones(position.xyz);
         n = apply_bones_no_trans(normal); 
-        //need to fix scales on normal as well, but for simplicity let's keep it as is.
-        if (options.y > 0.0) {
-            t = apply_bones_no_trans(tangent);
-            b = apply_bones_no_trans(bitangent);
-        }
     }
     
     p = mtx_worldview * p;
@@ -129,11 +119,6 @@ void main()
     
     var_position = p;
     var_texcoord0 = texcoord0;
-    
-    vec3 T = normalize(vec3(mtx_worldview * vec4(t, 0.0)));
-    vec3 B = normalize(vec3(mtx_worldview * vec4(b, 0.0)));
-    vec3 N = normalize(vec3(mtx_worldview * vec4(n, 0.0)));
-    var_tbn = mat3(T, B, N);
     
     var_normal = normalize((mtx_normal * vec4(n, 1.0)).xyz);
     gl_Position = mtx_proj * p;

@@ -1,7 +1,6 @@
 varying highp vec4 var_position;
 varying highp vec3 var_normal;
-varying mediump vec2 var_texcoord0;
-varying mediump mat3 var_tbn;
+varying highp vec2 var_texcoord0;
 
 varying mediump vec3 var_light_dir;
 varying mediump vec3 var_vh;
@@ -61,6 +60,24 @@ vec4 pcf_4x4(vec2 proj) {
 }
 #endif
 
+//http://www.thetenthplanet.de/archives/1180
+highp mat3 cotangent_frame(highp vec3 N, highp vec3 p, highp vec2 uv) 
+{ 
+    // get edge vectors of the pixel triangle 
+    highp vec3 dp1 = dFdx(p); 
+    highp vec3 dp2 = dFdy(p); 
+    highp vec2 duv1 = dFdx(uv); 
+    highp vec2 duv2 = dFdy(uv);
+    // solve the linear system 
+    highp vec3 dp2perp = cross(dp2, N); 
+    highp vec3 dp1perp = cross(N, dp1); 
+    highp vec3 T = dp2perp * duv1.x + dp1perp * duv2.x; 
+    highp vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
+    // construct a scale-invariant frame 
+    highp float invmax = inversesqrt(max(dot(T,T), dot(B,B))); 
+    return mat3(T * invmax, B * invmax, N); 
+}
+
 void main()
 {
     vec4 color = base_color;
@@ -78,13 +95,13 @@ void main()
     // Diffuse light calculations
     vec3 ambient = vec3(0.2);
     vec3 specular = vec3(0.0);
-    vec3 n = var_normal;
+    highp vec3 n = var_normal;
 
     if (options.y > 0.0) {
-        n = texture2D(tex_normal, var_texcoord0).xyz * 2.0 - 1.0;
+        n = texture2D(tex_normal, var_texcoord0).xyz * 255./127. - 128./127.;
         n.xy *= options.y;
-        n = normalize(n);
-        n = var_tbn * n;
+        highp mat3 TBN = cotangent_frame(normalize(var_normal), var_position.xyz, var_texcoord0);
+        n = TBN * n;
     }
     n = normalize(n);
 

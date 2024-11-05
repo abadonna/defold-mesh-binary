@@ -28,17 +28,5 @@
     "type": "uint8",
     "count": 4,
     "data": []
-  },
-  {
-    "name": "tangent",
-    "type": "float32",
-    "count": 3,
-    "data": []
-  },
-  {
-    "name": "bitangent",
-    "type": "float32",
-    "count": 3,
-    "data": []
   }
 ]
