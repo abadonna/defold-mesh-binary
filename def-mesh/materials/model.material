@@ -36,7 +36,7 @@ vertex_constants {
   }
 }
 fragment_constants {
-  name: "tint"
+  name: "texel"
   type: CONSTANT_TYPE_USER
   value {
     x: 1.0
