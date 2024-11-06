@@ -40,7 +40,7 @@ local function set_frame(self, frame, frame_blend, blend)
 	self.binary:set_frame(frame, frame_blend == nil and -1 or frame_blend, blend or 0)
 end
 
-local function set_texture(self, url, slot, folder, file)
+local function set_texture(self, url, slot, folder, file, texel)
 	if not file then
 		return false
 	end
@@ -61,7 +61,10 @@ local function set_texture(self, url, slot, folder, file)
 	end
 	self.textures[texture_id] = true
 	go.set(url, slot, texture_id)
-	return true, img.header.width, img.header.height
+	if texel then
+		go.set(url, texel, vmath.vector4(1./img.header.width, 1./img.header.height, 0, 0))
+	end
+	return true
 end
 
 local function get_bone_go(self, bone)
@@ -175,11 +178,8 @@ function on_message(self, message_id, message, sender)
 				end
 
 				if mesh.material.texture then
-					local res, w, h = set_texture(self, url, "texture0", self.texture_folder, mesh.material.texture)
+					set_texture(self, url, "texture0", self.texture_folder, mesh.material.texture, "texel")
 					options.x = 1.0
-					if res then
-						go.set(url, "texel", vmath.vector4(1./w, 1./h, 0, 0))
-					end
 				end
 
 				if mesh.material.normal and
