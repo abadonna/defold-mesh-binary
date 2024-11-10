@@ -19,6 +19,7 @@ function init(self)
 	self.attaches = {}
 	self.bones_go = {}
 	self.textures = {}
+	self.game_objects = {}
 	msg.post("#dummy", "disable")
 end
 
@@ -110,7 +111,6 @@ function on_message(self, message_id, message, sender)
 		self.binary, models = mesh_utils.load(message.path, data, self.bakeAnimations)
 
 		--pprint(self.binary, models)
-		self.game_objects = {}
 
 		for name, model in pairs(models) do 
 			self.total_frames = model.frames
