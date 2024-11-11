@@ -111,7 +111,6 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         def find_nodes_to(socket, type):
             for link in socket.links:
                 node = link.from_node
-                #print(node.bl_static_type )
                 if node.bl_static_type == type:
                     return [node]
                 else:
@@ -177,13 +176,27 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                     if normal_map:
                         material['normal'] = find_texture(normal_map.inputs['Color'])
                         material['normal_strength'] = normal_map.inputs['Strength'].default_value
+                    else: #Look in the group
+                        group = find_node(principled.inputs['Normal'], 'GROUP')
+                        if group:
+                            normal_map = group.inputs.get("Normal Map")
+                            if normal_map:
+                                material['normal'] = find_texture(normal_map)
+                                str = group.inputs.get('Normal Strength')
+                                material['normal_strength'] = str and str.default_value or 1.
+                                
                     
                     base_color = principled.inputs['Base Color']
                     value = base_color.default_value
+                    
+                    is_subsurface = principled.inputs['Subsurface'].default_value == 1.
 
                     material['col'] = [value[0], value[1], value[2], principled.inputs['Alpha'].default_value]
                     
-                    material['texture'] = find_texture(base_color)
+                    if is_subsurface:
+                        material['texture'] = find_texture(principled.inputs['Subsurface Color'])
+                    else:
+                        material['texture'] = find_texture(base_color)
                     
                     if material.get('texture') != None:
                         #print(material['texture'])
