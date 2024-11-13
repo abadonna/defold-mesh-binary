@@ -1,0 +1,34 @@
+local tracks = require "demo.layers.mask"
+local binary = require "def-mesh.binary" 
+
+function init(self)
+	self.instance = binary.load("/model", "/assets/test.bin")
+	
+	self.count = 1
+	self.time = 0
+
+end
+
+function update(self, dt)
+	if self.loaded then
+		self.time = self.time + dt
+		if self.time > .03 then
+			self.time = 0.0
+			msg.post("/model", "set_frame", {frame = self.count})
+			if self.count > self.total_frames then
+				self.count = 1
+			else
+				self.count = self.count + 1
+			end
+		end
+		
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("mesh_loaded") then
+		pprint("Success!")
+		self.total_frames = message.frames
+		self.loaded = true
+	end
+end

@@ -1,8 +1,9 @@
+local binary = require "def-mesh.binary" 
 
-local function blink()
-	msg.post("/model", "set_shapes", {shapes = {["blink_upper_down.R"] = 1, ["blink_upper_down.L"] = 1}})
+local function blink(self)
+	self.instance.set_shapes({["blink_upper_down.R"] = 1, ["blink_upper_down.L"] = 1})
 	timer.delay(0.3, false, function()
-		msg.post("/model", "set_shapes", {shapes = {["blink_upper_down.R"] = 0, ["blink_upper_down.L"] = 0}})
+		self.instance.set_shapes({["blink_upper_down.R"] = 0, ["blink_upper_down.L"] = 0})
 		timer.delay(math.random(2, 4), false, blink)
 	end)
 end
@@ -13,10 +14,15 @@ function init(self)
 	math.random()
 	math.random()
 
-	msg.post("/model", "load_mesh", {path = "/assets/joy.bin", texture_folder = "textures/complex"})
-	blink()
+	self.instance = binary.load("/model", "/assets/joy.bin", "textures/complex")
+	blink(self)
 
 end
+
+function final(self)
+	self.instance.delete()
+end
+
 
 --[[
 ----------------------------------performance test-----------------------------------

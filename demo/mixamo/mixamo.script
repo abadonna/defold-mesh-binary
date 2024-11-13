@@ -1,27 +1,24 @@
+local binary = require "def-mesh.binary" 
+local list = require "demo.mixamo.animations" 
 
 function init(self)
-	msg.post("/model", "load_mesh", {path = "/assets/mixamo.bin", texture_folder = "/textures/mixamo/", animations = "/assets/animations.script"})
-	msg.post("/model", "attach_to_bone", {bone = "mixamorig:Head", url = "/hat"})
+	self.instance = binary.load("/model", "/assets/mixamo.bin", "/textures/mixamo/")
+	self.instance.attach("mixamorig:Head", "/hat")
+	self.instance.animations = list
 	
 	self.mouth = 0
 	self.body = 0
 end
 
 
-function on_message(self, message_id, message, sender)
-	if message_id == hash("mesh_loaded") then
-		pprint("Success!")
-	end
-end
-
-
 local function set_anim (self, anim)
 	self.anim = anim
-	msg.post("/model", "play", {anim = self.anim, blend_frames = 100});
+	self.instance.play(0, self.anim, 100)
 end
 
 function update(self, dt)
-	--msg.post("/model", "set_shapes", {shapes = {MouthOpen = math.random()}})
+
+	if self.instance then self.instance.update(dt) end
 	
 	imgui.set_next_window_size(400, 300)
 	imgui.set_next_window_pos(1400, 900)
@@ -57,13 +54,13 @@ function update(self, dt)
 	changed, value = imgui.input_float("mouth", self.mouth, 0.1 )
 	if changed then
 		self.mouth = math.min(math.max(value,0), 1)
-		msg.post("/model", "set_shapes", {shapes = {MouthOpen = self.mouth}})
+		self.instance.set_shapes({MouthOpen = self.mouth})
 	end
 	
 	changed, value = imgui.input_float("body", self.body, 0.1 )
 	if changed then
 		self.body = math.min(math.max(value,0), 1)
-		msg.post("/model", "set_shapes", {shapes = {body = self.body}})
+		self.instance.set_shapes({body = self.body})
 	end
 
 	imgui.end_window()

@@ -1,7 +1,12 @@
-name: "dancer"
+name: "layers"
 instances {
   id: "model"
   prototype: "/def-mesh/binary.go"
+  scale3 {
+    x: 0.25
+    y: 0.25
+    z: 0.25
+  }
 }
 scale_along_z: 1
 embedded_instances {
@@ -9,7 +14,7 @@ embedded_instances {
   children: "model"
   data: "components {\n"
   "  id: \"script\"\n"
-  "  component: \"/demo/dancer/dancer.script\"\n"
+  "  component: \"/demo/layers/layers.script\"\n"
   "}\n"
   "components {\n"
   "  id: \"demo\"\n"
