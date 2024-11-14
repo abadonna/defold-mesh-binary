@@ -199,7 +199,7 @@ M.load = function(url, path, texture_folder, bake_animations)
 		end
 	end
 
-	instance.binary:set_frame(0);
+	instance.binary:set_frame(0, 0);
 
 	---------------------------------------------------------------
 

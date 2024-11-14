@@ -22,9 +22,15 @@ void Instance::CreateLuaProxy(lua_State* L) {
 	}
 }
 
-void Instance::SetFrame(lua_State* L, int idx1, int idx2, float factor) {
+void Instance::SetFrame(lua_State* L, int trackIdx, int idx1, int idx2, float factor) {
 	for(auto & model : this->models) {
-		model->SetFrame(L, idx1, idx2, factor);
+		model->SetFrame(L, trackIdx, idx1, idx2, factor);
+	}
+}
+
+void Instance::Update(lua_State* L) {
+	for(auto & model : this->models) {
+		model->Update(L);
 	}
 }
 
@@ -128,7 +134,20 @@ ModelInstance::ModelInstance(Model* model, bool useBakedAnimations) {
 		this->buffers.push_back(buffer);
 	}
 
-	this->bones = model->frames.size() > 0 ? &model->frames[0] : NULL;
+	int count = model->frames.size();
+	this->bones = count > 0 ? &model->frames[0] : NULL;
+
+	AnimationTrack base;
+
+	if (count > 0) {
+		count = count / 3;
+		base.mask.reserve(count);
+		for (int i = 0; i < count; i ++){
+			base.mask.push_back(i);
+		}
+	}
+
+	this->tracks.push_back(base);
 }
 
 ModelInstance::~ModelInstance() {
@@ -209,7 +228,23 @@ void ModelInstance::CreateLuaProxy(lua_State* L) {
 
 }
 
-void ModelInstance::SetFrame(lua_State* L,  int idx1, int idx2, float factor) {
+void ModelInstance::Update(lua_State* L) {
+
+	if (!this->useBakedAnimations) {
+		int meshCount = this->model->meshes.size();
+		
+		for (int i = 0; i < meshCount; i++) {
+			this->ApplyArmature(L, i);
+		}
+	}
+	
+	
+	for(auto & obj : this->boneObjects) {
+		this->ApplyTransform(&obj);
+	}
+}
+
+void ModelInstance::SetFrame(lua_State* L, int trackIdx,  int idx1, int idx2, float factor) {
 	int last_frame = this->model->frames.size() - 1;
 	
 	idx1 = (idx1 < last_frame) ? idx1 : last_frame;
@@ -234,7 +269,6 @@ void ModelInstance::SetFrame(lua_State* L,  int idx1, int idx2, float factor) {
 	}
 
 	if (!this->useBakedAnimations || this->boneObjects.size() > 0) {
-
 		if (this->frame1 != idx1 || this->frame2 != idx2 || this->factor != factor) {
 
 			if ((idx2 > -1) && (!this->useBakedAnimations)) {
@@ -249,14 +283,7 @@ void ModelInstance::SetFrame(lua_State* L,  int idx1, int idx2, float factor) {
 
 			this->CalculateBones();
 		}
-		
-		for (int i = 0; i < meshCount; i++) {
-			this->ApplyArmature(L, i);
-		}
 
-		for(auto & obj : this->boneObjects) {
-			this->ApplyTransform(&obj);
-		}
 	}
 }
 
@@ -431,7 +458,7 @@ void ModelInstance::SetShapes(lua_State* L, unordered_map<string, float>* values
 }
 
 void ModelInstance::SetShapeFrame(lua_State* L, int idx1, int idx2, float factor) {
-	//todo: blending
+	//TODO: blending
 	
 	if (this->model->shapes.empty() || this->model->shapeFrames.size() < idx1) return;
 
@@ -592,4 +619,10 @@ void ModelInstance::ApplyTransform(BoneGO* obj) {
 	dmGameObject::SetPosition(obj->gameObject, dmVMath::Point3(v1.getW(), v3.getW(), -v2.getW()));
 }
 
+int ModelInstance::AddAnimationLayer(vector<int> mask, float weight) {
+	return 0;
+}
+
+void ModelInstance::SetAnimationLayerWeight(float weight) {
+}
 

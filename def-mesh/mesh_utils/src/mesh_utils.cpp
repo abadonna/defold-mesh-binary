@@ -11,6 +11,22 @@ using namespace Vectormath::Aos;
 
 std::unordered_map<std::string, BinaryFile*> files;
 
+static int AddAnimationTrack(lua_State* L) {
+    
+    return 1;
+}
+static int SetAnimationTrackWeight(lua_State* L) {
+    
+    return 0;
+}
+
+static int Update(lua_State* L) {
+    lua_getfield(L, 1, "instance");
+    Instance* instance = (Instance*)lua_touserdata(L, -1);
+    instance->Update(L);
+    return 0;
+}
+
 static int AttachBoneGO(lua_State* L) {
     int count = lua_gettop(L);
 
@@ -58,12 +74,13 @@ static int SetFrame(lua_State* L) {
 
     lua_getfield(L, 1, "instance");
     Instance* instance = (Instance*)lua_touserdata(L, -1);
-    
-    int frame1 = luaL_checknumber(L, 2);
-    int frame2 = (count > 2) ? luaL_checknumber(L, 3) : -1;
-    float factor = (count > 3) ? luaL_checknumber(L, 4) : 0;
 
-    instance->SetFrame(L, frame1, frame2, factor);
+    int track = luaL_checknumber(L, 2);
+    int frame1 = luaL_checknumber(L, 3);
+    int frame2 = (count > 3) ? luaL_checknumber(L, 4) : -1;
+    float factor = (count > 4) ? luaL_checknumber(L, 5) : 0;
+
+    instance->SetFrame(L, track, frame1, frame2, factor);
     return 0;
 }
 
@@ -113,9 +130,12 @@ static int Load(lua_State* L) {
 
     static const luaL_Reg f[] =
     {
+        {"add_animation_track", AddAnimationTrack},
+        {"set_animation_track_weight", SetAnimationTrackWeight},
         {"attach_bone_go", AttachBoneGO},
         {"set_shapes", SetShapes},
         {"set_frame", SetFrame},
+        {"update", Update},
         {"delete", Delete},
         {0, 0}
     };

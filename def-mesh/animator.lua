@@ -46,12 +46,12 @@ M.create = function(binary)
 	
 	animator.set_frame = function(track, frame1, frame2, blend)
 		animator.frame[track] = frame1
-		animator.binary:set_frame(frame1, frame2 == nil and -1 or frame2, blend or 0)
+		animator.binary:set_frame(track, frame1, frame2 == nil and -1 or frame2, blend or 0)
 	end
 
 
 	animator.update_tracks = function()
-		-- TODO
+		animator.binary:update()
 	end
 
 	animator.stop = function(track)
