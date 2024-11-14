@@ -108,8 +108,8 @@ static int GetAnimationTextureBuffer(lua_State* L) {
 		}
 	}
 
-	//mi->bones = &mi->model->frames[0];
-	//mi->CalculateBones(); // return to first frame
+	mi->bones = &mi->model->frames[0];
+	mi->CalculateBones(); // return to first frame
 	
 	
 	lua_pushnumber(L, width);
