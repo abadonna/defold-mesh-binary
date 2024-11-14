@@ -1,7 +1,7 @@
 return
 {
 	move1 = {
-		start = 1,
+		start = 0,
 		finish = 220
 	},
 	move2 = {

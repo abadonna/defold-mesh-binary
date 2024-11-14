@@ -4,21 +4,20 @@ local list = require "demo.mixamo.animations"
 function init(self)
 	self.instance = binary.load("/model", "/assets/mixamo.bin", "/textures/mixamo/")
 	self.instance.attach("mixamorig:Head", "/hat")
-	self.instance.animations = list
+	self.instance.animator.list = list
 	
 	self.mouth = 0
 	self.body = 0
 end
 
-
 local function set_anim (self, anim)
 	self.anim = anim
-	self.instance.play(0, self.anim, 100)
+	self.instance.animator.play(self.anim, {blend_duration = 2})
 end
 
 function update(self, dt)
 
-	if self.instance then self.instance.update(dt) end
+	if self.instance then self.instance.animator.update(dt) end
 	
 	imgui.set_next_window_size(400, 300)
 	imgui.set_next_window_pos(1400, 900)

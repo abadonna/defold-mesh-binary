@@ -1,3 +1,5 @@
+local ANIMATOR = require "def-mesh.animator"
+
 local M = {}
 
 M.BUFFER_COUNT = 0
@@ -12,17 +14,17 @@ function native_update_buffer(mesh_url, buffer)
 	resource.set_buffer(go.get(mesh_url, "vertices"), buffer, {transfer_ownership = false})
 end
 
-local function set_texture(self, url, slot, folder, file, texel)
+local function set_texture(self, url, slot, file, texel)
 	if not file then
 		return false
 	end
-	local data = sys.load_resource(folder .. file)
+	local data = sys.load_resource(self.texture_folder .. file)
 	if not data then
-		pprint(folder .. file .. " not found")
+		pprint(self.texture_folder .. file .. " not found")
 		return false
 	end
 
-	local path = folder .. file ..".texturec"
+	local path = self.texture_folder .. file ..".texturec"
 	local img = imageloader.load{data = data}
 
 	local texture_id = hash(path)
@@ -60,9 +62,7 @@ end
 
 M.load = function(url, path, texture_folder, bake_animations)
 	local instance = {
-		time = 0,
 		meshes = {},
-		total_frames = 0,
 		attaches = {},
 		bones_go = {},
 		textures = {},
@@ -82,7 +82,8 @@ M.load = function(url, path, texture_folder, bake_animations)
 	local models
 	local data = sys.load_resource(path)
 	instance.binary, models = mesh_utils.load(path, data, bake_animations or false)
-
+	instance.animator = ANIMATOR.create(instance.binary)
+	
 	for name, model in pairs(models) do 
 		
 		instance.total_frames = model.frames
@@ -150,18 +151,18 @@ M.load = function(url, path, texture_folder, bake_animations)
 			end
 
 			if mesh.material.texture then
-				set_texture(instance, mesh_url, "texture0", instance.texture_folder, mesh.material.texture, "texel")
+				set_texture(instance, mesh_url, "texture0", mesh.material.texture, "texel")
 				options.x = 1.0
 			end
 
 			if mesh.material.normal and
-			set_texture(instance, mesh_url, "texture1", instance.texture_folder, mesh.material.normal.texture) 
+			set_texture(instance, mesh_url, "texture1", mesh.material.normal.texture) 
 			then
 				options.y = mesh.material.normal.value
 			end
 
 			if mesh.material.specular.texture and
-			set_texture(instance, mesh_url, "texture2", instance.texture_folder, mesh.material.specular.texture) 
+			set_texture(instance, mesh_url, "texture2", mesh.material.specular.texture) 
 			then
 				options_specular.x = 1.0 + mesh.material.specular.invert
 				if mesh.material.specular.ramp then
@@ -171,7 +172,7 @@ M.load = function(url, path, texture_folder, bake_animations)
 			end
 
 			if mesh.material.roughness.texture and
-			set_texture(instance, mesh_url, "texture2", instance.texture_folder, mesh.material.roughness.texture) 
+			set_texture(instance, mesh_url, "texture2", mesh.material.roughness.texture) 
 			then
 				-- roughness and specular are usually the same?
 				options_specular.w = 1.0
@@ -221,8 +222,9 @@ M.load = function(url, path, texture_folder, bake_animations)
 
 	end
 
-	instance.set_frame = function(frame, frame_blend, blend)
-		instance.binary:set_frame(frame, frame_blend == nil and -1 or frame_blend, blend or 0)
+	instance.set_frame = function(frame1, frame2, blend) -- use animator directly for more flexible approach 
+		instance.animator.set_frame(0, frame1, frame2, blend)
+		instance.binary:update()
 	end
 
 	instance.attach = function(bone, target_url)
@@ -232,54 +234,6 @@ M.load = function(url, path, texture_folder, bake_animations)
 
 	instance.set_shapes = function(shapes)
 		instance.binary:set_shapes(shapes)
-	end
-
-	instance.play = function(layer, animation, blend_frames)
-		if type(animation) == "string" then
-			animation = instance.animations[animation]
-		end
-
-		if instance.animation and blend_frames then
-			instance.blend_from = instance.frame
-			instance.last_blend_frame = instance.animation.finish
-			instance.blend = 1
-			instance.blend_step = 1./blend_frames
-		end
-		instance.animation = animation
-		instance.frame = animation.start
-		instance.set_frame(instance.blend_from or instance.frame )
-		
-	end
-
-	instance.update = function(dt)
-		if not instance.animation then return end
-
-		instance.time = instance.time + dt
-
-		if instance.time < .03 then return end
-		
-		instance.time = 0.0
-		if instance.blend_from then
-			instance.blend = instance.blend - instance.blend_step
-
-			if instance.blend > 0 then
-				instance.frame = math.min(instance.frame + 1, instance.animation.finish)
-				instance.blend_from = instance.blend_from + 1
-				instance.set_frame(instance.frame, instance.blend_from, instance.blend)
-				return
-			end
-
-			instance.blend_from = nil
-		end
-
-		if instance.frame > instance.animation.finish then
-			instance.animation = nil
-				--msg.post(self.sender, "mesh_animation_done")
-		else
-			instance.frame = instance.frame + 1
-		end
-
-		instance.set_frame(instance.frame)
 	end
 
 	return instance
