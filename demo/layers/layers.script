@@ -4,31 +4,13 @@ local binary = require "def-mesh.binary"
 function init(self)
 	self.instance = binary.load("/model", "/assets/test.bin")
 	
-	self.count = 1
-	self.time = 0
-
+	self.instance.animator.add_track(tracks.mask1)
+	
+	self.instance.animator.play({start = 0, finish = 19}, {playback = go.PLAYBACK_LOOP_FORWARD})
+	self.instance.animator.play({start = 20, finish = 40}, {track = 1, playback = go.PLAYBACK_LOOP_FORWARD})
 end
+
 
 function update(self, dt)
-	if self.loaded then
-		self.time = self.time + dt
-		if self.time > .03 then
-			self.time = 0.0
-			msg.post("/model", "set_frame", {frame = self.count})
-			if self.count > self.total_frames then
-				self.count = 1
-			else
-				self.count = self.count + 1
-			end
-		end
-		
-	end
-end
-
-function on_message(self, message_id, message, sender)
-	if message_id == hash("mesh_loaded") then
-		pprint("Success!")
-		self.total_frames = message.frames
-		self.loaded = true
-	end
+	if self.instance then self.instance.animator.update(dt) end
 end

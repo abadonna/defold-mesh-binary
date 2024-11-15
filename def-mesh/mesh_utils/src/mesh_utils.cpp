@@ -5,6 +5,7 @@
 
 #include <dmsdk/sdk.h>
 #include <unordered_map>
+#include <vector>
 #include "binary.h"
 
 using namespace Vectormath::Aos;
@@ -12,11 +13,29 @@ using namespace Vectormath::Aos;
 std::unordered_map<std::string, BinaryFile*> files;
 
 static int AddAnimationTrack(lua_State* L) {
+    lua_getfield(L, 1, "instance");
+    Instance* instance = (Instance*)lua_touserdata(L, -1);
+
+    vector<string> bones;
     
+    for (int i = 0; i < lua_objlen(L, 2); i++) {
+        lua_rawgeti(L, 2, i + 1);
+        string bone = string(luaL_checkstring(L, -1));
+        bones.push_back(bone);
+    }
+
+    int id = instance->AddAnimationTrack(&bones);
+    
+    lua_pushnumber(L, id);
     return 1;
 }
+
 static int SetAnimationTrackWeight(lua_State* L) {
-    
+    lua_getfield(L, 1, "instance");
+    Instance* instance = (Instance*)lua_touserdata(L, -1);
+    int track = luaL_checknumber(L, 2);
+    float weight = luaL_checknumber(L, 3);
+    instance->SetAnimationTrackWeight(track, weight);
     return 0;
 }
 
@@ -80,7 +99,7 @@ static int SetFrame(lua_State* L) {
     int frame2 = (count > 3) ? luaL_checknumber(L, 4) : -1;
     float factor = (count > 4) ? luaL_checknumber(L, 5) : 0;
 
-    instance->SetFrame(L, track, frame1, frame2, factor);
+    instance->SetFrame(track, frame1, frame2, factor);
     return 0;
 }
 

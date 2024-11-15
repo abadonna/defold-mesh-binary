@@ -22,9 +22,9 @@ void Instance::CreateLuaProxy(lua_State* L) {
 	}
 }
 
-void Instance::SetFrame(lua_State* L, int trackIdx, int idx1, int idx2, float factor) {
+void Instance::SetFrame(int trackIdx, int idx1, int idx2, float factor) {
 	for(auto & model : this->models) {
-		model->SetFrame(L, trackIdx, idx1, idx2, factor);
+		model->SetFrame(trackIdx, idx1, idx2, factor);
 	}
 }
 
@@ -47,6 +47,22 @@ URL* Instance::AttachGameObject(dmGameObject::HInstance go, string bone) {
 	}
 	dmLogInfo("Bone \"%s\" not found!", bone.c_str());
 	return NULL;
+}
+
+
+int Instance::AddAnimationTrack(vector<string>* mask) {
+	for(auto & model : this->models) {
+		model->AddAnimationTrack(mask);
+	}
+	return this->models[0]->tracks.size() - 1;
+}
+
+void Instance::SetAnimationTrackWeight(int idx, float weight) {
+	for(auto & model : this->models) {
+		if (model->tracks.size() > idx) {
+			model->tracks[idx].weight = weight;
+		}
+	}
 }
 
 static int SetURL(lua_State* L) {
@@ -96,7 +112,7 @@ static int GetAnimationTextureBuffer(lua_State* L) {
 			mi->bones = &mi->model->frames[f];
 			mi->CalculateBones();
 			
-			for(auto & bone : *mi->calculated) {
+			for(auto & bone : *mi->bones) {
 				stream[0] = bone.getX();
 				stream[1] = bone.getY();
 				stream[2] = bone.getZ();
@@ -104,7 +120,7 @@ static int GetAnimationTextureBuffer(lua_State* L) {
 				stream += stride;
 			}
 	
-			stream += stride * (width - mi->calculated->size());
+			stream += stride * (width - mi->bones->size());
 		}
 	}
 
@@ -134,19 +150,8 @@ ModelInstance::ModelInstance(Model* model, bool useBakedAnimations) {
 		this->buffers.push_back(buffer);
 	}
 
-	int count = model->frames.size();
-	this->bones = count > 0 ? &model->frames[0] : NULL;
-
 	AnimationTrack base;
-
-	if (count > 0) {
-		count = count / 3;
-		base.mask.reserve(count);
-		for (int i = 0; i < count; i ++){
-			base.mask.push_back(i);
-		}
-	}
-
+	this->tracks.reserve(8); //to avoid losing pointers to calculated bones
 	this->tracks.push_back(base);
 }
 
@@ -229,33 +234,40 @@ void ModelInstance::CreateLuaProxy(lua_State* L) {
 }
 
 void ModelInstance::Update(lua_State* L) {
+	
+	this->bones = this->tracks[0].bones; 
 
-	if (!this->useBakedAnimations) {
-		int meshCount = this->model->meshes.size();
-		
-		for (int i = 0; i < meshCount; i++) {
-			this->ApplyArmature(L, i);
+	int count = 0;
+	for (AnimationTrack & track : this->tracks) {
+		if ((track.weight > 0) && (track.frame1 > -1)) {
+			count ++;
+			if (count == 1) { 
+				this->bones = track.bones; 
+				continue;
+			}
+			
+			if (count == 2) {//copy bones from base track
+				this->cumulative = *this->bones; 
+				this->bones = &this->cumulative; 
+			}
+
+			for (int & idx : track.mask) {
+				MatrixBlend(&this->cumulative, track.bones, &this->cumulative, idx * 3, track.weight);
+			}
+
 		}
 	}
-	
-	
-	for(auto & obj : this->boneObjects) {
-		this->ApplyTransform(&obj);
-	}
-}
 
-void ModelInstance::SetFrame(lua_State* L, int trackIdx,  int idx1, int idx2, float factor) {
-	int last_frame = this->model->frames.size() - 1;
+	this->CalculateBones();
 	
-	idx1 = (idx1 < last_frame) ? idx1 : last_frame;
-	idx2 = (idx2 < last_frame) ? idx2 : last_frame;
-
-	this->SetShapeFrame(L, idx1, idx2, factor);
 
 	int meshCount = this->model->meshes.size();
-
-	if (this->useBakedAnimations) { // TODO: frames interpolation
-		Vector4 v(1.0 / this->model->animationTextureWidth, (float)idx1 / this->model->animationTextureHeight, 0, 0);
+	
+	this->SetShapeFrame(L, this->tracks[0].frame1); //TODO blending, multi tracks
+	
+	if (this->useBakedAnimations) { // TODO: frames interpolation, tracks for baked
+		Vector4 v(1.0 / this->model->animationTextureWidth, (float)this->tracks[0].frame1 / this->model->animationTextureHeight, 0, 0);
+		
 		for (int i = 0; i < meshCount; i++) {
 			lua_getglobal(L, "go");
 			lua_getfield(L, -1, "set");
@@ -268,23 +280,73 @@ void ModelInstance::SetFrame(lua_State* L, int trackIdx,  int idx1, int idx2, fl
 		}
 	}
 
-	if (!this->useBakedAnimations || this->boneObjects.size() > 0) {
-		if (this->frame1 != idx1 || this->frame2 != idx2 || this->factor != factor) {
-
-			if ((idx2 > -1) && (!this->useBakedAnimations)) {
-				this->Interpolate(idx1, idx2, factor);
-			} else {
-				this->bones = &this->model->frames[idx1];
-			}
-
-			this->frame1 = idx1;
-			this->frame2 = idx2;
-			this->factor = factor;
-
-			this->CalculateBones();
+	if (!this->useBakedAnimations) {
+		for (int i = 0; i < meshCount; i++) {
+			this->ApplyArmature(L, i);
 		}
-
 	}
+	
+	for(auto & obj : this->boneObjects) {
+		this->ApplyTransform(&obj);
+	}
+}
+
+
+void ModelInstance::CalculateBones() {
+	if (this->bones == NULL) return;
+	if (this->model->isPrecomputed) return;
+	
+	Matrix4 invLocal = dmVMath::Inverse(this->model->local.matrix);
+	int size = this->bones->size();
+	if (this->cumulative.size() < size) {
+		this->cumulative = *this->bones;
+	}
+
+	for (int idx = 0; idx < size; idx += 3) {
+		Matrix4 bone = Matrix4::identity();
+		bone.setCol0(this->bones->at(idx));
+		bone.setCol1(this->bones->at(idx + 1));
+		bone.setCol2(this->bones->at(idx + 2));
+
+		Matrix4 localBone = Matrix4::identity();
+		localBone.setCol0(this->model->invLocalBones[idx]);
+		localBone.setCol1(this->model->invLocalBones[idx + 1]);
+		localBone.setCol2(this->model->invLocalBones[idx + 2]);
+
+		bone = model->local.matrix * localBone * bone * invLocal;
+
+		this->cumulative[idx] = bone[0];
+		this->cumulative[idx + 1] = bone[1];
+		this->cumulative[idx + 2] = bone[2];
+	}
+
+	this->bones = &this->cumulative;
+}
+
+void ModelInstance::SetFrame(int trackIdx,  int idx1, int idx2, float factor) {
+	if (trackIdx >= this->tracks.size()) { return; }
+	
+	int last_frame = this->model->frames.size() - 1;
+	AnimationTrack* track = &this->tracks[trackIdx];
+	
+	idx1 = (idx1 < last_frame) ? idx1 : last_frame;
+	idx2 = (idx2 < last_frame) ? idx2 : last_frame;
+
+	int meshCount = this->model->meshes.size();
+
+	bool hasChanged = (track->frame1 != idx1 || track->frame2 != idx2 || track->factor != factor);
+
+	track->frame1 = idx1;
+	track->frame2 = idx2;
+	track->factor = factor;
+	
+	if (hasChanged && (!this->useBakedAnimations || this->boneObjects.size() > 0)) {
+		if ((idx2 > -1) && (!this->useBakedAnimations)) {
+			track->Interpolate(this->model);
+		} else {
+			track->bones = &this->model->frames[idx1];
+		}
+	} 
 }
 
 void ModelInstance::ApplyArmature(lua_State* L, int meshIdx) {
@@ -300,7 +362,7 @@ void ModelInstance::ApplyArmature(lua_State* L, int meshIdx) {
 
 			dmScript::PushURL(L, this->urls[meshIdx]);
 			lua_pushstring(L, "bones");
-			dmScript::PushVector4(L, this->calculated->at(offset + i));
+			dmScript::PushVector4(L, this->bones->at(offset + i));
 
 			lua_newtable(L);
 			lua_pushstring(L, "index");
@@ -310,125 +372,6 @@ void ModelInstance::ApplyArmature(lua_State* L, int meshIdx) {
 			lua_call(L, 4, 0);
 		}
 	}
-}
-
-void ModelInstance::CalculateBones() {
-	if (this->bones == NULL) return;
-
-	if (this->model->isPrecomputed) {
-		this->calculated = this->bones;
-		return;
-	}
-
-	Matrix4 invLocal = dmVMath::Inverse(this->model->local.matrix);
-	int size = this->bones->size();
-
-	this->temp.clear();
-	this->temp.reserve(size);
-
-	for (int idx = 0; idx < size; idx += 3) {
-		Matrix4 bone = Matrix4::identity();
-		bone.setCol0(this->bones->at(idx));
-		bone.setCol1(this->bones->at(idx + 1));
-		bone.setCol2(this->bones->at(idx + 2));
-
-		Matrix4 localBone = Matrix4::identity();
-		localBone.setCol0(this->model->invLocalBones[idx]);
-		localBone.setCol1(this->model->invLocalBones[idx + 1]);
-		localBone.setCol2(this->model->invLocalBones[idx + 2]);
-
-		bone = this->model->local.matrix * localBone * bone * invLocal;
-
-		this->temp.push_back(bone[0]);
-		this->temp.push_back(bone[1]);
-		this->temp.push_back(bone[2]);
-
-	}
-
-	this->calculated = &this->temp;
-	//this->calculated = this->bones;
-}
-
-Quat MatToQuat(Matrix4 m) {
-	float t = 0;
-	dmVMath::Quat q;
-	if (m[2][2] < 0){
-		if (m[0][0] > m[1][1]){
-			t = 1 + m[0][0] - m[1][1] - m[2][2];
-			q = dmVMath::Quat(t, m[1][0] + m[0][1], m[0][2] + m[2][0], m[1][2] - m[2][1]);
-		}else{
-			t = 1 - m[0][0] + m[1][1] - m[2][2];
-			q = dmVMath::Quat(m[1][0] + m[0][1], t, m[2][1] + m[1][2], m[2][0] - m[0][2]);
-		}
-	}else{
-		if (m[0][0] < -m[1][1]){
-			t = 1 - m[0][0] - m[1][1] + m[2][2];
-			q = dmVMath::Quat(m[0][2] + m[2][0], m[2][1] + m[1][2], t, m[0][1] - m[1][0]);
-		}else{
-			t = 1 + m[0][0] + m[1][1] + m[2][2];
-			q = dmVMath::Quat(m[1][2] - m[2][1], m[2][0] - m[0][2], m[0][1] - m[1][0], t);
-		}
-	}
-	float st = sqrt(t);
-	q.setX(q.getX() * 0.5 / st);
-	q.setY(q.getY() * 0.5 / st);
-	q.setZ(q.getZ() * 0.5 / st);
-	q.setW(q.getW() * 0.5 / st);
-
-	return q;
-}
-
-void ModelInstance::Interpolate(int idx1, int idx2, float factor) {
-	auto src = this->bones != NULL ? this->bones : &this->model->frames[idx2];
-
-	int size = this->model->frames[idx1].size();
-	this->interpolated.reserve(size);
-	bool update = this->interpolated.size() == size;
-
-	for (int i = 0; i < size; i += 3) { 
-		Matrix4 m1 = Matrix4::identity();
-		m1.setCol0(this->model->frames[idx1][i]);
-		m1.setCol1(this->model->frames[idx1][i + 1]);
-		m1.setCol2(this->model->frames[idx1][i + 2]);
-
-		Matrix4 m2 = Matrix4::identity();
-		m2.setCol0(src->at(i));
-		m2.setCol1(src->at(i + 1));
-		m2.setCol2(src->at(i + 2));
-
-		//dual quats?
-		//https://github.com/PacktPublishing/OpenGL-Build-High-Performance-Graphics/blob/master/Module%201/Chapter08/DualQuaternionSkinning/main.cpp
-		//https://subscription.packtpub.com/book/application_development/9781788296724/1/ch01lvl1sec09/8-skeletal-and-physically-based-simulation-on-the-gpu
-		//https://xbdev.net/misc_demos/demos/dual_quaternions_beyond/paper.pdf
-		//https://github.com/chinedufn/skeletal-animation-system/blob/master/src/blend-dual-quaternions.js
-		//https://github.com/Achllle/dual_quaternions/blob/master/src/dual_quaternions/dual_quaternions.py
-
-		Vector3 t1 = Vector3(m1[0][3], m1[1][3], m1[2][3]);
-		Vector3 t2 = Vector3(m2[0][3], m2[1][3], m2[2][3]);
-		Vector3 t = Lerp(factor, t1, t2);
-
-		Quat q1 = MatToQuat(m1);
-		Quat q2 = MatToQuat(m2);
-		Quat q =  Slerp(factor, q1, q2);
-		Matrix4 m = Matrix4::rotation(q);
-		
-		m[0][3] = t.getX();
-		m[1][3] = t.getY();
-		m[2][3] = t.getZ();
-		m[3][3] = 1.;
-
-		if (update) {
-			this->interpolated[i] = m.getCol0();
-			this->interpolated[i + 1] = m.getCol1();
-			this->interpolated[i + 2] = m.getCol2();
-		} else {
-			this->interpolated.push_back(m.getCol0());
-			this->interpolated.push_back(m.getCol1());
-			this->interpolated.push_back(m.getCol2());
-		}
-	}
-
-	this->bones = &interpolated;
 }
 
 void ModelInstance::SetShapes(lua_State* L, unordered_map<string, float>* values) {
@@ -457,7 +400,7 @@ void ModelInstance::SetShapes(lua_State* L, unordered_map<string, float>* values
 	}
 }
 
-void ModelInstance::SetShapeFrame(lua_State* L, int idx1, int idx2, float factor) {
+void ModelInstance::SetShapeFrame(lua_State* L, int idx1) {
 	//TODO: blending
 	
 	if (this->model->shapes.empty() || this->model->shapeFrames.size() < idx1) return;
@@ -602,9 +545,9 @@ URL* ModelInstance::AttachGameObject(dmGameObject::HInstance go, string bone) {
 void ModelInstance::ApplyTransform(BoneGO* obj) {
 	int offset = obj->bone * 3;
 
-	Vector4 v1 = this->calculated->at(offset);
-	Vector4 v2 = this->calculated->at(offset + 1);
-	Vector4 v3 = this->calculated->at(offset + 2);
+	Vector4 v1 = this->bones->at(offset);
+	Vector4 v2 = this->bones->at(offset + 1);
+	Vector4 v3 = this->bones->at(offset + 2);
 
 	Matrix4 m;
 
@@ -619,10 +562,16 @@ void ModelInstance::ApplyTransform(BoneGO* obj) {
 	dmGameObject::SetPosition(obj->gameObject, dmVMath::Point3(v1.getW(), v3.getW(), -v2.getW()));
 }
 
-int ModelInstance::AddAnimationLayer(vector<int> mask, float weight) {
-	return 0;
-}
+void ModelInstance::AddAnimationTrack(vector<string>* mask) {
+	
+	AnimationTrack track;
 
-void ModelInstance::SetAnimationLayerWeight(float weight) {
-}
+	for (auto & bone : *mask) {
+		int idx = this->model->FindBone(bone);
+		if (idx > -1) {
+			track.mask.push_back(idx);
+		}
+	}
 
+	this->tracks.push_back(track);
+}

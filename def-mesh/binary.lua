@@ -200,6 +200,7 @@ M.load = function(url, path, texture_folder, bake_animations)
 	end
 
 	instance.binary:set_frame(0, 0);
+	instance.binary:update();
 
 	---------------------------------------------------------------
 
@@ -224,7 +225,7 @@ M.load = function(url, path, texture_folder, bake_animations)
 
 	instance.set_frame = function(frame1, frame2, blend) -- use animator directly for more flexible approach 
 		instance.animator.set_frame(0, frame1, frame2, blend)
-		instance.binary:update()
+		instance.animator.update_tracks()
 	end
 
 	instance.attach = function(bone, target_url)

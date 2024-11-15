@@ -172,7 +172,7 @@ Model::Model(Reader* reader){
 	}
 
 	this->isPrecomputed = (reader->ReadInt() == 1);
-	
+
 	if (!this->isPrecomputed) {
 		this->invLocalBones.reserve(boneCount * 3);
 		for (int i = 0; i < boneCount; i++) {

@@ -49,7 +49,6 @@ M.create = function(binary)
 		animator.binary:set_frame(track, frame1, frame2 == nil and -1 or frame2, blend or 0)
 	end
 
-
 	animator.update_tracks = function()
 		animator.binary:update()
 	end
@@ -131,6 +130,18 @@ M.create = function(binary)
 
 		animator.update_tracks()
 
+	end
+
+	animator.add_track = function(mask, weight)
+		local id = animator.binary:add_animation_track(mask)
+		if weight and weight < 1 then
+			animator.binary:set_animation_track_weight(id, weight)
+		end
+		return id
+	end
+
+	animator.set_weight = function(track, weight)
+		animator.binary:set_animation_track_weight(track, weight)
 	end
 	
 	return animator

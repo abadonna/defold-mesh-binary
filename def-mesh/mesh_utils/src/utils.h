@@ -3,6 +3,7 @@
 #include <dmsdk/sdk.h>
 #include <unordered_map>
 #include <string>
+#include <vector>
 
 using namespace std;
 using namespace dmVMath;
@@ -69,6 +70,9 @@ inline template <typename K, typename T>
 bool CONTAINS(unordered_map<K, T>* map, K key){
 	return map->find(key) != map->end();
 }
+
+Quat MatToQuat(Matrix4 m);
+void MatrixBlend (vector<Vector4>* dst, vector<Vector4>* src, vector<Vector4>* result, int idx, float factor);
 
 struct Material {
 	int type; // 0 - opaque, 1 - blend, 2 - hashed
