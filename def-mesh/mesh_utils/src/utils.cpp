@@ -1,16 +1,10 @@
 #include "utils.h"
 
-void MatrixBlend (vector<Vector4>* dst, vector<Vector4>* src, vector<Vector4>* result, int idx, float factor) {
-	Matrix4 m1 = Matrix4::identity();
-	m1.setCol0(dst->at(idx));
-	m1.setCol1(dst->at(idx + 1));
-	m1.setCol2(dst->at(idx + 2));
-
-	Matrix4 m2 = Matrix4::identity();
-	m2.setCol0(src->at(idx));
-	m2.setCol1(src->at(idx + 1));
-	m2.setCol2(src->at(idx + 2));
-
+void MatrixBlend (vector<Matrix4>* dst, vector<Matrix4>* src, vector<Matrix4>* result, int idx, float factor) {
+	
+	Matrix4 m1 = dst->at(idx);
+	Matrix4 m2 = src->at(idx);
+	
 	//dual quats?
 	//https://github.com/PacktPublishing/OpenGL-Build-High-Performance-Graphics/blob/master/Module%201/Chapter08/DualQuaternionSkinning/main.cpp
 	//https://subscription.packtpub.com/book/application_development/9781788296724/1/ch01lvl1sec09/8-skeletal-and-physically-based-simulation-on-the-gpu
@@ -32,9 +26,7 @@ void MatrixBlend (vector<Vector4>* dst, vector<Vector4>* src, vector<Vector4>* r
 	m[2][3] = t.getZ();
 	m[3][3] = 1.;
 
-	result->at(idx) = m.getCol0();
-	result->at(idx + 1) = m.getCol1();
-	result->at(idx + 2) = m.getCol2();
+	result->at(idx) = m;
 }
 
 Quat MatToQuat(Matrix4 m) {

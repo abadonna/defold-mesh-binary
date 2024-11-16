@@ -155,8 +155,10 @@ Model::Model(Reader* reader){
 
 	//reading armature
 	this->boneNames.reserve(boneCount);
+	this->boneParents.reserve(boneCount);
 	for (int i = 0; i < boneCount; i++) {
 		this->boneNames.push_back(reader->ReadString());
+		//this->boneParents.push_back(reader->ReadInt());
 	}
 
 	this->skin = new vector<SkinData>[vertexCount];
@@ -174,13 +176,10 @@ Model::Model(Reader* reader){
 	this->isPrecomputed = (reader->ReadInt() == 1);
 
 	if (!this->isPrecomputed) {
-		this->invLocalBones.reserve(boneCount * 3);
+		this->invLocalBones.reserve(boneCount);
 		for (int i = 0; i < boneCount; i++) {
 			//3x4 transform matrix
-			this->invLocalBones.push_back(reader->ReadVector4());
-			this->invLocalBones.push_back(reader->ReadVector4());
-			this->invLocalBones.push_back(reader->ReadVector4());
-			
+			this->invLocalBones.push_back(reader->ReadMatrix());
 		}
 	}
 
@@ -190,13 +189,11 @@ Model::Model(Reader* reader){
 	this->frames.reserve(frameCount);
 
 	for (int i = 0; i < frameCount; i++) {
-		vector<Vector4> bones;
-		bones.reserve(boneCount * 3);
+		vector<Matrix4> bones;
+		bones.reserve(boneCount);
 		for (int j = 0; j < boneCount; j++) {
 			//3x4 transform matrix
-			bones.push_back(reader->ReadVector4());
-			bones.push_back(reader->ReadVector4());
-			bones.push_back(reader->ReadVector4());
+			bones.push_back(reader->ReadMatrix());
 		}
 		
 		this->frames.push_back(bones);
@@ -211,7 +208,7 @@ Model::Model(Reader* reader){
 		this->shapeFrames.push_back(shapes);
 	}
 
-	this->animationTextureWidth = nextPOT(this->frames[0].size());
+	this->animationTextureWidth = nextPOT(this->frames[0].size() * 3);
 	this->animationTextureHeight = nextPOT(frameCount);
 	
 }

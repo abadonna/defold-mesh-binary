@@ -15,7 +15,7 @@ class Model;
 class ModelInstance {
 	private:
 		vector<BoneGO> boneObjects;
-		vector<Vector4> cumulative;
+		vector<Matrix4> cumulative;
 		
 		unordered_map<string, float> shapeValues;
 		unordered_map<string, float> directShapeValues;
@@ -36,7 +36,7 @@ class ModelInstance {
 
 		vector<AnimationTrack> tracks;
 
-		vector<Vector4>* bones = NULL;
+		vector<Matrix4>* bones = NULL;
 
 		ModelInstance(Model* model, bool useBakedAnimations);
 		~ModelInstance();

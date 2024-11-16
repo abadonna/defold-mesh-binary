@@ -10,7 +10,7 @@ void AnimationTrack::Interpolate(Model* model) {
 		this->interpolated = model->frames[this->frame1];
 	}
 
-	for (int i = 0; i < size; i += 3) { //TODO: optimize, interpolate using track mask
+	for (int i = 0; i < size; i ++) { //TODO: optimize, interpolate using track mask
 		MatrixBlend(&model->frames[this->frame1], src, &this->interpolated, i, this->factor);
 	}
 

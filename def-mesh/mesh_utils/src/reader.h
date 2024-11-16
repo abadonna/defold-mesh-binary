@@ -12,6 +12,7 @@ class Reader
 		float ReadFloat();
 		Vector3 ReadVector3();
 		Vector4 ReadVector4();
+		Matrix4 ReadMatrix();
 		string ReadString();
 		string ReadString(int size);
 		Transform3d ReadTransform();

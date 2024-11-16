@@ -6,8 +6,8 @@ using namespace std;
 class Model
 {
 	private:
-		vector<string> boneNames;
-		
+		vector<string> boneNames; //TODO: refactor to bone class or even better move to Armature
+		vector<int> boneParents;
 	
 	public:
 		string name;
@@ -17,11 +17,11 @@ class Model
 		int vertexCount = 0;
 		Vertex* vertices = NULL;
 		vector<Mesh>meshes;
-		vector< vector<Vector4> > frames;
+		vector< vector<Matrix4> > frames;
 		unordered_map<string, unordered_map<int, ShapeData> > shapes;
 		vector< unordered_map<string, float> > shapeFrames;
 		vector<SkinData>* skin = NULL;
-		vector<Vector4> invLocalBones;
+		vector<Matrix4> invLocalBones;
 		bool isPrecomputed = false;
 		int animationTextureWidth = 0;
 		int animationTextureHeight = 0;

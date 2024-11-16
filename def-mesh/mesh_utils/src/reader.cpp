@@ -47,7 +47,6 @@ float Reader::ReadFloat() {
 }
 
 Vector3 Reader::ReadVector3() {
-	//return Vector3( ReadFloat(),  ReadFloat(),  ReadFloat());/*
 	float x = ReadFloat();
 	float y = ReadFloat();
 	float z = ReadFloat();
@@ -55,12 +54,19 @@ Vector3 Reader::ReadVector3() {
 }
 
 Vector4 Reader::ReadVector4() {
-	//return Vector4(ReadFloat(), ReadFloat(), ReadFloat(), ReadFloat());
 	float x = ReadFloat();
 	float y = ReadFloat();
 	float z = ReadFloat();
 	float w = ReadFloat();
 	return Vector4(x, y, z, w);
+}
+
+Matrix4 Reader::ReadMatrix() { //3x4
+	Matrix4 m = Matrix4::identity();
+	m.setCol0(this->ReadVector4());
+	m.setCol1(this->ReadVector4());
+	m.setCol2(this->ReadVector4());
+	return m;
 }
 
 Transform3d Reader::ReadTransform() {

@@ -9,7 +9,7 @@ class Model;
 
 class AnimationTrack {
 	private:
-		vector<Vector4> interpolated;
+		vector<Matrix4> interpolated;
 
 	public:
 		int frame1 = -1;
@@ -19,7 +19,7 @@ class AnimationTrack {
 		bool additive = false; // blending mode: override, TODO: additive
 		vector<int> mask;
 		
-		vector<Vector4>* bones = NULL;
+		vector<Matrix4>* bones = NULL;
 
 		void Interpolate(Model* model);
 };

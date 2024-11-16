@@ -111,16 +111,19 @@ static int GetAnimationTextureBuffer(lua_State* L) {
 		if (f < frameCount) {
 			mi->bones = &mi->model->frames[f];
 			mi->CalculateBones();
-			
+
 			for(auto & bone : *mi->bones) {
-				stream[0] = bone.getX();
-				stream[1] = bone.getY();
-				stream[2] = bone.getZ();
-				stream[3] = bone.getW();
-				stream += stride;
+				Vector4 data[3] = {bone.getCol0(), bone.getCol1(), bone.getCol2()};
+				for (int i = 0; i < 3; i++) {
+					stream[0] = data[i].getX();
+					stream[1] = data[i].getY();
+					stream[2] = data[i].getZ();
+					stream[3] = data[i].getW();
+					stream += stride;
+				}
 			}
 	
-			stream += stride * (width - mi->bones->size());
+			stream += stride * (width - mi->bones->size() * 3);
 		}
 	}
 
@@ -252,7 +255,7 @@ void ModelInstance::Update(lua_State* L) {
 			}
 
 			for (int & idx : track.mask) {
-				MatrixBlend(&this->cumulative, track.bones, &this->cumulative, idx * 3, track.weight);
+				MatrixBlend(&this->cumulative, track.bones, &this->cumulative, idx, track.weight);
 			}
 
 		}
@@ -302,22 +305,14 @@ void ModelInstance::CalculateBones() {
 		this->cumulative = *this->bones;
 	}
 
-	for (int idx = 0; idx < size; idx += 3) {
-		Matrix4 bone = Matrix4::identity();
-		bone.setCol0(this->bones->at(idx));
-		bone.setCol1(this->bones->at(idx + 1));
-		bone.setCol2(this->bones->at(idx + 2));
+	for (int idx = 0; idx < size; idx ++) {
+		Matrix4 bone = this->bones->at(idx); //TODO: remove copy
 
-		Matrix4 localBone = Matrix4::identity();
-		localBone.setCol0(this->model->invLocalBones[idx]);
-		localBone.setCol1(this->model->invLocalBones[idx + 1]);
-		localBone.setCol2(this->model->invLocalBones[idx + 2]);
+		Matrix4 localBone = this->model->invLocalBones[idx];
 
 		bone = model->local.matrix * localBone * bone * invLocal;
-
-		this->cumulative[idx] = bone[0];
-		this->cumulative[idx + 1] = bone[1];
-		this->cumulative[idx + 2] = bone[2];
+		
+		this->cumulative[idx] = bone;
 	}
 
 	this->bones = &this->cumulative;
@@ -354,6 +349,11 @@ void ModelInstance::ApplyArmature(lua_State* L, int meshIdx) {
 	
 	for (int idx : this->model->meshes[meshIdx].usedBonesIndex) { // set only used bones, critical for performance
 		int offset = idx * 3;
+		Vector4 data[3] = {
+			this->bones->at(idx).getCol0(), 
+			this->bones->at(idx).getCol1(), 
+			this->bones->at(idx).getCol2()
+		};
 
 		for (int i = 0; i < 3; i ++) {
 			lua_getglobal(L, "go");
@@ -362,7 +362,7 @@ void ModelInstance::ApplyArmature(lua_State* L, int meshIdx) {
 
 			dmScript::PushURL(L, this->urls[meshIdx]);
 			lua_pushstring(L, "bones");
-			dmScript::PushVector4(L, this->bones->at(offset + i));
+			dmScript::PushVector4(L, data[i]);
 
 			lua_newtable(L);
 			lua_pushstring(L, "index");
@@ -533,7 +533,7 @@ URL* ModelInstance::AttachGameObject(dmGameObject::HInstance go, string bone) {
 	int idx = this->model->FindBone(bone);
 	if (idx > -1) {
 		BoneGO object;
-		object.bone = idx;
+		object.boneIdx = idx;
 		object.gameObject = go;
 		this->boneObjects.push_back(object);
 		this->ApplyTransform(&object);
@@ -543,18 +543,20 @@ URL* ModelInstance::AttachGameObject(dmGameObject::HInstance go, string bone) {
 }
 
 void ModelInstance::ApplyTransform(BoneGO* obj) {
+
+	/*
 	int offset = obj->bone * 3;
 
 	Vector4 v1 = this->bones->at(offset);
 	Vector4 v2 = this->bones->at(offset + 1);
-	Vector4 v3 = this->bones->at(offset + 2);
+	Vector4 v3 = this->bones->at(offset + 2);*/
 
-	Matrix4 m;
-
-	m.setCol0(v1);
-	m.setCol1(v2);
-	m.setCol2(v3);
+	Matrix4 m = this->bones->at(obj->boneIdx);
 	m.setCol3(Vector4(1));
+
+	Vector4 v1 = m.getCol0();
+	Vector4 v2 = m.getCol1();
+	Vector4 v3 = m.getCol2();
 	
 	m = Transpose(m);
 	Quat q = MatToQuat(m);

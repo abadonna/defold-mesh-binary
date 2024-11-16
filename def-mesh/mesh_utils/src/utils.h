@@ -9,7 +9,7 @@ using namespace std;
 using namespace dmVMath;
 
 struct BoneGO {
-	int bone;
+	int boneIdx;
 	dmGameObject::HInstance gameObject;
 };
 
@@ -72,7 +72,7 @@ bool CONTAINS(unordered_map<K, T>* map, K key){
 }
 
 Quat MatToQuat(Matrix4 m);
-void MatrixBlend (vector<Vector4>* dst, vector<Vector4>* src, vector<Vector4>* result, int idx, float factor);
+void MatrixBlend (vector<Matrix4>* dst, vector<Matrix4>* src, vector<Matrix4>* result, int idx, float factor);
 
 struct Material {
 	int type; // 0 - opaque, 1 - blend, 2 - hashed
