@@ -3,7 +3,7 @@
 bl_info = {
     "name": "Defold Mesh Binary Export",
     "author": "",
-    "version": (1, 0),
+    "version": (1, 1),
     "blender": (3, 0, 0),
     "location": "File > Export > Defold Binary Mesh (.bin)",
     "description": "Export to Defold .mesh format",
@@ -18,7 +18,7 @@ from pathlib import Path
 
 def write_frame_data(precompute, bones, matrix_local, f):
     for pbone in bones:
-        matrix = matrix_local.inverted() @ pbone.matrix @ pbone.bone.matrix_local.inverted() @ matrix_local if precompute else pbone.matrix
+        matrix = matrix_local.inverted() @ pbone.matrix @ pbone.bone.matrix_local.inverted() @ matrix_local if precompute else pbone.matrix_basis
         f.write(struct.pack('ffff', *matrix[0]))
         f.write(struct.pack('ffff', *matrix[1]))
         f.write(struct.pack('ffff', *matrix[2]))
@@ -31,7 +31,7 @@ def write_shape_values(mesh, shapes, f):
         f.write(bytes(shape['name'], "ascii"))
         f.write(struct.pack('f', value))
                 
-def optimize(bones, vertices, vertex_groups, limit_per_vertex):
+def optimize(precompute, bones, vertices, vertex_groups, limit_per_vertex):
           
     def sort_weights(vg):
         return -vg.weight
@@ -54,8 +54,19 @@ def optimize(bones, vertices, vertex_groups, limit_per_vertex):
         for vg in fixed_groups:
             vg.weight = vg.weight / total
         vertex_groups_per_vertex.append(fixed_groups)
-            
+        
         used_bones = []
+        
+        def add_parents(bone):
+            if bone.parent:
+                bones_map[bone.parent.name] = True
+                add_parents(bone.parent)
+        
+        if not precompute:
+            for bone in bones:
+                if bones_map[bone.name]:
+                    add_parents(bone)
+            
         for bone in bones:
             if bones_map[bone.name]:
                 used_bones.append(bone)
@@ -326,7 +337,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
             #optimizing bones, checking empty bones, etc
             #set limit to 4 bones per vertex
             
-            used_bones, vertex_groups_per_vertex = optimize(pose.bones, mesh.vertices, obj.vertex_groups, 4)  
+            used_bones, vertex_groups_per_vertex = optimize(export_precompute_setting, pose.bones, mesh.vertices, obj.vertex_groups, 4)  
             
             print("USED BONES: ", len(used_bones))
             bones_map = {bone.name: i for i, bone in enumerate(used_bones)}
@@ -335,6 +346,13 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
             for bone_ in used_bones:
                 f.write(struct.pack('i', len(bone_.name)))
                 f.write(bytes(bone_.name, "ascii"))
+                parent = -1
+                for idx, b in enumerate(used_bones):
+                    if b == bone_.parent:
+                        parent = idx
+                        break
+                f.write(struct.pack('i', parent))
+                
             
             for groups in vertex_groups_per_vertex:
                 f.write(struct.pack('i', len(groups)))
@@ -348,9 +366,8 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
             
             if not export_precompute_setting:
                 for pbone in used_bones:
-                    matrix = pbone.bone.matrix_local.inverted()
+                    matrix = pbone.bone.matrix_local
                     f.write(struct.pack('ffff', *matrix[0]))
-                    
                     f.write(struct.pack('ffff', *matrix[1]))
                     f.write(struct.pack('ffff', *matrix[2]))
         
@@ -411,8 +428,8 @@ class DefoldExport(Operator, ExportHelper):
     
     export_precompute: BoolProperty(
         name="Precompute bones",
-        description="less calculations in runtime, but avoid runtime animation blending",
-        default=True,
+        description="legacy, faster but no animation blending",
+        default=False,
     )
     
     export_anim: BoolProperty(

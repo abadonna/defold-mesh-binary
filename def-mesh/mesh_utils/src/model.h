@@ -7,7 +7,6 @@ class Model
 {
 	private:
 		vector<string> boneNames; //TODO: refactor to bone class or even better move to Armature
-		vector<int> boneParents;
 	
 	public:
 		string name;
@@ -21,7 +20,7 @@ class Model
 		unordered_map<string, unordered_map<int, ShapeData> > shapes;
 		vector< unordered_map<string, float> > shapeFrames;
 		vector<SkinData>* skin = NULL;
-		vector<Matrix4> invLocalBones;
+		vector<Matrix4> localBones;
 		bool isPrecomputed = false;
 		int animationTextureWidth = 0;
 		int animationTextureHeight = 0;
@@ -30,4 +29,6 @@ class Model
 		
 		Model(Reader* reader);
 		~Model();
+
+		vector<int> boneParents;
 };

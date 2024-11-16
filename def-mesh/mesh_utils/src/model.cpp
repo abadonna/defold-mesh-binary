@@ -158,7 +158,7 @@ Model::Model(Reader* reader){
 	this->boneParents.reserve(boneCount);
 	for (int i = 0; i < boneCount; i++) {
 		this->boneNames.push_back(reader->ReadString());
-		//this->boneParents.push_back(reader->ReadInt());
+		this->boneParents.push_back(reader->ReadInt());
 	}
 
 	this->skin = new vector<SkinData>[vertexCount];
@@ -176,10 +176,10 @@ Model::Model(Reader* reader){
 	this->isPrecomputed = (reader->ReadInt() == 1);
 
 	if (!this->isPrecomputed) {
-		this->invLocalBones.reserve(boneCount);
+		this->localBones.reserve(boneCount);
 		for (int i = 0; i < boneCount; i++) {
 			//3x4 transform matrix
-			this->invLocalBones.push_back(reader->ReadMatrix());
+			this->localBones.push_back(reader->ReadMatrix());
 		}
 	}
 
