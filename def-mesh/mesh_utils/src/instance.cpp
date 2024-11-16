@@ -257,8 +257,9 @@ void ModelInstance::Update(lua_State* L) {
 			for (int & idx : track.mask) {
 				if (track.weight == 1.0) {
 					this->cumulative[idx] = track.bones->at(idx);
+				}else {
+					MatrixBlend(&this->cumulative, track.bones, &this->cumulative, idx, track.weight);
 				}
-				//MatrixBlend(&this->cumulative, track.bones, &this->cumulative, idx, track.weight);
 			}
 
 		}
@@ -308,26 +309,29 @@ void ModelInstance::CalculateBones() {
 		this->cumulative = *this->bones;
 	}
 
-	vector<Matrix4> temp = *this->bones;
+	Matrix4 temp[size];
+	bool has_parent_transforms[size];
 
+	for (int idx = 0; idx < size; idx ++) { //precalculate parent transforms
+		Matrix4 local = this->model->localBones[idx];
+		temp[idx] = dmVMath::Inverse(local) * this->bones->at(idx) * local;
+		has_parent_transforms[idx] = false;
+	}
 
 	for (int idx = 0; idx < size; idx ++) {
-		Matrix4 localBone = this->model->localBones[idx];
-		Matrix4 bone = temp.at(idx); //TODO: remove copy
-
-		bone = dmVMath::Inverse(localBone) * bone * localBone;
+		Matrix4 bone = temp[idx];
 		
 		int parent = this->model->boneParents[idx];
-		while (parent > -1) {//optimize! precalculate parent transforms
-			Matrix4 localParent = this->model->localBones[parent];
-			bone =  bone * dmVMath::Inverse(localParent) * temp.at(parent) * localParent; 
+		while (parent > -1) {
+			bone = bone * temp[parent];
+			if (has_parent_transforms[parent]) break; //optimization
 			parent = this->model->boneParents[parent];
 		}
 
-		//bone = model->local.matrix * localBone * bone * invLocal;
-
-		this->cumulative[idx] =  model->local.matrix * bone * invLocal;
-	
+		has_parent_transforms[idx] = true;
+		temp[idx] = bone;
+		
+		this->cumulative[idx] = model->local.matrix * bone * invLocal;
 	}
 
 	this->bones = &this->cumulative;

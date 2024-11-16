@@ -158,6 +158,7 @@ Model::Model(Reader* reader){
 	this->boneParents.reserve(boneCount);
 	for (int i = 0; i < boneCount; i++) {
 		this->boneNames.push_back(reader->ReadString());
+		//dmLogInfo("%s", this->boneNames[i].c_str());
 		this->boneParents.push_back(reader->ReadInt());
 	}
 

@@ -2,10 +2,8 @@ name: "layers"
 instances {
   id: "model"
   prototype: "/def-mesh/binary.go"
-  scale3 {
-    x: 0.25
-    y: 0.25
-    z: 0.25
+  position {
+    y: -1.0
   }
 }
 scale_along_z: 1
