@@ -4,3 +4,4 @@
 - экспорт списка nla анимаций
 - экспорт списка материалов, возможность назначить отдельный материал
 - https://github.com/jkuhlmann/cgltf/blob/master/cgltf.h
+- additive треки?
