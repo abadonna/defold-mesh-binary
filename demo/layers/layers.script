@@ -6,8 +6,6 @@ function init(self)
 	
 	self.track = self.instance.animator.add_track(tracks.mask1)
 	self.instance.animator.set_weight(self.track, 0)
-	self.weight = 0;
-	self.time = 0;
 	
 	self.instance.animator.play({start = 0, finish = 41}, {playback = go.PLAYBACK_LOOP_FORWARD})
 	self.instance.animator.play({start = 42, finish = 77}, {track = 1, playback = go.PLAYBACK_LOOP_FORWARD})
@@ -24,25 +22,9 @@ function update(self, dt)
 	local changed, checked = imgui.checkbox("shoot", self.shoot)
 	if changed then
 		self.shoot = checked
-		self.blend = checked and .1 or -.1
+		self.instance.animator.set_weight(self.track, checked and 1 or 0, .3)
 	end
 
-	self.time = self.time + dt;
-	if self.blend and self.time > 0.03 then
-		self.weight = self.weight + self.blend
-		if (self.weight > 1) then
-			self.weight = 1
-			self.blend = nil
-		elseif (self.weight < 0) then
-			self.weight = 0
-			self.blend = nil
-		end
-		self.instance.animator.set_weight(self.track, self.weight)
-	end
-
-	if self.time > 0.03 then
-		self.time = 0
-	end
 
 
 

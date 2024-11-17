@@ -20,24 +20,29 @@ function init(self)
 end
 
 function update(self, dt)
-	imgui.set_next_window_size(500, 200)
+	imgui.set_next_window_size(500, 230)
 	
 	imgui.begin_window("Blender export demo")
 	imgui.font_push(self.font)
 
-	local changed, checked = imgui.checkbox("dancer animation", self.demo == "dancer")
+	local changed, checked = imgui.checkbox("baked animation", self.demo == "dancer")
 	if changed and checked then
 		load_scene(self, "dancer")
 	end
 	
-	changed, checked = imgui.checkbox("complex girl", self.demo == "complex")
+	changed, checked = imgui.checkbox("complex model", self.demo == "complex")
 	if changed and checked then
 		load_scene(self, "complex")
 	end
 
-	changed, checked = imgui.checkbox("mixamo", self.demo == "mixamo")
+	changed, checked = imgui.checkbox("shapes & blending", self.demo == "mixamo")
 	if changed and checked then
 		load_scene(self, "mixamo")
+	end
+
+	changed, checked = imgui.checkbox("tracks", self.demo == "layers")
+	if changed and checked then
+		load_scene(self, "layers")
 	end
 	
 	imgui.font_pop()

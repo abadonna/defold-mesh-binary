@@ -41,7 +41,8 @@ M.create = function(binary)
 		binary = binary,
 		list = {},
 		animations = {},
-		frame = {[0]=0}
+		frame = {[0]=0},
+		tracks = {[0]={weight=1}}
 	}
 	
 	animator.set_frame = function(track, frame1, frame2, blend)
@@ -128,20 +129,49 @@ M.create = function(binary)
 			end
 		end
 
+		for track_id, data in pairs(animator.tracks) do
+			if data.duration then --animate weight
+				data.time = data.time + dt
+				local a = data.time / data.duration
+				local full, part = math.modf(a)
+				local length = data.finish - data.start
+				local weight = data.start + length * part
+				
+				if full > 0 then
+					data.duration = nil
+					animator.set_weight(track_id, data.finish)
+				else
+					animator.set_weight(track_id, weight)
+				end
+			end
+		end
+
 		animator.update_tracks()
 
 	end
 
 	animator.add_track = function(mask, weight)
 		local id = animator.binary:add_animation_track(mask)
+		animator.tracks[id] = {}
 		if weight and weight < 1 then
-			animator.binary:set_animation_track_weight(id, weight)
+			animator.set_weight(id, weight)
 		end
 		return id
 	end
 
-	animator.set_weight = function(track, weight)
-		animator.binary:set_animation_track_weight(track, weight)
+	animator.set_weight = function(track_id, weight, duration)
+		if duration then
+			animator.tracks[track_id] = {
+				start = animator.tracks[track_id].weight or 1,
+				duration = duration,
+				finish = weight,
+				time = 0
+			}
+			
+			return
+		end
+		animator.tracks[track_id].weight = weight
+		animator.binary:set_animation_track_weight(track_id, weight)
 	end
 	
 	return animator
