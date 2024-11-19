@@ -3,9 +3,9 @@
 #include <vector>
 
 using namespace std;
-using namespace dmMessage;
 
 class Model;
+class Armature;
 
 class AnimationTrack {
 	private:
@@ -21,5 +21,5 @@ class AnimationTrack {
 		
 		vector<Matrix4>* bones = NULL;
 
-		void Interpolate(Model* model);
+		void Interpolate(Armature* armature);
 };

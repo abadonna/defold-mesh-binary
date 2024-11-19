@@ -1,9 +1,22 @@
 #include "instance.h"
 #include "model.h"
 
-Instance::Instance(vector<Model*>* data, bool useBakedAnimations) {
-	for(int i = 0; i < data->size(); i ++) {
-		ModelInstance* mi = new ModelInstance(data->at(i), useBakedAnimations);
+Instance::Instance(vector<Model*>* models, vector<Armature*>* armatures, bool useBakedAnimations) {
+	this->useBakedAnimations = useBakedAnimations;
+	
+	this->animations.reserve(armatures->size());
+	this->models.reserve(models->size());
+	
+	for (auto & armature : *armatures) {
+		Animation* a = new Animation(armature);
+		this->animations.push_back(a);
+	}
+	
+	for(auto & model : *models) {
+		ModelInstance* mi = new ModelInstance(model, useBakedAnimations);
+		if (model->armatureIdx > -1) {
+			mi->animation = this->animations[model->armatureIdx]; //TODO animation without armature
+		}
 		this->models.push_back(mi);
 	}
 }
@@ -11,6 +24,10 @@ Instance::Instance(vector<Model*>* data, bool useBakedAnimations) {
 Instance::~Instance() {
 	for(auto & model : this->models) {
 		delete model;
+	}
+
+	for(auto & animation : this->animations) {
+		delete animation;
 	}
 }
 
@@ -23,14 +40,20 @@ void Instance::CreateLuaProxy(lua_State* L) {
 }
 
 void Instance::SetFrame(int trackIdx, int idx1, int idx2, float factor) {
-	for(auto & model : this->models) {
-		model->SetFrame(trackIdx, idx1, idx2, factor);
+	for(auto & animation : this->animations) {
+		animation->SetFrame(trackIdx, idx1, idx2, factor, this->useBakedAnimations, this->boneObjects.size() > 0);
 	}
 }
 
 void Instance::Update(lua_State* L) {
-	for(auto & model : this->models) {
-		model->Update(L);
+	for(auto & animation : this->animations) {
+		animation->Update(L);
+	}
+	for(auto & mi : this->models) {
+		mi->Update(L);
+	}
+	for(auto & obj : this->boneObjects) {
+		obj.ApplyTransform();
 	}
 }
 
@@ -41,9 +64,17 @@ void Instance::SetShapes(lua_State* L, unordered_map<string, float>* values) {
 }
 
 URL* Instance::AttachGameObject(dmGameObject::HInstance go, string bone) {
+
+	BoneGO obj;
+	obj.gameObject = go;
+	
 	for(auto & mi : this->models) {
-		URL* url = mi->AttachGameObject(go, bone);
-		if (url != NULL) return url;
+		URL* url = mi->AttachGameObject(&obj, bone);
+		if (url != NULL) {
+			this->boneObjects.push_back(obj);
+			obj.ApplyTransform();
+			return url;
+		}
 	}
 	dmLogInfo("Bone \"%s\" not found!", bone.c_str());
 	return NULL;
@@ -51,16 +82,16 @@ URL* Instance::AttachGameObject(dmGameObject::HInstance go, string bone) {
 
 
 int Instance::AddAnimationTrack(vector<string>* mask) {
-	for(auto & model : this->models) {
-		model->AddAnimationTrack(mask);
+	for(auto & animation : this->animations) {
+		animation->AddAnimationTrack(mask);
 	}
-	return this->models[0]->tracks.size() - 1;
+	return this->animations[0]->tracks.size() - 1;
 }
 
 void Instance::SetAnimationTrackWeight(int idx, float weight) {
-	for(auto & model : this->models) {
-		if (model->tracks.size() > idx) {
-			model->tracks[idx].weight = weight;
+	for(auto & animation : this->animations) {
+		if (animation->tracks.size() > idx) {
+			animation->tracks[idx].weight = weight;
 		}
 	}
 }
@@ -87,56 +118,8 @@ static int GetAnimationTextureBuffer(lua_State* L) {
 	lua_getfield(L, 1, "instance");
 	ModelInstance* mi = (ModelInstance* )lua_touserdata(L, -1);
 
-	int frameCount = mi->model->frames.size();
+	mi->animation->GetTextureBuffer(L);
 	
-	int width = mi->model->animationTextureWidth;
-	int height = mi->model->animationTextureHeight;
-
-	const dmBuffer::StreamDeclaration streams_decl[] = {
-		{dmHashString64("rgba"), dmBuffer::VALUE_TYPE_FLOAT32, 4}
-	};
-	
-	dmBuffer::HBuffer buffer = 0x0;
-	dmBuffer::Create(width * height, streams_decl, 1, &buffer);
-
-	float* stream = 0x0;
-
-	uint32_t components = 0;
-	uint32_t stride = 0;
-	uint32_t items_count = 0;
-
-	dmBuffer::GetStream(buffer, dmHashString64("rgba"), (void**)&stream, &items_count, &components, &stride);
-	
-	for (int f = 0; f < height; f++) {
-		if (f < frameCount) {
-			mi->bones = &mi->model->frames[f];
-			mi->CalculateBones();
-
-			for(auto & bone : *mi->bones) {
-				Vector4 data[3] = {bone.getCol0(), bone.getCol1(), bone.getCol2()};
-				for (int i = 0; i < 3; i++) {
-					stream[0] = data[i].getX();
-					stream[1] = data[i].getY();
-					stream[2] = data[i].getZ();
-					stream[3] = data[i].getW();
-					stream += stride;
-				}
-			}
-	
-			stream += stride * (width - mi->bones->size() * 3);
-		}
-	}
-
-	mi->bones = &mi->model->frames[0];
-	mi->CalculateBones(); // return to first frame
-	
-	
-	lua_pushnumber(L, width);
-	lua_pushnumber(L, height);
-
-	dmScript::LuaHBuffer luabuf(buffer, dmScript::OWNER_LUA);
-	dmScript::PushBuffer(L, luabuf);
-
 	return 3;
 }
 
@@ -153,9 +136,6 @@ ModelInstance::ModelInstance(Model* model, bool useBakedAnimations) {
 		this->buffers.push_back(buffer);
 	}
 
-	AnimationTrack base;
-	this->tracks.reserve(8); //to avoid losing pointers to calculated bones
-	this->tracks.push_back(base);
 }
 
 ModelInstance::~ModelInstance() {
@@ -189,7 +169,7 @@ void ModelInstance::CreateLuaProxy(lua_State* L) {
 	}
 
 	lua_pushstring(L, "frames");
-	lua_pushnumber(L, this->model->frames.size());
+	lua_pushnumber(L, this->animation->GetFramesCount()); //refactor
 	lua_settable(L, -3);
 
 	lua_pushstring(L, "position");
@@ -238,42 +218,12 @@ void ModelInstance::CreateLuaProxy(lua_State* L) {
 
 void ModelInstance::Update(lua_State* L) {
 	
-	this->bones = this->tracks[0].bones; 
-
-	int count = 0;
-	for (AnimationTrack & track : this->tracks) {
-		if ((track.weight > 0) && (track.frame1 > -1)) {
-			count ++;
-			if (count == 1) { 
-				this->bones = track.bones; 
-				continue;
-			}
-			
-			if (count == 2) {//copy bones from base track
-				this->cumulative = *this->bones; 
-				this->bones = &this->cumulative; 
-			}
-
-			for (int & idx : track.mask) {
-				if (track.weight == 1.0) {
-					this->cumulative[idx] = track.bones->at(idx);
-				}else {
-					MatrixBlend(&this->cumulative, track.bones, &this->cumulative, idx, track.weight);
-				}
-			}
-
-		}
-	}
-
-	this->CalculateBones();
-	
-
 	int meshCount = this->model->meshes.size();
 	
-	this->SetShapeFrame(L, this->tracks[0].frame1); //TODO blending, multi tracks
+	this->SetShapeFrame(L, this->animation->tracks[0].frame1); //TODO blending, multi tracks
 	
 	if (this->useBakedAnimations) { // TODO: frames interpolation, tracks for baked
-		Vector4 v(1.0 / this->model->animationTextureWidth, (float)this->tracks[0].frame1 / this->model->animationTextureHeight, 0, 0);
+		//Vector4 v(1.0 / this->animation->animationTextureWidth, (float)this->tracks[0].frame1 / this->model->animationTextureHeight, 0, 0);
 		
 		for (int i = 0; i < meshCount; i++) {
 			lua_getglobal(L, "go");
@@ -282,7 +232,7 @@ void ModelInstance::Update(lua_State* L) {
 
 			dmScript::PushURL(L, this->urls[i]);
 			lua_pushstring(L, "animation");
-			dmScript::PushVector4(L, v);
+			dmScript::PushVector4(L, this->animation->GetBakedUniform());
 			lua_call(L, 3, 0);
 		}
 	}
@@ -292,75 +242,6 @@ void ModelInstance::Update(lua_State* L) {
 			this->ApplyArmature(L, i);
 		}
 	}
-	
-	for(auto & obj : this->boneObjects) {
-		this->ApplyTransform(&obj);
-	}
-}
-
-
-void ModelInstance::CalculateBones() {
-	if (this->bones == NULL) return;
-	if (this->model->isPrecomputed) return;
-	
-	Matrix4 invLocal = dmVMath::Inverse(this->model->local.matrix);
-	int size = this->bones->size();
-	if (this->cumulative.size() < size) { //never acumulated, jsut copy to expand
-		this->cumulative = *this->bones;
-	}
-
-	Matrix4 temp[size];
-	bool has_parent_transforms[size];
-
-	for (int idx = 0; idx < size; idx ++) { //precalculate parent transforms
-		Matrix4 local = this->model->localBones[idx];
-		temp[idx] = dmVMath::Inverse(local) * this->bones->at(idx) * local;
-		has_parent_transforms[idx] = false;
-	}
-
-	for (int idx = 0; idx < size; idx ++) {
-		Matrix4 bone = temp[idx];
-		
-		int parent = this->model->boneParents[idx];
-		while (parent > -1) {
-			bone = bone * temp[parent];
-			if (has_parent_transforms[parent]) break; //optimization
-			parent = this->model->boneParents[parent];
-		}
-
-		has_parent_transforms[idx] = true;
-		temp[idx] = bone;
-		
-		this->cumulative[idx] = model->local.matrix * bone * invLocal;
-	}
-
-	this->bones = &this->cumulative;
-}
-
-void ModelInstance::SetFrame(int trackIdx,  int idx1, int idx2, float factor) {
-	if (trackIdx >= this->tracks.size()) { return; }
-	
-	int last_frame = this->model->frames.size() - 1;
-	AnimationTrack* track = &this->tracks[trackIdx];
-	
-	idx1 = (idx1 < last_frame) ? idx1 : last_frame;
-	idx2 = (idx2 < last_frame) ? idx2 : last_frame;
-
-	int meshCount = this->model->meshes.size();
-
-	bool hasChanged = (track->frame1 != idx1 || track->frame2 != idx2 || track->factor != factor);
-
-	track->frame1 = idx1;
-	track->frame2 = idx2;
-	track->factor = factor;
-	
-	if (hasChanged && (!this->useBakedAnimations || this->boneObjects.size() > 0)) {
-		if ((idx2 > -1) && (!this->useBakedAnimations)) {
-			track->Interpolate(this->model);
-		} else {
-			track->bones = &this->model->frames[idx1];
-		}
-	} 
 }
 
 void ModelInstance::ApplyArmature(lua_State* L, int meshIdx) {
@@ -369,11 +250,11 @@ void ModelInstance::ApplyArmature(lua_State* L, int meshIdx) {
 	for (int idx : this->model->meshes[meshIdx].usedBonesIndex) { // set only used bones, critical for performance
 		int offset = idx * 3;
 		Vector4 data[3] = {
-			this->bones->at(idx).getCol0(), 
-			this->bones->at(idx).getCol1(), 
-			this->bones->at(idx).getCol2()
+			this->animation->bones->at(idx).getCol0(), 
+			this->animation->bones->at(idx).getCol1(), 
+			this->animation->bones->at(idx).getCol2()
 		};
-
+		
 		for (int i = 0; i < 3; i ++) {
 			lua_getglobal(L, "go");
 			lua_getfield(L, -1, "set");
@@ -548,51 +429,12 @@ void ModelInstance::ApplyShapes(lua_State* L) {
 	}
 }
 
-URL* ModelInstance::AttachGameObject(dmGameObject::HInstance go, string bone) {
-	int idx = this->model->FindBone(bone);
+URL* ModelInstance::AttachGameObject(BoneGO* obj, string bone) {
+	int idx = this->animation->FindBone(bone);
 	if (idx > -1) {
-		BoneGO object;
-		object.boneIdx = idx;
-		object.gameObject = go;
-		this->boneObjects.push_back(object);
-		this->ApplyTransform(&object);
-		return &this->urls[0];
+		obj->boneIdx = idx;
+		obj->animation = this->animation;
+		return &this->urls[0]; //TODO refactor
 	}
 	return NULL;
-}
-
-void ModelInstance::ApplyTransform(BoneGO* obj) {
-
-	/*
-	int offset = obj->bone * 3;
-
-	Vector4 v1 = this->bones->at(offset);
-	Vector4 v2 = this->bones->at(offset + 1);
-	Vector4 v3 = this->bones->at(offset + 2);*/
-
-	Matrix4 m = this->bones->at(obj->boneIdx);
-	m.setCol3(Vector4(1));
-
-	Vector4 v1 = m.getCol0();
-	Vector4 v2 = m.getCol1();
-	Vector4 v3 = m.getCol2();
-	
-	m = Transpose(m);
-	Quat q = MatToQuat(m);
-	dmGameObject::SetRotation(obj->gameObject, Quat(q.getX(), q.getZ(), -q.getY(), q.getW()));
-	dmGameObject::SetPosition(obj->gameObject, dmVMath::Point3(v1.getW(), v3.getW(), -v2.getW()));
-}
-
-void ModelInstance::AddAnimationTrack(vector<string>* mask) {
-	
-	AnimationTrack track;
-
-	for (auto & bone : *mask) {
-		int idx = this->model->FindBone(bone);
-		if (idx > -1) {
-			track.mask.push_back(idx);
-		}
-	}
-
-	this->tracks.push_back(track);
 }

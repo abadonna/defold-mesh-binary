@@ -1,13 +1,5 @@
 #include "model.h"
 
-unsigned nextPOT(unsigned x) {
-	if (x <= 1) return 2;
-	int power = 2;
-	x--;
-	while (x >>= 1) power <<= 1;
-	return power;
-}
-
 Model::Model(Reader* reader){
 	this->meshes.emplace_back();
 
@@ -146,59 +138,32 @@ Model::Model(Reader* reader){
 		}
 	}
 
-	int boneCount = reader->ReadInt();
-	dmLogInfo("bones: %d", boneCount);
+	this->armatureIdx = reader->ReadInt();
+	dmLogInfo("armature: %d", armatureIdx);
 	
-	if (boneCount == 0) {
-		return;
-	}
+	if (armatureIdx > -1) {
 
-	//reading armature
-	this->boneNames.reserve(boneCount);
-	this->boneParents.reserve(boneCount);
-	for (int i = 0; i < boneCount; i++) {
-		this->boneNames.push_back(reader->ReadString());
-		//dmLogInfo("%s", this->boneNames[i].c_str());
-		this->boneParents.push_back(reader->ReadInt());
-	}
-
-	this->skin = new vector<SkinData>[vertexCount];
-	for (int i = 0; i < vertexCount; i++) {
-		this->skin[i].reserve(4);
-		int weightCount = reader->ReadInt();
-		for (int j = 0; j < weightCount; j++) {
-			SkinData data;
-			data.idx = reader->ReadInt();
-			data.weight = reader->ReadFloat();
-			this->skin[i].push_back(data);
+		this->skin = new vector<SkinData>[vertexCount];
+		for (int i = 0; i < vertexCount; i++) {
+			this->skin[i].reserve(4);
+			int weightCount = reader->ReadInt();
+			for (int j = 0; j < weightCount; j++) {
+				SkinData data;
+				data.idx = reader->ReadInt();
+				data.weight = reader->ReadFloat();
+				this->skin[i].push_back(data);
+			}
 		}
-	}
-
-	this->isPrecomputed = (reader->ReadInt() == 1);
-
-	if (!this->isPrecomputed) {
-		this->localBones.reserve(boneCount);
-		for (int i = 0; i < boneCount; i++) {
-			//3x4 transform matrix
-			this->localBones.push_back(reader->ReadMatrix());
-		}
+		//TODO: check 4 weights!
+		//TODO: list of used bones
 	}
 
 	int frameCount = reader->ReadInt();
 	dmLogInfo("frames: %d", frameCount);
 
-	this->frames.reserve(frameCount);
+	this->shapeFrames.reserve(frameCount);
 
 	for (int i = 0; i < frameCount; i++) {
-		vector<Matrix4> bones;
-		bones.reserve(boneCount);
-		for (int j = 0; j < boneCount; j++) {
-			//3x4 transform matrix
-			bones.push_back(reader->ReadMatrix());
-		}
-		
-		this->frames.push_back(bones);
-		
 		unordered_map<string, float> shapes;
 		for (int j = 0; j < shapeCount; j++) {
 			string key = reader->ReadString();
@@ -209,21 +174,9 @@ Model::Model(Reader* reader){
 		this->shapeFrames.push_back(shapes);
 	}
 
-	this->animationTextureWidth = nextPOT(this->frames[0].size() * 3);
-	this->animationTextureHeight = nextPOT(frameCount);
-	
 }
 
 Model::~Model(){
 	delete [] this->vertices;
 	delete [] this->skin;
-}
-
-int Model::FindBone(string bone) {
-	for (int i = 0; i < this->boneNames.size(); i++) {
-		if (bone == this->boneNames[i])
-			return i;
-	}
-
-	return -1;
 }
