@@ -3,7 +3,7 @@
 bl_info = {
     "name": "Defold Mesh Binary Export",
     "author": "",
-    "version": (2, 0),
+    "version": (2, 1),
     "blender": (3, 0, 0),
     "location": "File > Export > Defold Binary Mesh (.bin)",
     "description": "Export to Defold .mesh format",
@@ -13,7 +13,7 @@ bl_info = {
     "category": "Import-Export"
 }
 
-import bpy, sys, struct, time
+import bpy, sys, struct, time, mathutils
 from pathlib import Path
      
 def write_shape_values(mesh, shapes, f):
@@ -171,14 +171,11 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
             f.write(bytes(obj.parent.name, "ascii"))
         else:
             f.write(struct.pack('i', 0)) #no parent flag
-                        
-        f.write(struct.pack('fff', *obj.location))
-        f.write(struct.pack('fff', *obj.rotation_euler))
-        f.write(struct.pack('fff', *obj.scale))
+            
+            
+        t = obj.matrix_world @ obj.matrix_local.inverted() #to remove local transfrom - we will apply it to vertices
         
-        #keep world transform in case we won't export parent object (e.g. ARMATURE)
-        # !!!! problem here: if object or armature is moving - animations will look wrong
-        (translation, rotation, scale) = obj.matrix_world.decompose()
+        (translation, rotation, scale) = t.decompose()
         f.write(struct.pack('fff', *translation))
         f.write(struct.pack('fff', *rotation.to_euler()))
         f.write(struct.pack('fff', *scale))
@@ -284,9 +281,11 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         f.write(struct.pack('i', len(mesh.vertices)))
         
         for vert in mesh.vertices:
-                #v = obj.matrix_local @ vert.co
-                f.write(struct.pack('fff', *vert.co))
-                f.write(struct.pack('fff', *vert.normal))
+                v = obj.matrix_local @ vert.co #apply local transform, 
+                #or we have to deal with it calculating bones
+                f.write(struct.pack('fff', *v))
+                v = (obj.matrix_local @ vert.normal).normalized()
+                f.write(struct.pack('fff', *v))
                 
         shapes = []
         if mesh.shape_keys and len(mesh.shape_keys.key_blocks) > 0:
@@ -296,8 +295,8 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                 for i in range(len(shape.data)):
                     vert  = mesh.vertices[i]
                     if (shape.data[i].co - vert.co).length > 0.001:
-                        dpos = shape.data[i].co - vert.co
-                        s['deltas'].append({'idx': i, 'p': dpos, 'n': (normals[i*3] - vert.normal.x, normals[i*3 + 1] - vert.normal.y, normals[i*3 + 2]- vert.normal.z)})
+                        dpos = (obj.matrix_local @ shape.data[i].co) - (obj.matrix_local @ vert.co)
+                        s['deltas'].append({'idx': i, 'p': dpos, 'n': obj.matrix_local @ mathutils.Vector((normals[i*3] - vert.normal.x, normals[i*3 + 1] - vert.normal.y, normals[i*3 + 2]- vert.normal.z))})
                    
                 if len(s['deltas']) > 0:
                     shapes.append(s)
@@ -325,7 +324,8 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                 
             if not face.use_smooth:
                 f.write(struct.pack('i', 1))
-                f.write(struct.pack('fff', *face.normal))
+                v = (obj.matrix_local @ face.normal).normalized()
+                f.write(struct.pack('fff', *v))
             else:
                  f.write(struct.pack('i', 0))
                 

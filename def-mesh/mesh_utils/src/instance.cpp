@@ -121,7 +121,7 @@ static int GetAnimationTextureBuffer(lua_State* L) {
 	lua_getfield(L, 1, "instance");
 	ModelInstance* mi = (ModelInstance* )lua_touserdata(L, -1);
 
-	mi->animation->GetTextureBuffer(L, mi->model->local.matrix);
+	mi->animation->GetTextureBuffer(L);
 	
 	return 3;
 }
@@ -176,15 +176,15 @@ void ModelInstance::CreateLuaProxy(lua_State* L) {
 	lua_settable(L, -3);
 
 	lua_pushstring(L, "position");
-	dmScript::PushVector3(L, (this->model->skin == NULL) ? this->model->local.position : this->model->world.position);
+	dmScript::PushVector3(L, this->model->world.position);
 	lua_settable(L, -3);
 
 	lua_pushstring(L, "rotation");
-	dmScript::PushQuat(L, (this->model->skin == NULL) ? this->model->local.rotation : this->model->world.rotation);
+	dmScript::PushQuat(L, this->model->world.rotation);
 	lua_settable(L, -3);
 
 	lua_pushstring(L, "scale");
-	dmScript::PushVector3(L, (this->model->skin == NULL) ? this->model->local.scale : this->model->world.scale);
+	dmScript::PushVector3(L, this->model->world.scale);
 	lua_settable(L, -3);
 
 	lua_pushstring(L, "meshes");
@@ -251,20 +251,14 @@ void ModelInstance::Update(lua_State* L) {
 void ModelInstance::ApplyArmature(lua_State* L, int meshIdx) {
 	if (this->useBakedAnimations) return;
 
-	Matrix4 invLocal = dmVMath::Inverse(this->model->local.matrix);
-	
 	for (int idx : this->model->meshes[meshIdx].usedBonesIndex) { // set only used bones, critical for performance
 		int offset = idx * 3;
-		Matrix4 m = this->animation->bones->at(idx);
+		Matrix4* m = &this->animation->bones->at(idx);
 
-		if (this->model->needApplyLocal) {//refactor!
-			m = this->model->local.matrix * m * invLocal;
-		}
-		
 		Vector4 data[3] = {
-			m.getCol0(), 
-			m.getCol1(), 
-			m.getCol2()
+			m->getCol0(), 
+			m->getCol1(), 
+			m->getCol2()
 		};
 		
 		for (int i = 0; i < 3; i ++) {

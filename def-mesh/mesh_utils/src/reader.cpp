@@ -83,6 +83,7 @@ Transform3d Reader::ReadTransform() {
 	Vector3 s = ReadVector3();
 	res.scale = Vector3(s.getX(), s.getZ(), s.getY());
 
+	/*
 	Matrix4 mR = Matrix4::rotationX(euler.getX()) * Matrix4::rotationY(euler.getY()) * Matrix4::rotationZ(euler.getZ()); 
 	Matrix4 mT = Matrix4::translation(p);
 	Matrix4 mS = Matrix4::identity();
@@ -91,7 +92,8 @@ Transform3d Reader::ReadTransform() {
 	mS[2][2] = s.getZ();
 
 	res.matrix = Transpose(mT * mR * mS);
-
+	*/
+	
 	return res;
 }
 

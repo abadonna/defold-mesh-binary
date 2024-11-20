@@ -8,10 +8,8 @@ class Model
 	private:
 	
 	public:
-		bool needApplyLocal = false; //refactor!
 		string name;
 		string parent;
-		Transform3d local;
 		Transform3d world;
 		int vertexCount = 0;
 		int armatureIdx = 0;

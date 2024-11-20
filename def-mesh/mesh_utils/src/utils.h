@@ -33,7 +33,7 @@ struct Transform3d {
 	Vector3 position;
 	Vector3 scale;
 	Quat rotation;
-	Matrix4 matrix;
+	//Matrix4 matrix;
 };
 
 struct Ramp {

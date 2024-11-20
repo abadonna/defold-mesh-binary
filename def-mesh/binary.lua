@@ -85,7 +85,7 @@ M.load = function(url, path, texture_folder, bake_animations)
 	instance.animator = ANIMATOR.create(instance.binary)
 	
 	for name, model in pairs(models) do 
-		
+
 		instance.total_frames = model.frames
 		local anim_texture
 		if model.frames > 1 and bake_animations then
