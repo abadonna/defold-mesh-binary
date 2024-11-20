@@ -5,10 +5,13 @@ Animation::Animation(Armature* armature) {
 	AnimationTrack base;
 	this->tracks.reserve(8); //to avoid losing pointers to calculated bones
 	this->tracks.push_back(base);
+	this->SetFrame(0, 0, -1, 0, false, false);
+	this->Update();
 }
 
-void Animation::Update(lua_State* L) {
-
+void Animation::Update() {
+	if (!this->needUpdate) return;
+	
 	this->bones = this->tracks[0].bones; 
 
 	int count = 0;
@@ -44,7 +47,6 @@ void Animation::Update(lua_State* L) {
 void Animation::CalculateBones() {
 	if (this->bones == NULL) return;
 
-	//Matrix4 invLocal = dmVMath::Inverse(this->model->local.matrix);
 	int size = this->bones->size();
 	if (this->cumulative.size() < size) { //never acumulated, jsut copy to expand
 		this->cumulative = *this->bones;
@@ -73,10 +75,10 @@ void Animation::CalculateBones() {
 		temp[idx] = bone;
 
 		this->cumulative[idx] = bone;
-		//this->cumulative[idx] = model->local.matrix * bone * invLocal;
 	}
 
 	this->bones = &this->cumulative;
+	this->needUpdate = false;
 }
 
 void Animation::SetFrame(int trackIdx,  int idx1, int idx2, float factor, bool useBakedAnimations, bool hasAttachaments) {
@@ -95,6 +97,7 @@ void Animation::SetFrame(int trackIdx,  int idx1, int idx2, float factor, bool u
 	track->factor = factor;
 
 	if (hasChanged && (!useBakedAnimations || hasAttachaments)) {
+		this->needUpdate = true;
 		if ((idx2 > -1) && (!useBakedAnimations)) {
 			track->Interpolate(this->armature);
 		} else {
@@ -166,7 +169,7 @@ int Animation::GetFramesCount() {
 	return this->armature->GetFramesCount();
 }
 
-void Animation::AddAnimationTrack(vector<string>* mask) {
+int Animation::AddAnimationTrack(vector<string>* mask) {
 
 	AnimationTrack track;
 
@@ -178,5 +181,16 @@ void Animation::AddAnimationTrack(vector<string>* mask) {
 	}
 
 	this->tracks.push_back(track);
+	return this->tracks.size() - 1;
 }
 
+void Animation::SetTrackWeight(int idx, float weight) {
+	if (this->tracks.size() > idx) {
+		this->needUpdate = true;
+		this->tracks[idx].weight = weight;
+	}
+}
+
+int Animation::GetFrameIdx() {
+	return this->tracks[0].frame1;
+}

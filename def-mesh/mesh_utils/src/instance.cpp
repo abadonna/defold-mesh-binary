@@ -13,10 +13,8 @@ Instance::Instance(vector<Model*>* models, vector<Armature*>* armatures, bool us
 	}
 	
 	for(auto & model : *models) {
-		ModelInstance* mi = new ModelInstance(model, useBakedAnimations);
-		if (model->armatureIdx > -1) {
-			mi->animation = this->animations[model->armatureIdx]; //TODO animation without armature
-		}
+		Animation* animation = (model->armatureIdx > -1) ? this->animations[model->armatureIdx] : NULL;
+		ModelInstance* mi = new ModelInstance(model, animation, useBakedAnimations);
 		this->models.push_back(mi);
 	}
 }
@@ -48,7 +46,7 @@ void Instance::SetFrame(int trackIdx, int idx1, int idx2, float factor) {
 void Instance::Update(lua_State* L) {
 	if (!this->useBakedAnimations) {
 		for(auto & animation : this->animations) {
-			animation->Update(L);
+			animation->Update();
 		}
 	}
 	
@@ -85,17 +83,16 @@ URL* Instance::AttachGameObject(dmGameObject::HInstance go, string bone) {
 
 
 int Instance::AddAnimationTrack(vector<string>* mask) {
+	int id = 0;
 	for(auto & animation : this->animations) {
-		animation->AddAnimationTrack(mask);
+		id = animation->AddAnimationTrack(mask);
 	}
-	return this->animations[0]->tracks.size() - 1;
+	return id;
 }
 
 void Instance::SetAnimationTrackWeight(int idx, float weight) {
 	for(auto & animation : this->animations) {
-		if (animation->tracks.size() > idx) {
-			animation->tracks[idx].weight = weight;
-		}
+		animation->SetTrackWeight(idx, weight);
 	}
 }
 
@@ -127,9 +124,10 @@ static int GetAnimationTextureBuffer(lua_State* L) {
 }
 
 
-ModelInstance::ModelInstance(Model* model, bool useBakedAnimations) {
-	this->useBakedAnimations = useBakedAnimations;
+ModelInstance::ModelInstance(Model* model, Animation* animation, bool useBakedAnimations) {
+	this->useBakedAnimations = useBakedAnimations && (animation != NULL) && (animation->GetFramesCount() > 1);
 	this->model = model;
+	this->animation = animation;
 
 	this->urls.reserve(this->model->meshes.size());
 	this->buffers.reserve(this->model->meshes.size());
@@ -220,15 +218,13 @@ void ModelInstance::CreateLuaProxy(lua_State* L) {
 }
 
 void ModelInstance::Update(lua_State* L) {
-	if ( this->animation == NULL) return;
+	if (this->animation == NULL) return;
 	
 	int meshCount = this->model->meshes.size();
 	
-	this->SetShapeFrame(L, this->animation->tracks[0].frame1); //TODO blending, multi tracks
+	this->SetShapeFrame(L, this->animation->GetFrameIdx()); //TODO blending, multi tracks
 	
 	if (this->useBakedAnimations) { // TODO: frames interpolation, tracks for baked
-		//Vector4 v(1.0 / this->animation->animationTextureWidth, (float)this->tracks[0].frame1 / this->model->animationTextureHeight, 0, 0);
-		
 		for (int i = 0; i < meshCount; i++) {
 			lua_getglobal(L, "go");
 			lua_getfield(L, -1, "set");
@@ -250,9 +246,11 @@ void ModelInstance::Update(lua_State* L) {
 
 void ModelInstance::ApplyArmature(lua_State* L, int meshIdx) {
 	if (this->useBakedAnimations) return;
+	if (this->animation->bones == NULL) return;
 
 	for (int idx : this->model->meshes[meshIdx].usedBonesIndex) { // set only used bones, critical for performance
 		int offset = idx * 3;
+		
 		Matrix4* m = &this->animation->bones->at(idx);
 
 		Vector4 data[3] = {

@@ -30,7 +30,7 @@ class ModelInstance {
 		vector<dmScript::LuaHBuffer> buffers;
 		vector<URL> urls;
 
-		ModelInstance(Model* model, bool useBakedAnimations);
+		ModelInstance(Model* model, Animation* animation, bool useBakedAnimations);
 		~ModelInstance();
 		
 		void CreateLuaProxy(lua_State* L);

@@ -237,6 +237,12 @@ M.load = function(url, path, texture_folder, bake_animations)
 		instance.binary:set_shapes(shapes)
 	end
 
+	instance.set = function(property, value)
+		for _, mesh in pairs(instance.game_objects) do
+			go.set(mesh.url, property, value)
+		end
+	end
+
 	return instance
 end
 

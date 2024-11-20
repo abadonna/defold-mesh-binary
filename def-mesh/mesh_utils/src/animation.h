@@ -7,23 +7,25 @@ using namespace std;
 class Animation
 {
 	private:
+		bool needUpdate = true;
 		Armature* armature;
 		vector<string> boneNames;
 		vector<Matrix4> cumulative;
+		vector<AnimationTrack> tracks;
 	
 	public:
-		vector<AnimationTrack> tracks;
 		vector<Matrix4>* bones = NULL;
 
 		void SetFrame(int trackIdx, int idx1, int idx2, float factor, bool useBakedAnimations, bool hasAttachaments);
-		void Update(lua_State* L);
+		void Update();
 		void CalculateBones();
-		void AddAnimationTrack(vector<string>* mask);
-		void SetAnimationTrackWeight(int idx, float weight);
+		int AddAnimationTrack(vector<string>* mask);
+		void SetTrackWeight(int idx, float weight);
 		void GetTextureBuffer(lua_State* L);
 		int GetFramesCount();
 		Vector4 GetBakedUniform();
 		int FindBone(string bone);
+		int GetFrameIdx();
 		
 		Animation(Armature* armature);
 };
