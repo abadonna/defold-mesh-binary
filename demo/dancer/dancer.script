@@ -1,7 +1,7 @@
 local binary = require "def-mesh.binary" 
 
 function init(self)
-	self.instance = binary.load("/model", "/assets/dancer.bin", nil, false)
+	self.instance = binary.load("/model", "/assets/dancer.bin", nil, true)
 	
 	self.count = 1
 	self.time = 0

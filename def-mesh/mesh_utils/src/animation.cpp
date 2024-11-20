@@ -103,7 +103,9 @@ void Animation::SetFrame(int trackIdx,  int idx1, int idx2, float factor, bool u
 	} 
 }
 
-void Animation::GetTextureBuffer(lua_State* L) {
+void Animation::GetTextureBuffer(lua_State* L, Matrix4 local) {
+	//REFACTOR local matrix!
+	Matrix4 inverted = dmVMath::Inverse(local);
 	
 	int frameCount = this->armature->frames.size();
 
@@ -131,7 +133,9 @@ void Animation::GetTextureBuffer(lua_State* L) {
 			this->CalculateBones();
 
 			for(auto & bone : *this->bones) {
-				Vector4 data[3] = {bone.getCol0(), bone.getCol1(), bone.getCol2()};
+				Matrix4 m = local * bone * inverted;
+				Vector4 data[3] = {m.getCol0(), m.getCol1(), m.getCol2()};
+				//Vector4 data[3] = {bone.getCol0(), bone.getCol1(), bone.getCol2()};
 				for (int i = 0; i < 3; i++) {
 					stream[0] = data[i].getX();
 					stream[1] = data[i].getY();

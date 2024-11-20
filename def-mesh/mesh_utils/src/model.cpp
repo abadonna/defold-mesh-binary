@@ -1,5 +1,17 @@
 #include "model.h"
 
+bool IsEqual (Matrix4 m1, Matrix4 m2) {
+
+	for (int i = 0; i < 4; i ++) {
+		for (int j = 0; j < 4; j ++) {
+			if (fabs(m1[i][j] - m2[i][j]) > 0.0001) {
+				return false;
+			}
+		}
+	}
+	return true;
+	
+}
 Model::Model(Reader* reader){
 	this->meshes.emplace_back();
 
@@ -16,6 +28,9 @@ Model::Model(Reader* reader){
 	this->local = reader->ReadTransform();
 	this->world = reader->ReadTransform();
 
+
+	this->needApplyLocal = !IsEqual(this->local.matrix, Matrix4::identity());
+	
 	this->vertexCount = reader->ReadInt();
 	dmLogInfo("vertices: %d", this->vertexCount);
 
@@ -39,7 +54,6 @@ Model::Model(Reader* reader){
 			ShapeData data;
 			data.p = reader->ReadVector3();
 			data.n = reader->ReadVector3();
-			//data.q = Quat::rotation(this->vertices[idx].n, this->vertices[idx].n + data.n);
 			shape[idx] = data;
 		}
 

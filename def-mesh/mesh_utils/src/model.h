@@ -8,6 +8,7 @@ class Model
 	private:
 	
 	public:
+		bool needApplyLocal = false; //refactor!
 		string name;
 		string parent;
 		Transform3d local;

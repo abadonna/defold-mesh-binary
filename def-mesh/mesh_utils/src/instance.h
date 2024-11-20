@@ -24,7 +24,7 @@ class ModelInstance {
 	
 	public:
 		Model* model;
-		Animation* animation;
+		Animation* animation = NULL;
 		bool useBakedAnimations = false;
 		unordered_map<int, ShapeData> blended;
 		vector<dmScript::LuaHBuffer> buffers;

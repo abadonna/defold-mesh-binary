@@ -3,7 +3,7 @@
 bl_info = {
     "name": "Defold Mesh Binary Export",
     "author": "",
-    "version": (1, 1),
+    "version": (2, 0),
     "blender": (3, 0, 0),
     "location": "File > Export > Defold Binary Mesh (.bin)",
     "description": "Export to Defold .mesh format",
@@ -15,13 +15,6 @@ bl_info = {
 
 import bpy, sys, struct, time
 from pathlib import Path
-
-def write_frame_data(precompute, bones, matrix_local, f):
-    for pbone in bones:
-        matrix = matrix_local.inverted() @ pbone.matrix @ pbone.bone.matrix_local.inverted() @ matrix_local if precompute else pbone.matrix_basis
-        f.write(struct.pack('ffff', *matrix[0]))
-        f.write(struct.pack('ffff', *matrix[1]))
-        f.write(struct.pack('ffff', *matrix[2]))
      
 def write_shape_values(mesh, shapes, f):
     for shape in shapes:
@@ -31,51 +24,27 @@ def write_shape_values(mesh, shapes, f):
         f.write(bytes(shape['name'], "ascii"))
         f.write(struct.pack('f', value))
                 
-def optimize(precompute, bones, vertices, vertex_groups, limit_per_vertex):
-          
-    def sort_weights(vg):
-        return -vg.weight
-               
-    bones_map = {bone.name: False for bone in bones}
-    vertex_groups_per_vertex = []
-    for vert in vertices:
-        fixed_groups = []
-        for wgrp in vert.groups:
-            group = vertex_groups[wgrp.group]
-            if wgrp.weight > 0 and group.name in bones_map:
-                fixed_groups.append(wgrp)
-                bones_map[group.name] = True
-            
-        fixed_groups.sort(key = sort_weights)
-        fixed_groups = fixed_groups[:limit_per_vertex]
-        total = 0
-        for vg in fixed_groups:
-            total = total + vg.weight
-        for vg in fixed_groups:
-            vg.weight = vg.weight / total
-        vertex_groups_per_vertex.append(fixed_groups)
-        
-        used_bones = []
-        
-        def add_parents(bone):
-            if bone.parent:
-                bones_map[bone.parent.name] = True
-                add_parents(bone.parent)
-        
-        if not precompute:
-            for bone in bones:
-                if bones_map[bone.name]:
-                    add_parents(bone)
-            
-        for bone in bones:
-            if bones_map[bone.name]:
-                used_bones.append(bone)
-    return used_bones, vertex_groups_per_vertex
+def sort_weights(vg):
+    return -vg.weight
 
-def write_some_data(context, filepath, export_anim_setting, export_hidden_settings, export_precompute_setting):
+def set_frame(context, frame):
+    context.scene.frame_set(frame)
+    #there is an issue with IK bones (and maybe other simulations?)
+    #looks like Blender needs some time to compute it
+    context.scene.frame_set(frame) #twice to make sure IK computations is done?
+    context.view_layer.update() #not enough?
+    depsgraph = context.evaluated_depsgraph_get()
+    
+
+def write_some_data(context, filepath, export_anim_setting, export_hidden_settings):
     
     f = open(filepath, 'wb')
-     
+    
+    armatures = []
+    armature_map = {}
+    objects = []
+    
+    #---------------------find-armatures-----------------------
     for obj in context.scene.objects:
         if obj.type != 'MESH':
             continue
@@ -88,15 +57,112 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         mesh.calc_loop_triangles()
         mesh.calc_normals_split()
         
-        
         if len(mesh.loop_triangles) == 0:
             continue
         
         if not obj.visible_get() and not export_hidden_settings:
             continue
         
+        objects.append(obj)
+        
+        armature = obj.find_armature()
+                
+        if armature and (armature.name not in armature_map):
+            armatures.append({'armature': armature, 'bones': []})
+            armature_map[armature.name] = len(armatures) - 1
+            
+    #---------------------optimize-armatures--------------------
+    #sometimes armatures contain a lot of not used bones!
+    for proxy in armatures:
+        bones_map = {bone.name: False for bone in proxy['armature'].pose.bones}
+        
+        def add_parent(bone):
+            if bone.parent:
+                bones_map[bone.parent.name] = True
+                add_parent(bone.parent)
+        
+        for obj in objects:
+            if obj.find_armature() != proxy['armature']:
+                continue
+            
+            for vert in obj.data.vertices:
+                fixed_groups = []
+                for wgrp in vert.groups:
+                    group = obj.vertex_groups[wgrp.group]
+                    if wgrp.weight > 0 and group.name in bones_map:
+                        fixed_groups.append(wgrp)
+                        #bones_map[group.name] = True
+                
+                fixed_groups.sort(key = sort_weights)
+                fixed_groups = fixed_groups[:4]
+                
+                for wgrp in fixed_groups:
+                    group = obj.vertex_groups[wgrp.group]
+                    bones_map[group.name] = True
+                    
+        
+        for bone in proxy['armature'].pose.bones:
+            if bones_map[bone.name]:
+                add_parent(bone)
+            
+        for bone in proxy['armature'].pose.bones:
+            if bones_map[bone.name]:
+                proxy['bones'].append(bone)
+    
+    #---------------------write-armatures-----------------------
+    
+    f.write(struct.pack('i', len(armatures)))
+    
+    current_frame = context.scene.frame_current
+    
+    for proxy in armatures:
+            
+        f.write(struct.pack('i', len(proxy['bones'])))
+
+        for pbone in proxy['bones']:
+            f.write(struct.pack('i', len(pbone.name)))
+            f.write(bytes(pbone.name, "ascii"))
+            parent = -1
+            for idx, b in enumerate(proxy['bones']):
+                if b == pbone.parent:
+                    parent = idx
+                    break
+            f.write(struct.pack('i', parent))
+                
+            matrix = pbone.bone.matrix_local
+            f.write(struct.pack('ffff', *matrix[0]))
+            f.write(struct.pack('ffff', *matrix[1]))
+            f.write(struct.pack('ffff', *matrix[2]))
+        
+        if export_anim_setting:
+            f.write(struct.pack('i', context.scene.frame_end))
+            
+            for frame in range(context.scene.frame_end):
+                set_frame(context, frame)
+                for pbone in proxy['bones']:
+                    matrix = pbone.matrix_basis
+                    f.write(struct.pack('ffff', *matrix[0]))
+                    f.write(struct.pack('ffff', *matrix[1]))
+                    f.write(struct.pack('ffff', *matrix[2]))
+               
+                set_frame(context, current_frame) #as we work with object's global matrix in particular frame
+
+        else:
+            f.write(struct.pack('i', 1)) #single frame flag
+            for pbone in proxy['bones']:
+                matrix = pbone.matrix_basis
+                f.write(struct.pack('ffff', *matrix[0]))
+                f.write(struct.pack('ffff', *matrix[1]))
+                f.write(struct.pack('ffff', *matrix[2]))
+               
+        
+    #---------------------write-models-----------------------
+    
+    for obj in objects:
         print(obj.name)
         
+        mesh = obj.data
+         
         f.write(struct.pack('i', len(obj.name)))
         f.write(bytes(obj.name, "ascii"))
        
@@ -218,6 +284,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         f.write(struct.pack('i', len(mesh.vertices)))
         
         for vert in mesh.vertices:
+                #v = obj.matrix_local @ vert.co
                 f.write(struct.pack('fff', *vert.co))
                 f.write(struct.pack('fff', *vert.normal))
                 
@@ -330,75 +397,60 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         #---------------------write-bones------------------------
          
         armature = obj.find_armature()
+        max_bones_per_vertex = 4
                 
         if armature:
             pose = armature.pose
+            proxy = armatures[armature_map[armature.name]]
             
-            #optimizing bones, checking empty bones, etc
-            #set limit to 4 bones per vertex
-            
-            used_bones, vertex_groups_per_vertex = optimize(export_precompute_setting, pose.bones, mesh.vertices, obj.vertex_groups, 4)  
-            
-            print("USED BONES: ", len(used_bones))
-            bones_map = {bone.name: i for i, bone in enumerate(used_bones)}
-            f.write(struct.pack('i', len(used_bones)))
+            f.write(struct.pack('i', armature_map[armature.name])) #id of saved armature
 
-            for bone_ in used_bones:
-                f.write(struct.pack('i', len(bone_.name)))
-                f.write(bytes(bone_.name, "ascii"))
-                parent = -1
-                for idx, b in enumerate(used_bones):
-                    if b == bone_.parent:
-                        parent = idx
-                        break
-                f.write(struct.pack('i', parent))
+            bones_map = {bone.name: i for i, bone in enumerate(proxy['bones'])}
+            for vert in mesh.vertices:
+                fixed_groups = []
+                for wgrp in vert.groups:
+                    group = obj.vertex_groups[wgrp.group]
+                    if wgrp.weight > 0 and group.name in bones_map:
+                        fixed_groups.append(wgrp)
                 
-            
-            for groups in vertex_groups_per_vertex:
-                f.write(struct.pack('i', len(groups)))
-                for wgrp in groups:
+                fixed_groups.sort(key = sort_weights)
+                fixed_groups = fixed_groups[:max_bones_per_vertex]
+        
+                total = 0
+                for vg in fixed_groups:
+                    total = total + vg.weight
+                for vg in fixed_groups:
+                    vg.weight = vg.weight / total
+                   
+                f.write(struct.pack('i', len(fixed_groups)))
+                
+                for wgrp in fixed_groups:
                     group = obj.vertex_groups[wgrp.group]
                     bone_idx = bones_map[group.name]
                     f.write(struct.pack('i', bone_idx))
                     f.write(struct.pack('f', wgrp.weight))
                     
-            f.write(struct.pack('i', 1 if export_precompute_setting else 0))
-            
-            if not export_precompute_setting:
-                for pbone in used_bones:
-                    matrix = pbone.bone.matrix_local
-                    f.write(struct.pack('ffff', *matrix[0]))
-                    f.write(struct.pack('ffff', *matrix[1]))
-                    f.write(struct.pack('ffff', *matrix[2]))
-        
-            if export_anim_setting:
-                f.write(struct.pack('i', context.scene.frame_end))
-                
-                frame_current = context.scene.frame_current
-
-                for frame in range(context.scene.frame_end):
-                    context.scene.frame_set(frame)
-                    
-                    #there is an issue with IK bones (and maybe other simulations?)
-                    #looks like Blender needs some time to compute it
-                    context.scene.frame_set(frame) #twice to make sure IK computations is done?
-                    context.view_layer.update() #not enough?
-                    
-                    depsgraph = context.evaluated_depsgraph_get()
-                 
-                    #TODO: support object and armature transformations, save this data for every frame
-                    
-                    write_frame_data(export_precompute_setting, used_bones, obj.matrix_local, f)
-                    write_shape_values(mesh, shapes, f)
-
-                context.scene.frame_set(frame_current) #as we work with object's global matrix in particular frame
-
-            else:
-                f.write(struct.pack('i', 1)) #single frame flag
-                write_frame_data(export_precompute_setting, used_bones, obj.matrix_local, f)
-                write_shape_values(mesh, shapes, f)
+            #f.write(struct.pack('i', 1 if export_precompute_setting else 0))
         else:
-            f.write(struct.pack('i', 0)) #no bones flag
+            f.write(struct.pack('i', -1)) #no bones flag
+            
+            
+        if export_anim_setting and len(shapes) > 0:
+            f.write(struct.pack('i', context.scene.frame_end))
+                
+            for frame in range(context.scene.frame_end):
+                set_frame(context, frame)
+                    
+                write_shape_values(mesh, shapes, f)
+
+            set_frame(context, current_frame) #as we work with object's global matrix in particular frame
+        
+        elif len(shapes) > 0:
+            f.write(struct.pack('i', 1)) #single frame flag
+            write_shape_values(mesh, shapes, f)
+        
+        else:
+            f.write(struct.pack('i', 0)) #no shape animations
 
     f.close()
 
@@ -426,12 +478,6 @@ class DefoldExport(Operator, ExportHelper):
         maxlen=255,  # Max internal buffer length, longer would be clamped.
     )
     
-    export_precompute: BoolProperty(
-        name="Precompute bones",
-        description="legacy, faster but no animation blending",
-        default=False,
-    )
-    
     export_anim: BoolProperty(
         name="Export animations",
         description="Only for armatures",
@@ -446,7 +492,7 @@ class DefoldExport(Operator, ExportHelper):
 
 
     def execute(self, context):
-        return write_some_data(context, self.filepath, self.export_anim, self.export_hidden, self.export_precompute)
+        return write_some_data(context, self.filepath, self.export_anim, self.export_hidden)
 
 
 # Only needed if you want to add into a dynamic menu
