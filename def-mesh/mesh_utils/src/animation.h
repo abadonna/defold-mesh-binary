@@ -22,10 +22,12 @@ class Animation
 		int AddAnimationTrack(vector<string>* mask);
 		void SetTrackWeight(int idx, float weight);
 		int GetTextureBuffer(lua_State* L);
+		int GetRuntimeBuffer(lua_State* L);
 		int GetFramesCount();
 		Vector4 GetBakedUniform();
 		int FindBone(string bone);
 		int GetFrameIdx();
+		bool IsBlending();
 		
 		Animation(Armature* armature);
 };

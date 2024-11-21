@@ -9,6 +9,15 @@ Animation::Animation(Armature* armature) {
 	this->Update();
 }
 
+bool Animation::IsBlending() {
+	int count = 0;
+	for (AnimationTrack & track : this->tracks) {
+		if (track.weight > 0) count++;
+		if (track.frame2 > -1) return true;
+	}
+	return count > 1;
+}
+
 void Animation::Update() {
 	if (!this->needUpdate) return;
 	
@@ -93,14 +102,59 @@ void Animation::SetFrame(int trackIdx,  int idx1, int idx2, float factor, bool u
 	track->frame2 = idx2;
 	track->factor = factor;
 
-	if (hasChanged && (!useBakedAnimations || hasAttachaments)) {
+	if (hasChanged) {
 		this->needUpdate = true;
-		if ((idx2 > -1) && (!useBakedAnimations)) {
+		if (idx2 > -1) {
 			track->Interpolate(this->armature);
 		} else {
 			track->bones = &this->armature->frames[idx1];
 		}
 	} 
+}
+
+int Animation::GetRuntimeBuffer(lua_State* L) {	
+
+	int width = this->armature->animationTextureWidth;
+	int height = 2;
+
+	const dmBuffer::StreamDeclaration streams_decl[] = {
+		{dmHashString64("rgba"), dmBuffer::VALUE_TYPE_FLOAT32, 4}
+	};
+
+	dmBuffer::HBuffer buffer = 0x0;
+	dmBuffer::Create(width * height, streams_decl, 1, &buffer);
+
+	float* stream = 0x0;
+
+	uint32_t components = 0;
+	uint32_t stride = 0;
+	uint32_t items_count = 0;
+
+	dmBuffer::GetStream(buffer, dmHashString64("rgba"), (void**)&stream, &items_count, &components, &stride);
+
+	if (this->bones == NULL) {
+		this->bones = &this->armature->frames[0];
+		this->CalculateBones();
+	}
+
+	for(auto & bone : *this->bones) {
+		Vector4 data[3] = {bone.getCol0(), bone.getCol1(), bone.getCol2()};
+			for (int i = 0; i < 3; i++) {
+				stream[0] = data[i].getX();
+				stream[1] = data[i].getY();
+				stream[2] = data[i].getZ();
+				stream[3] = data[i].getW();
+				stream += stride;
+			}
+		}
+
+	lua_pushnumber(L, width);
+	lua_pushnumber(L, height);
+
+	dmScript::LuaHBuffer luabuf(buffer, dmScript::OWNER_LUA);
+	dmScript::PushBuffer(L, luabuf);
+
+	return 3;
 }
 
 int Animation::GetTextureBuffer(lua_State* L) {	
@@ -157,6 +211,9 @@ int Animation::GetTextureBuffer(lua_State* L) {
 }
 
 Vector4 Animation::GetBakedUniform() {
+	if (this->IsBlending()) {
+		return Vector4(1.0 / this->armature->animationTextureWidth, 0, 0, 1);
+	}
 	return Vector4(1.0 / this->armature->animationTextureWidth, (float)this->tracks[0].frame1 / this->armature->animationTextureHeight, 0, 0);
 }
 

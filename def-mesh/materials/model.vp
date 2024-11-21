@@ -7,9 +7,10 @@ in vec4 weight;
 in vec4 bone;
 
 uniform sampler2D tex_anim;
+uniform sampler2D tex_runtime;
 
 uniform uniforms_vp {
-    highp vec4 animation;
+    highp vec4 animation; //w - baked or runtime baked
 
     highp mat4 mtx_worldview;
     highp mat4 mtx_view;
@@ -38,10 +39,15 @@ mat4 get_bone_matrix(int idx) {
         mtx_bone[0] = bones[offset];
         mtx_bone[1] = bones[offset + 1];
         mtx_bone[2] = bones[offset + 2];
-    }else {
+    }else if (animation.w == 0.) {
         mtx_bone[0] = texture(tex_anim, vec2(offset * animation.x, animation.y));
         mtx_bone[1] = texture(tex_anim, vec2((offset + 1) * animation.x, animation.y));
         mtx_bone[2] = texture(tex_anim, vec2((offset + 2) * animation.x, animation.y));
+    }else
+    {
+        mtx_bone[0] = texture(tex_runtime, vec2(offset * animation.x, animation.y));
+        mtx_bone[1] = texture(tex_runtime, vec2((offset + 1) * animation.x, animation.y));
+        mtx_bone[2] = texture(tex_runtime, vec2((offset + 2) * animation.x, animation.y));
     }
 
     mtx_bone = transpose(mtx_bone); 

@@ -44,8 +44,8 @@ void Instance::SetFrame(int trackIdx, int idx1, int idx2, float factor) {
 }
 
 void Instance::Update(lua_State* L) {
-	if (!this->useBakedAnimations) {
-		for(auto & animation : this->animations) {
+	for(auto & animation : this->animations) {
+		if (!this->useBakedAnimations || animation->IsBlending()) {
 			animation->Update();
 		}
 	}
@@ -105,22 +105,28 @@ static int SetURL(lua_State* L) {
 	int idx = mi->urls.size();
 	mi->urls.push_back(url);
 
-	//char test[255];
-	//dmScript::UrlToString(&url, test, 255);
-	//dmLogInfo("url recieved: %s", test);
-
 	return 0;
 }
-
-
 
 static int GetAnimationTextureBuffer(lua_State* L) {
 	lua_getfield(L, 1, "instance");
 	ModelInstance* mi = (ModelInstance* )lua_touserdata(L, -1);
 
 	if (mi->animation == NULL) return 0;
+
+	bool runtime = lua_toboolean(L, 2);
+	if (runtime) return mi->animation->GetRuntimeBuffer(L);
 	
 	return mi->animation->GetTextureBuffer(L);
+}
+
+static int SetRuntimeTexture(lua_State* L) {
+	lua_getfield(L, 1, "instance");
+	ModelInstance* mi = (ModelInstance* )lua_touserdata(L, -1);
+
+	mi->runtimeTexture = dmScript::CheckHash(L, 2);
+
+	return 0;
 }
 
 
@@ -155,6 +161,7 @@ void ModelInstance::CreateLuaProxy(lua_State* L) {
 	static const luaL_Reg f[] =
 	{
 		{"get_animation_buffer", GetAnimationTextureBuffer},
+		{"set_runtime_texture", SetRuntimeTexture},
 		{0, 0}
 	};
 	luaL_register(L, NULL, f);
@@ -228,7 +235,17 @@ void ModelInstance::Update(lua_State* L) {
 	
 	this->SetShapeFrame(L, this->animation->GetFrameIdx()); //TODO blending, multi tracks
 	
-	if (this->useBakedAnimations) { // TODO: frames interpolation, tracks for baked
+	if (this->useBakedAnimations) {
+		
+		if (this->animation->IsBlending()) {
+			//set runtime texture
+			lua_getglobal(L, "native_runtime_texture");
+
+			dmScript::PushHash(L, this->runtimeTexture);
+			this->animation->GetRuntimeBuffer(L);
+			lua_call(L, 4, 0);
+		}
+		
 		for (int i = 0; i < meshCount; i++) {
 			lua_getglobal(L, "go");
 			lua_getfield(L, -1, "set");

@@ -14,6 +14,38 @@ function native_update_buffer(mesh_url, buffer)
 	resource.set_buffer(go.get(mesh_url, "vertices"), buffer, {transfer_ownership = false})
 end
 
+function native_runtime_texture(tpath, width, height, buffer)
+	local tparams = {
+		width          = width,
+		height         = height,
+		type           = resource.TEXTURE_TYPE_2D,
+		format         = resource.TEXTURE_FORMAT_RGBA32F,
+	}
+	resource.set_texture(tpath, tparams, buffer)
+end
+
+local function get_animation_texture(path, model, runtime)
+
+	local tpath = (runtime and path or string.match(path, "(%a-)[$%.]")) .. "_" .. model.armature
+	tpath = "/__anim_" .. tpath:gsub("[%./]", "") ..".texturec"
+
+	if not pcall(function()
+		resource.get_texture_info(tpath)
+	end) then
+		local twidth, theight, tbuffer = model:get_animation_buffer(runtime)
+		local tparams = {
+			width          = twidth,
+			height         = theight,
+			type           = resource.TEXTURE_TYPE_2D,
+			format         = resource.TEXTURE_FORMAT_RGBA32F,
+		}
+
+		return resource.create_texture(tpath, tparams, tbuffer)
+	else
+		return hash(tpath)
+	end
+end
+
 local function set_texture(self, url, slot, file, texel)
 	if not file then
 		return false
@@ -67,7 +99,8 @@ M.load = function(url, path, texture_folder, bake_animations)
 		bones_go = {},
 		textures = {},
 		game_objects = {},
-		url = url
+		url = url,
+		uid = math.random(0, 10000000)
 	}
 
 	instance.texture_folder = texture_folder or "/assets/"
@@ -87,31 +120,15 @@ M.load = function(url, path, texture_folder, bake_animations)
 	for name, model in pairs(models) do 
 
 		instance.total_frames = model.frames
-		local anim_texture
+
+		local anim_texture, runtime_texture
+
 		if model.frames > 1 and bake_animations then
-
-			local tpath = string.match(path, "(%a-)[$%.]") .. "_" .. model.armature
-			tpath = "/__anim_" .. tpath:gsub("[%./]", "") ..".texturec"
-
-			anim_texture = hash(tpath)
-
-			if not pcall(function()
-				resource.get_texture_info(tpath)
-			end) then
-				local twidth, theight, tbuffer = model:get_animation_buffer()
-
-				local tparams = {
-					width          = twidth,
-					height         = theight,
-					type           = resource.TEXTURE_TYPE_2D,
-					format         = resource.TEXTURE_FORMAT_RGBA32F,
-				}
-
-				anim_texture = resource.create_texture(tpath, tparams, tbuffer)
-			end
-
+			anim_texture = get_animation_texture(path, model)
+			runtime_texture = get_animation_texture(instance.uid, model, true)
+			model:set_runtime_texture(runtime_texture)
 		end
---]]
+
 		for i, mesh in ipairs(model.meshes) do
 			
 			--local f = mesh.material.type == 0 and "#factory" or "#factory_trans"
@@ -147,7 +164,9 @@ M.load = function(url, path, texture_folder, bake_animations)
 
 			if anim_texture then
 				instance.textures[anim_texture] = true;
+				instance.textures[runtime_texture] = true;
 				go.set(mesh_url, "texture3", anim_texture)
+				go.set(mesh_url, "texture4", runtime_texture)
 			end
 
 			if mesh.material.texture then

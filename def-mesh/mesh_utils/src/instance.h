@@ -29,6 +29,7 @@ class ModelInstance {
 		unordered_map<int, ShapeData> blended;
 		vector<dmScript::LuaHBuffer> buffers;
 		vector<URL> urls;
+		dmhash_t runtimeTexture;
 
 		ModelInstance(Model* model, Animation* animation, bool useBakedAnimations);
 		~ModelInstance();
