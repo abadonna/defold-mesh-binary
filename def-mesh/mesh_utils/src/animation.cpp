@@ -48,32 +48,30 @@ void Animation::CalculateBones() {
 	if (this->bones == NULL) return;
 
 	int size = this->bones->size();
-	if (this->cumulative.size() < size) { //never acumulated, jsut copy to expand
+	if (this->cumulative.size() < size) { //never acumulated, just copy to expand
 		this->cumulative = *this->bones;
 	}
 
-	Matrix4 temp[size];
+	//Matrix4 temp[size];
 	bool has_parent_transforms[size];
 
 	for (int idx = 0; idx < size; idx ++) { //precalculate parent transforms
 		Matrix4 local = this->armature->localBones[idx];
-		temp[idx] = dmVMath::Inverse(local) * this->bones->at(idx) * local;
+		this->cumulative[idx] = dmVMath::Inverse(local) * this->bones->at(idx) * local;
 		has_parent_transforms[idx] = false;
 	}
 
 	for (int idx = 0; idx < size; idx ++) {
-		Matrix4 bone = temp[idx];
+		Matrix4 bone = this->cumulative[idx];
 
 		int parent = this->armature->boneParents[idx];
 		while (parent > -1) {
-			bone = bone * temp[parent];
+			bone = bone * this->cumulative[parent];
 			if (has_parent_transforms[parent]) break; //optimization
 			parent = this->armature->boneParents[parent];
 		}
 
 		has_parent_transforms[idx] = true;
-		temp[idx] = bone;
-
 		this->cumulative[idx] = bone;
 	}
 
