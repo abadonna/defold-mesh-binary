@@ -1,0 +1,119 @@
+reader = require "def-mesh.editor.reader"
+
+local M = {}
+
+local function ends_with(str, ending)
+    return ending == "" or str:sub(-#ending) == ending
+end
+
+local function get_filename(path)   
+    local main, filename, _ = path:match("(.-)([^\\/]-%.?([^%.\\/]*))$")
+    return main, filename
+end
+
+function M.get_language_servers()
+    return {}
+end
+
+function M.get_commands()
+    return {
+
+        {
+            label = "New animation mask",
+            locations = {"Assets"},
+            query = {
+                selection = {type = "resource", cardinality = "one"}
+            },
+            active = function(opts)
+                return ends_with(editor.get(opts.selection, "path"), ".bin")
+            end,
+            run = function(opts)
+                local path = editor.get(opts.selection, "path"):sub(2)
+                reader.init(path)
+                local bones = reader.read_armature()
+
+                local children = {}
+                for i, bone in ipairs(bones) do
+                    table.insert(children, editor.ui.check_box(
+                    {
+                        value = true, 
+                        text = bone.name,
+                        on_value_changed = function(value)
+                            bone.enabled = value
+                        end
+                    }))
+                end
+
+                file_name = path:gsub(".bin", ".lua")
+                
+                local file = editor.ui.horizontal({
+                    padding = editor.ui.PADDING.SMALL,
+                    spacing = editor.ui.SPACING.SMALL,
+                    children = {
+                        editor.ui.label({
+                            text = "File Name",
+                            alignment = editor.ui.ALIGNMENT.CENTER
+                        }),
+                        editor.ui.string_field({
+                            grow = true,
+                            value = file_name,
+                            -- Typing callback:
+                            on_value_changed = function(new_text)
+                                file_name = new_text
+                            end
+                        })
+                    }
+                })
+
+
+                local result = editor.ui.show_dialog(editor.ui.dialog({
+                    title = "Animation Mask",
+
+                    content = editor.ui.vertical({
+                        padding = editor.ui.PADDING.SMALL,
+                        children = {
+                            editor.ui.scroll({
+                                content = editor.ui.vertical({
+                                    padding = editor.ui.PADDING.SMALL, -- add padding around dialog edges
+                                    children = children
+                                }),
+                            }),
+                            editor.ui.separator({}),
+                            file,
+                            
+                        }
+                    }),
+
+                    
+                    buttons = {
+                        editor.ui.dialog_button({
+                            text = "Cancel",
+                            cancel = true,
+                            result = false
+                        }),
+                        editor.ui.dialog_button({
+                            text = "Create",
+                            default = true,
+                            result = true
+                        })
+                    }
+                }))
+
+                if result then
+                    local f = io.open(file_name, "w+")
+                    f:write("return {\n\tmask = {\n")
+                   
+                    for _, bone in ipairs(bones) do
+                        f:write(bone.enabled and "\t\t" or "\t\t--", "\"" .. bone.name .. "\",\n")
+                    end
+                    f:write("\t}\n}")
+                    io.close(f)
+                end
+               
+            end
+        }
+
+}
+end
+
+return M
