@@ -42,8 +42,4 @@ Export mesh of any complexity from Blender to Defold game engine.
 There is a dummy model in binary.go, so any mesh can be set on it to make scene more obvious in editor. Dummy model is disabled in runtime. 
 
 
-## TODO
-* Blending baked animations
-* "Import animation only" option for exporter
-
 ---
