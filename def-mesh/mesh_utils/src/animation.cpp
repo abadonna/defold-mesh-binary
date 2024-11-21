@@ -52,7 +52,6 @@ void Animation::CalculateBones() {
 		this->cumulative = *this->bones;
 	}
 
-	//Matrix4 temp[size];
 	bool has_parent_transforms[size];
 
 	for (int idx = 0; idx < size; idx ++) { //precalculate parent transforms
@@ -104,7 +103,7 @@ void Animation::SetFrame(int trackIdx,  int idx1, int idx2, float factor, bool u
 	} 
 }
 
-void Animation::GetTextureBuffer(lua_State* L) {	
+int Animation::GetTextureBuffer(lua_State* L) {	
 	int frameCount = this->armature->frames.size();
 
 	int width = this->armature->animationTextureWidth;
@@ -153,6 +152,8 @@ void Animation::GetTextureBuffer(lua_State* L) {
 
 	dmScript::LuaHBuffer luabuf(buffer, dmScript::OWNER_LUA);
 	dmScript::PushBuffer(L, luabuf);
+
+	return 3;
 }
 
 Vector4 Animation::GetBakedUniform() {

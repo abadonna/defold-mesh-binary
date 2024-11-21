@@ -118,9 +118,9 @@ static int GetAnimationTextureBuffer(lua_State* L) {
 	lua_getfield(L, 1, "instance");
 	ModelInstance* mi = (ModelInstance* )lua_touserdata(L, -1);
 
-	mi->animation->GetTextureBuffer(L);
+	if (mi->animation == NULL) return 0;
 	
-	return 3;
+	return mi->animation->GetTextureBuffer(L);
 }
 
 
@@ -171,6 +171,10 @@ void ModelInstance::CreateLuaProxy(lua_State* L) {
 
 	lua_pushstring(L, "frames");
 	lua_pushnumber(L, this->animation != NULL ? this->animation->GetFramesCount() : 0); //refactor
+	lua_settable(L, -3);
+
+	lua_pushstring(L, "armature");
+	lua_pushnumber(L, this->model->armatureIdx); 
 	lua_settable(L, -3);
 
 	lua_pushstring(L, "position");

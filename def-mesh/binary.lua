@@ -90,7 +90,7 @@ M.load = function(url, path, texture_folder, bake_animations)
 		local anim_texture
 		if model.frames > 1 and bake_animations then
 
-			local tpath = string.match(path, "(%a-)[$%.]") .. "_" .. name
+			local tpath = string.match(path, "(%a-)[$%.]") .. "_" .. model.armature
 			tpath = "/__anim_" .. tpath:gsub("[%./]", "") ..".texturec"
 
 			anim_texture = hash(tpath)

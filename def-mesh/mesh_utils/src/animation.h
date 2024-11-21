@@ -21,7 +21,7 @@ class Animation
 		void CalculateBones();
 		int AddAnimationTrack(vector<string>* mask);
 		void SetTrackWeight(int idx, float weight);
-		void GetTextureBuffer(lua_State* L);
+		int GetTextureBuffer(lua_State* L);
 		int GetFramesCount();
 		Vector4 GetBakedUniform();
 		int FindBone(string bone);
