@@ -3,7 +3,7 @@
 bl_info = {
     "name": "Defold Mesh Binary Export",
     "author": "",
-    "version": (2, 1),
+    "version": (2, 2),
     "blender": (3, 0, 0),
     "location": "File > Export > Defold Binary Mesh (.bin)",
     "description": "Export to Defold .mesh format",
@@ -336,6 +336,9 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         #---------------------write-materials------------------------
         for material in materials:
             print("MATERIAL " + material['name'])
+            
+            f.write(struct.pack('i', len(material['name'])))
+            f.write(bytes(material['name'], "ascii"))
             
             method = 1
             if material['method'] == 'OPAQUE':

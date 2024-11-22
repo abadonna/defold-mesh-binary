@@ -92,6 +92,7 @@ Model::Model(Reader* reader){
 	
 	for (int i = 0; i < materialCount; i ++) {
 		Mesh* mesh = (this->meshes.size() > i) ? &this->meshes[i] : &notUsedMaterialMesh;
+		mesh->material.name = reader->ReadString();
 		mesh->material.type = reader->ReadInt(); // 0 - opaque, 1 - blend, 2 - hashed
 		mesh->material.color = reader->ReadVector4();
 		mesh->material.specular.value = reader->ReadFloat();
@@ -152,8 +153,6 @@ Model::Model(Reader* reader){
 				this->skin[i].push_back(data);
 			}
 		}
-		//TODO: check 4 weights!
-		//TODO: list of used bones
 	}
 
 	int frameCount = reader->ReadInt();

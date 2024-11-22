@@ -91,8 +91,17 @@ local function get_bone_go(self, bone)
 	return nil
 end
 
-
-M.load = function(url, path, texture_folder, bake_animations)
+--[[
+url - url to binary.go instance
+path - path to .bin file in custom assets
+config = {
+	textures - path to folder with textures
+	bake -  true to bake animations into texture
+	materials - table of materials to replace, 
+		use editor script "Add materials from model" to generate properties
+	}
+--]]
+M.load = function(url, path, config)
 	local instance = {
 		meshes = {},
 		attaches = {},
@@ -103,7 +112,9 @@ M.load = function(url, path, texture_folder, bake_animations)
 		uid = math.random(0, 10000000)
 	}
 
-	instance.texture_folder = texture_folder or "/assets/"
+	config = config or {}
+
+	instance.texture_folder = config.textures or "/assets/"
 	if string.find(instance.texture_folder, "/") ~= 1 then
 		instance.texture_folder = "/" .. instance.texture_folder
 	end
@@ -111,10 +122,9 @@ M.load = function(url, path, texture_folder, bake_animations)
 		instance.texture_folder = instance.texture_folder .. "/"
 	end
 
-	local anim_texture = nil
 	local models
 	local data = sys.load_resource(path)
-	instance.binary, models = mesh_utils.load(path, data, bake_animations or false)
+	instance.binary, models = mesh_utils.load(path, data, config.bake or false)
 	instance.animator = ANIMATOR.create(instance.binary)
 	
 	for name, model in pairs(models) do 
@@ -123,7 +133,7 @@ M.load = function(url, path, texture_folder, bake_animations)
 
 		local anim_texture, runtime_texture
 
-		if model.frames > 1 and bake_animations then
+		if model.frames > 1 and config.bake then
 			anim_texture = get_animation_texture(path, model)
 			runtime_texture = get_animation_texture(instance.uid, model, true)
 			model:set_runtime_texture(runtime_texture)
@@ -138,9 +148,9 @@ M.load = function(url, path, texture_folder, bake_animations)
 			local mesh_url = msg.url(nil, id, "mesh")
 			mesh:set_url(mesh_url);
 
-			if mesh.material.type == 0 then
-				go.set(mesh_url, "material", go.get(url .. "#binary", "opaque"))
-			else
+			if config.materials and config.materials[mesh.material.name] then
+				go.set(mesh_url, "material", config.materials[mesh.material.name])
+			elseif mesh.material.type > 0 then
 				go.set(mesh_url, "material", go.get(url .. "#binary", "transparent"))
 			end
 			

@@ -70,6 +70,7 @@ Quat MatToQuat(Matrix4 m);
 void MatrixBlend (vector<Matrix4>* dst, vector<Matrix4>* src, vector<Matrix4>* result, int idx, float factor);
 
 struct Material {
+	string name;
 	int type; // 0 - opaque, 1 - blend, 2 - hashed
 	Vector4 color;
 	string texture;
@@ -80,6 +81,10 @@ struct Material {
 	void CreateLuaProxy(lua_State* L) {
 		lua_pushstring(L, "material");
 		lua_newtable(L);
+
+		lua_pushstring(L, "name");
+		lua_pushstring(L, this->name.c_str());
+		lua_settable(L, -3);
 		
 		lua_pushstring(L, "type");
 		lua_pushnumber(L, this->type);

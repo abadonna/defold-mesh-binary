@@ -1,0 +1,139 @@
+name: "model"
+tags: "model"
+vertex_program: "/def-mesh/materials/model.vp"
+fragment_program: "/demo/dancer/pants.fp"
+vertex_space: VERTEX_SPACE_LOCAL
+vertex_constants {
+  name: "mtx_worldview"
+  type: CONSTANT_TYPE_WORLDVIEW
+}
+vertex_constants {
+  name: "mtx_view"
+  type: CONSTANT_TYPE_VIEW
+}
+vertex_constants {
+  name: "mtx_proj"
+  type: CONSTANT_TYPE_PROJECTION
+}
+vertex_constants {
+  name: "mtx_normal"
+  type: CONSTANT_TYPE_NORMAL
+}
+vertex_constants {
+  name: "light"
+  type: CONSTANT_TYPE_USER
+  value {
+    x: 2.0
+    y: 2.0
+    z: 2.0
+    w: 1.0
+  }
+}
+vertex_constants {
+  name: "animation"
+  type: CONSTANT_TYPE_USER
+  value {
+  }
+}
+fragment_constants {
+  name: "texel"
+  type: CONSTANT_TYPE_USER
+  value {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+    w: 1.0
+  }
+}
+fragment_constants {
+  name: "options"
+  type: CONSTANT_TYPE_USER
+  value {
+  }
+}
+fragment_constants {
+  name: "options_specular"
+  type: CONSTANT_TYPE_USER
+  value {
+  }
+}
+fragment_constants {
+  name: "base_color"
+  type: CONSTANT_TYPE_USER
+  value {
+    x: 0.8
+    y: 0.8
+    z: 0.8
+    w: 1.0
+  }
+}
+fragment_constants {
+  name: "rough_ramp"
+  type: CONSTANT_TYPE_USER
+  value {
+    x: -1.0
+  }
+}
+fragment_constants {
+  name: "spec_ramp"
+  type: CONSTANT_TYPE_USER
+  value {
+    x: -1.0
+  }
+}
+samplers {
+  name: "tex_diffuse"
+  wrap_u: WRAP_MODE_REPEAT
+  wrap_v: WRAP_MODE_REPEAT
+  filter_min: FILTER_MODE_MIN_LINEAR
+  filter_mag: FILTER_MODE_MAG_LINEAR
+}
+samplers {
+  name: "tex_normal"
+  wrap_u: WRAP_MODE_REPEAT
+  wrap_v: WRAP_MODE_REPEAT
+  filter_min: FILTER_MODE_MIN_LINEAR
+  filter_mag: FILTER_MODE_MAG_LINEAR
+}
+samplers {
+  name: "tex_rough"
+  wrap_u: WRAP_MODE_REPEAT
+  wrap_v: WRAP_MODE_REPEAT
+  filter_min: FILTER_MODE_MIN_LINEAR
+  filter_mag: FILTER_MODE_MAG_LINEAR
+}
+samplers {
+  name: "tex_anim"
+  wrap_u: WRAP_MODE_CLAMP_TO_EDGE
+  wrap_v: WRAP_MODE_CLAMP_TO_EDGE
+  filter_min: FILTER_MODE_MIN_NEAREST
+  filter_mag: FILTER_MODE_MAG_NEAREST
+}
+samplers {
+  name: "tex_runtime"
+  wrap_u: WRAP_MODE_CLAMP_TO_EDGE
+  wrap_v: WRAP_MODE_CLAMP_TO_EDGE
+  filter_min: FILTER_MODE_MIN_NEAREST
+  filter_mag: FILTER_MODE_MAG_NEAREST
+}
+samplers {
+  name: "tex5"
+  wrap_u: WRAP_MODE_CLAMP_TO_EDGE
+  wrap_v: WRAP_MODE_CLAMP_TO_EDGE
+  filter_min: FILTER_MODE_MIN_LINEAR
+  filter_mag: FILTER_MODE_MAG_LINEAR
+}
+samplers {
+  name: "tex6"
+  wrap_u: WRAP_MODE_CLAMP_TO_EDGE
+  wrap_v: WRAP_MODE_CLAMP_TO_EDGE
+  filter_min: FILTER_MODE_MIN_LINEAR
+  filter_mag: FILTER_MODE_MAG_LINEAR
+}
+samplers {
+  name: "tex7"
+  wrap_u: WRAP_MODE_CLAMP_TO_EDGE
+  wrap_v: WRAP_MODE_CLAMP_TO_EDGE
+  filter_min: FILTER_MODE_MIN_LINEAR
+  filter_mag: FILTER_MODE_MAG_LINEAR
+}

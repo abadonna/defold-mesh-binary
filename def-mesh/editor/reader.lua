@@ -8,7 +8,140 @@ M.init = function(path)
 	io.close(f)
 end
 
-M.read_armature = function()
+M.read_materials = function()
+	local materials = {}
+	
+	--skip armatures
+	for i = 1, M.read_int()  do
+		local count = M.read_int()
+		for bone = 1, count do
+			M.read_string()
+			M.read_int()
+			M.read_vec4()
+			M.read_vec4()
+			M.read_vec4()
+		end
+
+		for frame = 1, M.read_int() do
+			for bone = 1, count do
+				M.read_vec4()
+				M.read_vec4()
+				M.read_vec4()
+			end
+		end
+	end
+
+	while not M.eof() do
+		M.read_model(materials)
+	end
+	return materials
+end
+
+M.read_model = function(materials)
+	M.read_string() -- model name
+	local parent = M.read_int()
+	if parent > 0 then
+		M.read_string(parent)
+	end
+
+	M.read_vec3() -- transform
+	M.read_vec3()
+	M.read_vec3()
+
+	local vert_count = M.read_int()
+	for vertex = 1, vert_count do --vertices
+		M.read_vec3()
+		M.read_vec3()
+	end
+
+	local shape_count = M.read_int()
+	for shape = 1, shape_count do --shapes
+		M.read_string()
+		for delta = 1, M.read_int() do
+			M.read_int()
+			M.read_vec3()
+			M.read_vec3()
+		end
+	end
+
+	local count = M.read_int()
+	for face = 1, count do --faces
+		M.read_int()
+		M.read_int()
+		M.read_int()
+		M.read_int()
+		local flat = M.read_int()
+		if flat == 1 then
+			M.read_vec3()
+		end
+	end
+
+	for face = 1, count * 6 do --uv
+		M.read_float()
+	end
+
+	for material = 1, M.read_int() do --materials
+		local name =  M.read_string()
+		local type = M.read_int()
+		table.insert(materials, {name = name, type = (type == 0 and "model" or "transparent")})
+		M.read_vec4() -- color
+		M.read_float() -- specular
+		M.read_float() -- roughness
+		local flag = M.read_int() 
+		if flag > 0 then -- texture
+			M.read_string(flag)
+		end
+		flag = M.read_int()
+		if flag > 0 then -- normal texture
+			M.read_string(flag)
+			M.read_float()
+		end
+		flag = M.read_int()
+		if flag > 0 then -- specular texture
+			M.read_string(flag)
+			M.read_int() 
+			flag = M.read_int()
+			if flag > 0 then  --ramp
+				M.read_float()
+				M.read_float()
+				M.read_float()
+				M.read_float()
+			end
+		end
+		flag = M.read_int()
+		if flag > 0 then -- roughness texture
+			M.read_string(flag)
+			M.read_int() 
+			flag = M.read_int()
+			if flag > 0 then  --ramp
+				M.read_float()
+				M.read_float()
+				M.read_float()
+				M.read_float()
+			end
+		end
+
+	end
+
+	if M.read_int() > -1 then --skin
+		for vertex = 1, vert_count do
+			for w = 1, M.read_int() do
+				M.read_int()
+				M.read_float()
+			end
+		end
+	end
+
+	for frame = 1, M.read_int() do --frames
+		for i = 1, shape_count do
+			M.read_string()
+			M.read_float()
+		end
+	end
+
+end
+
+M.read_bones = function()
 	local count = M.read_int() -- number of armatures
 	count = M.read_int()  -- number of bones in first armature
 
