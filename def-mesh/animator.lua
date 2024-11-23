@@ -14,7 +14,6 @@ local function animation_update(self, dt)
 	local frame = self.start + math.floor(self.length * part)
 
 	if (frame == self.finish or full >= 1) and self.playback == go.PLAYBACK_ONCE_FORWARD then
-		if self.callback then self.callback(true) end
 		self.is_completed = true
 	end
 
@@ -126,6 +125,7 @@ M.create = function(binary)
 			end
 			if a.is_completed then
 				table.remove(animator.animations, i)
+				if a.callback then a.callback(true) end
 			end
 		end
 
