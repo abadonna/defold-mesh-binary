@@ -280,6 +280,8 @@ void ModelInstance::ApplyArmature(lua_State* L, int meshIdx) {
 			m->getCol2()
 		};
 		
+		//alternative - dmGameObject::SetProperty - defold/engine/gameobject/src/gameobject/gameobject.h
+
 		for (int i = 0; i < 3; i ++) {
 			lua_getglobal(L, "go");
 			lua_getfield(L, -1, "set");
