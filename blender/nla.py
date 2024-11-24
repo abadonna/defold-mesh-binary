@@ -16,7 +16,7 @@ def export_animations(context, filepath):
     if obj.animation_data and obj.animation_data.nla_tracks:
         for track in obj.animation_data.nla_tracks:
             for strip in track.strips:
-                file.write('\t' + strip.name + ' = {start = ' + str(strip.frame_start) + ', finish = ' + str(strip.frame_end) + '},\n')
+                file.write('\t' + strip.name + ' = {start = ' + str(strip.frame_start-1) + ', finish = ' + str(strip.frame_end-1) + '},\n')
 
     file.write('}')
     file.close()

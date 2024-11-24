@@ -135,9 +135,9 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
             f.write(struct.pack('ffff', *matrix[2]))
         
         if export_anim_setting:
-            f.write(struct.pack('i', context.scene.frame_end))
+            f.write(struct.pack('i', context.scene.frame_end - 1))
             
-            for frame in range(context.scene.frame_end):
+            for frame in range(1, context.scene.frame_end):
                 set_frame(context, frame)
                 for pbone in proxy['bones']:
                     matrix = pbone.matrix_basis
@@ -439,9 +439,9 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
             
             
         if export_anim_setting and len(shapes) > 0:
-            f.write(struct.pack('i', context.scene.frame_end))
+            f.write(struct.pack('i', context.scene.frame_end - 1))
                 
-            for frame in range(context.scene.frame_end):
+            for frame in range(1, context.scene.frame_end):
                 set_frame(context, frame)
                     
                 write_shape_values(mesh, shapes, f)
