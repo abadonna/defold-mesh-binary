@@ -13,7 +13,11 @@ Instance::Instance(vector<Model*>* models, vector<Armature*>* armatures, bool us
 	}
 	
 	for(auto & model : *models) {
-		Animation* animation = (model->armatureIdx > -1) ? this->animations[model->armatureIdx] : NULL;
+		Animation* animation = NULL;
+		if(model->armatureIdx > -1) { 
+			animation = this->animations[model->armatureIdx];
+			animation->SetTransform(&model->world.matrix, 0);
+		}
 		ModelInstance* mi = new ModelInstance(model, animation, useBakedAnimations);
 		this->models.push_back(mi);
 	}
@@ -43,10 +47,16 @@ void Instance::SetFrame(int trackIdx, int idx1, int idx2, float factor) {
 	}
 }
 
+void Instance::ResetRootTransform(int frame) {
+	if (this->animations.size() > 0) {
+		this->animations[0]->SetTransform(NULL, frame);
+	}
+}
+
 void Instance::Update(lua_State* L) {
 	for(auto & animation : this->animations) {
 		if (!this->useBakedAnimations || animation->IsBlending()) {
-			animation->Update();
+			animation->Update(this->root, this->rootTransformRotation, this->rootTransformPosition);
 		}
 	}
 	

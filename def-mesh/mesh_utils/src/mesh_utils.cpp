@@ -12,6 +12,36 @@ using namespace Vectormath::Aos;
 
 std::unordered_map<std::string, BinaryFile*> files;
 
+static int ResetRootTransform(lua_State* L) {
+    lua_getfield(L, 1, "instance");
+    Instance* instance = (Instance*)lua_touserdata(L, -1);
+    int frame = luaL_checknumber(L, 2);
+    instance->ResetRootTransform(frame);
+    return 0;
+}
+
+static int SetRootTransform(lua_State* L) {
+    lua_getfield(L, 1, "instance");
+    Instance* instance = (Instance*)lua_touserdata(L, -1);
+
+    instance->rootTransformRotation = lua_toboolean(L, 2);
+    instance->rootTransformPosition = lua_toboolean(L, 3); //xz
+    
+    return 0;
+}
+    
+static int SetRootObject(lua_State* L) {
+    int count = lua_gettop(L);
+
+    lua_getfield(L, 1, "instance");
+    Instance* instance = (Instance*)lua_touserdata(L, -1);
+
+    dmGameObject::HInstance obj = dmScript::CheckGOInstance(L, 2);
+    instance->root = obj;
+
+    return 0;
+}
+
 static int AddAnimationTrack(lua_State* L) {
     lua_getfield(L, 1, "instance");
     Instance* instance = (Instance*)lua_touserdata(L, -1);
@@ -149,6 +179,9 @@ static int Load(lua_State* L) {
 
     static const luaL_Reg f[] =
     {
+        {"reset_root_transform", ResetRootTransform},
+        {"set_root_object", SetRootObject},
+        {"set_root_transform", SetRootTransform},
         {"add_animation_track", AddAnimationTrack},
         {"set_animation_track_weight", SetAnimationTrackWeight},
         {"attach_bone_go", AttachBoneGO},

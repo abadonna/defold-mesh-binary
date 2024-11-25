@@ -33,7 +33,7 @@ struct Transform3d {
 	Vector3 position;
 	Vector3 scale;
 	Quat rotation;
-	//Matrix4 matrix;
+	Matrix4 matrix;
 };
 
 struct Ramp {
@@ -66,7 +66,6 @@ bool CONTAINS(unordered_map<K, T>* map, K key){
 	return map->find(key) != map->end();
 }
 
-Quat MatToQuat(Matrix4 m);
 void MatrixBlend (vector<Matrix4>* dst, vector<Matrix4>* src, vector<Matrix4>* result, int idx, float factor);
 
 struct Material {

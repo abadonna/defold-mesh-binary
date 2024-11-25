@@ -16,8 +16,8 @@ void MatrixBlend (vector<Matrix4>* dst, vector<Matrix4>* src, vector<Matrix4>* r
 	Vector3 t2 = Vector3(m2[0][3], m2[1][3], m2[2][3]);
 	Vector3 t = Lerp(factor, t1, t2);
 
-	Quat q1 = MatToQuat(m1);
-	Quat q2 = MatToQuat(m2);
+	Quat q1 = Quat(m1.getUpper3x3());
+	Quat q2 = Quat(m2.getUpper3x3());
 	Quat q =  Slerp(factor, q1, q2);
 	Matrix4 m = Matrix4::rotation(q);
 
@@ -27,33 +27,4 @@ void MatrixBlend (vector<Matrix4>* dst, vector<Matrix4>* src, vector<Matrix4>* r
 	m[3][3] = 1.;
 
 	result->at(idx) = m;
-}
-
-Quat MatToQuat(Matrix4 m) {
-	float t = 0;
-	dmVMath::Quat q;
-	if (m[2][2] < 0){
-		if (m[0][0] > m[1][1]){
-			t = 1 + m[0][0] - m[1][1] - m[2][2];
-			q = dmVMath::Quat(t, m[1][0] + m[0][1], m[0][2] + m[2][0], m[1][2] - m[2][1]);
-		}else{
-			t = 1 - m[0][0] + m[1][1] - m[2][2];
-			q = dmVMath::Quat(m[1][0] + m[0][1], t, m[2][1] + m[1][2], m[2][0] - m[0][2]);
-		}
-	}else{
-		if (m[0][0] < -m[1][1]){
-			t = 1 - m[0][0] - m[1][1] + m[2][2];
-			q = dmVMath::Quat(m[0][2] + m[2][0], m[2][1] + m[1][2], t, m[0][1] - m[1][0]);
-		}else{
-			t = 1 + m[0][0] + m[1][1] + m[2][2];
-			q = dmVMath::Quat(m[1][2] - m[2][1], m[2][0] - m[0][2], m[0][1] - m[1][0], t);
-		}
-	}
-	float st = sqrt(t);
-	q.setX(q.getX() * 0.5 / st);
-	q.setY(q.getY() * 0.5 / st);
-	q.setZ(q.getZ() * 0.5 / st);
-	q.setW(q.getW() * 0.5 / st);
-
-	return q;
 }
