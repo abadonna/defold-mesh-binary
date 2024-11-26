@@ -66,6 +66,8 @@ bool CONTAINS(unordered_map<K, T>* map, K key){
 	return map->find(key) != map->end();
 }
 
+Vector3 QuatToEuler(Quat q);
+
 void MatrixBlend (vector<Matrix4>* dst, vector<Matrix4>* src, vector<Matrix4>* result, int idx, float factor);
 
 struct Material {

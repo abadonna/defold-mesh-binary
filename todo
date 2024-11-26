@@ -1,3 +1,4 @@
+- убрать лишние Transpose. Траспонировать сразу при чтении 1 раз?
 - рефакторинг привязки go к костям
 - https://github.com/jkuhlmann/cgltf/blob/master/cgltf.h
 - additive треки?

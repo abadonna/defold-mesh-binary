@@ -79,33 +79,56 @@ void Animation::CalculateBones(bool applyRotation, bool applyPosition) {
 
 
 		if ((root != 0) && (applyRotation || applyPosition) && (this->armature->rootBoneIdx == idx)) {
+
+			Matrix4 m = Transpose(this->cumulative[idx]);
 			
 			Vector4 posePosition = this->cumulative[idx].getRow(3);
-			Matrix4 worldRootBone = this->transform * Transpose(this->cumulative[idx]) * Inverse(this->transform);
+			Matrix4 worldRootBone = this->transform * m * Inverse(this->transform);
+
 			Quat rotation = dmGameObject::GetRotation(this->root);
 			
 			if (applyRotation) {
-				Matrix4 m = worldRootBone * Inverse(this->root_transform);
-				Quat q = Quat(m.getUpper3x3());
-				Quat diff = Quat(q.getX(), q.getZ(), -q.getY(), q.getW());
-	
-				dmGameObject::SetRotation(this->root, rotation * diff);
+				//Matrix4 m = worldRootBone * Inverse(this->root_transform);
+				//Quat q = Quat(m.getUpper3x3());
+				//Quat diff = Quat(q.getX(), q.getZ(), -q.getY(), q.getW());
 
-				this->cumulative[idx].setCol0(Vector4(1, 0, 0, posePosition[0]));
-				this->cumulative[idx].setCol1(Vector4(0, 1, 0, posePosition[1]));
-				this->cumulative[idx].setCol2(Vector4(0, 0, 1, posePosition[2]));
+				
+				Vector4 v1 = Vector4(1, 0, 0, 0);
+				Vector4 v2 = worldRootBone * v1;
+				Vector4 v3 = this->root_transform * v1;
+				v2 = Vector4(v2[0], v2[1], 0, 0); //projected on horizontal plane
+				v3 = Vector4(v3[0], v3[1], 0, 0); //projected
+				float angle1 = acos(dmVMath::Dot(v1, v2)/ dmVMath::Length(v2));
+				float angle2 = acos(dmVMath::Dot(v1, v3)/ dmVMath::Length(v3));
 
+				//dmLogInfo("%f, %f", angle1, angle2);
+
+				Quat diff = Quat::rotationY(angle2 - angle1);
+				rotation = rotation * diff;
+				dmGameObject::SetRotation(this->root, rotation);
+
+				Matrix4 mm = Matrix4::rotation(angle1, Vector3(0,0,-1));
+				mm = worldRootBone * Inverse(mm);
+				mm = Inverse(this->transform) * mm * this->transform;
+				
+				Matrix3 mXZ = mm.getUpper3x3();
+				this->cumulative[idx].setUpper3x3(Transpose(mXZ));
+				
+				//this->cumulative[idx].setUpper3x3(Matrix3::identity());
 			} 
 
 			if (applyPosition) {
 				Vector4 v = worldRootBone.getCol3() - this->root_transform.getCol3();
-				Vector3 diff = Vector3(v.getX(), /*v.getZ()*/ 0, -v.getY()); //only xz movement, Unity way
+				Vector3 diff = Vector3(v.getX(), v.getZ(), -v.getY());
 				diff = dmVMath::Rotate(rotation, diff);
+
+				//Vector4 t = worldRootBone.getCol3();
+				//dmLogInfo("%d, %f, %f, %f", this->GetFrameIdx(), t[0], t[1], t[2]);
 
 				Point3 position = dmGameObject::GetPosition(this->root);
 
 				dmGameObject::SetPosition(this->root, position + diff);
-				this->cumulative[idx].setRow(3, Vector4(0, posePosition[1], 0, 1));
+				this->cumulative[idx].setRow(3, Vector4(0));
 			}
 
 			this->root_transform = worldRootBone; //for the next frame

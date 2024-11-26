@@ -28,3 +28,30 @@ void MatrixBlend (vector<Matrix4>* dst, vector<Matrix4>* src, vector<Matrix4>* r
 
 	result->at(idx) = m;
 }
+
+Vector3 QuatToEuler(Quat q) {
+	Vector3 angles;
+	const auto x = q.getX();
+	const auto y = q.getY();
+	const auto z = q.getZ();
+	const auto w = q.getW();
+
+	// roll (x-axis rotation)
+	double sinr_cosp = 2 * (w * x + y * z);
+	double cosr_cosp = 1 - 2 * (x * x + y * y);
+	angles[0] = std::atan2(sinr_cosp, cosr_cosp);
+
+	// pitch (y-axis rotation)
+	double sinp = 2 * (w * y - z * x);
+	if (std::abs(sinp) >= 1)
+		angles[1] = std::copysign(M_PI / 2, sinp); // use 90 degrees if out of range
+	else
+		angles[1] = std::asin(sinp);
+
+	// yaw (z-axis rotation)
+	double siny_cosp = 2 * (w * z + x * y);
+	double cosy_cosp = 1 - 2 * (y * y + z * z);
+	angles[2] = std::atan2(siny_cosp, cosy_cosp);
+	
+	return angles;
+}
