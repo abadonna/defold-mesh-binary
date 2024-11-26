@@ -50,7 +50,7 @@ class Instance{
 		bool useBakedAnimations = false;
 
 	public:
-		dmGameObject::HInstance root = 0;
+		
 		bool rootTransformPosition = false;
 		bool rootTransformRotation = false;
 	
@@ -64,6 +64,6 @@ class Instance{
 
 		void ResetRootTransform(int frame);
 		
-		Instance(vector<Model*>* models, vector<Armature*>* armatures, bool useBakedAnimations);
+		Instance(vector<Model*>* models, vector<Armature*>* armatures, dmGameObject::HInstance obj, bool useBakedAnimations);
 		~Instance();
 };

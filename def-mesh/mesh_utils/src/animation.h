@@ -15,14 +15,15 @@ class Animation
 
 		Matrix4 transform;
 		Matrix4 root_transform;
+		dmGameObject::HInstance root = 0;
 
-		void CalculateBones(dmGameObject::HInstance root, bool applyRotation, bool applyPosition);
+		void CalculateBones(bool applyRotation, bool applyPosition);
 	
 	public:
 		vector<Matrix4>* bones = NULL;
 		
 		void SetFrame(int trackIdx, int idx1, int idx2, float factor, bool useBakedAnimations, bool hasAttachaments);
-		void Update(dmGameObject::HInstance root, bool rotation, bool position);
+		void Update(bool rotation, bool position);
 		int AddAnimationTrack(vector<string>* mask);
 		void SetTrackWeight(int idx, float weight);
 		int GetTextureBuffer(lua_State* L);
@@ -34,7 +35,7 @@ class Animation
 		bool IsBlending();
 		void SetTransform(Matrix4* matrix, int frame);
 		
-		Animation(Armature* armature);
+		Animation(Armature* armature, dmGameObject::HInstance obj);
 };
 
 class BoneGO {

@@ -1,12 +1,13 @@
 #include "animation.h"
 
-Animation::Animation(Armature* armature) {
+Animation::Animation(Armature* armature, dmGameObject::HInstance obj) {
 	this->armature = armature;
+	this->root = obj;
 	AnimationTrack base;
 	this->tracks.reserve(8); //to avoid losing pointers to calculated bones
 	this->tracks.push_back(base);
 	this->SetFrame(0, 0, -1, 0, false, false);
-	this->Update(0, false, false);
+	this->Update(false, false);
 
 }
 
@@ -27,7 +28,7 @@ bool Animation::IsBlending() {
 	return count > 1;
 }
 
-void Animation::Update(dmGameObject::HInstance root, bool rotation, bool position) {
+void Animation::Update(bool rotation, bool position) {
 	if (!this->needUpdate) return;
 	
 	this->bones = this->tracks[0].bones; 
@@ -57,12 +58,12 @@ void Animation::Update(dmGameObject::HInstance root, bool rotation, bool positio
 		}
 	}
 
-	this->CalculateBones(root, rotation, position);
+	this->CalculateBones(rotation, position);
 
 }
 
 
-void Animation::CalculateBones(dmGameObject::HInstance root, bool applyRotation, bool applyPosition) {
+void Animation::CalculateBones(bool applyRotation, bool applyPosition) {
 	if (this->bones == NULL) return;
 
 	int size = this->bones->size();
@@ -81,14 +82,14 @@ void Animation::CalculateBones(dmGameObject::HInstance root, bool applyRotation,
 			
 			Vector4 posePosition = this->cumulative[idx].getRow(3);
 			Matrix4 worldRootBone = this->transform * Transpose(this->cumulative[idx]) * Inverse(this->transform);
-			Quat rotation = dmGameObject::GetRotation(root);
+			Quat rotation = dmGameObject::GetRotation(this->root);
 			
 			if (applyRotation) {
 				Matrix4 m = worldRootBone * Inverse(this->root_transform);
 				Quat q = Quat(m.getUpper3x3());
 				Quat diff = Quat(q.getX(), q.getZ(), -q.getY(), q.getW());
 	
-				dmGameObject::SetRotation(root, rotation * diff);
+				dmGameObject::SetRotation(this->root, rotation * diff);
 
 				this->cumulative[idx].setCol0(Vector4(1, 0, 0, posePosition[0]));
 				this->cumulative[idx].setCol1(Vector4(0, 1, 0, posePosition[1]));
@@ -101,9 +102,9 @@ void Animation::CalculateBones(dmGameObject::HInstance root, bool applyRotation,
 				Vector3 diff = Vector3(v.getX(), /*v.getZ()*/ 0, -v.getY()); //only xz movement, Unity way
 				diff = dmVMath::Rotate(rotation, diff);
 
-				Point3 position = dmGameObject::GetPosition(root);
+				Point3 position = dmGameObject::GetPosition(this->root);
 
-				dmGameObject::SetPosition(root, position + diff);
+				dmGameObject::SetPosition(this->root, position + diff);
 				this->cumulative[idx].setRow(3, Vector4(0, posePosition[1], 0, 1));
 			}
 
@@ -179,7 +180,7 @@ int Animation::GetRuntimeBuffer(lua_State* L) {
 
 	if (this->bones == NULL) {
 		this->bones = &this->armature->frames[0];
-		this->CalculateBones(0, false, false);
+		this->CalculateBones(false, false);
 	}
 
 	for(auto & bone : *this->bones) {
@@ -226,7 +227,7 @@ int Animation::GetTextureBuffer(lua_State* L) {
 	for (int f = 0; f < height; f++) {
 		if (f < frameCount) {
 			this->bones = &this->armature->frames[f];
-			this->CalculateBones(0, false, false);
+			this->CalculateBones(false, false);
 
 			for(auto & bone : *this->bones) {
 				Vector4 data[3] = {bone.getCol0(), bone.getCol1(), bone.getCol2()};
@@ -244,7 +245,7 @@ int Animation::GetTextureBuffer(lua_State* L) {
 	}
 
 	this->bones = &this->armature->frames[0];
-	this->CalculateBones(0, false, false); // return to first frame
+	this->CalculateBones(false, false); // return to first frame
 
 	lua_pushnumber(L, width);
 	lua_pushnumber(L, height);

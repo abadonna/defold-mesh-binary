@@ -1,14 +1,14 @@
 #include "instance.h"
 #include "model.h"
 
-Instance::Instance(vector<Model*>* models, vector<Armature*>* armatures, bool useBakedAnimations) {
+Instance::Instance(vector<Model*>* models, vector<Armature*>* armatures, dmGameObject::HInstance obj, bool useBakedAnimations) {
 	this->useBakedAnimations = useBakedAnimations;
 	
 	this->animations.reserve(armatures->size());
 	this->models.reserve(models->size());
 	
 	for (auto & armature : *armatures) {
-		Animation* a = new Animation(armature);
+		Animation* a = new Animation(armature, obj);
 		this->animations.push_back(a);
 	}
 	
@@ -56,7 +56,7 @@ void Instance::ResetRootTransform(int frame) {
 void Instance::Update(lua_State* L) {
 	for(auto & animation : this->animations) {
 		if (!this->useBakedAnimations || animation->IsBlending()) {
-			animation->Update(this->root, this->rootTransformRotation, this->rootTransformPosition);
+			animation->Update(this->rootTransformRotation, this->rootTransformPosition);
 		}
 	}
 	

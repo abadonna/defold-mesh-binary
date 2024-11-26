@@ -29,18 +29,6 @@ static int SetRootTransform(lua_State* L) {
     
     return 0;
 }
-    
-static int SetRootObject(lua_State* L) {
-    int count = lua_gettop(L);
-
-    lua_getfield(L, 1, "instance");
-    Instance* instance = (Instance*)lua_touserdata(L, -1);
-
-    dmGameObject::HInstance obj = dmScript::CheckGOInstance(L, 2);
-    instance->root = obj;
-
-    return 0;
-}
 
 static int AddAnimationTrack(lua_State* L) {
     lua_getfield(L, 1, "instance");
@@ -157,7 +145,8 @@ static int Delete(lua_State* L) {
 static int Load(lua_State* L) {
     std::string path = string(luaL_checkstring(L, 1));
     const char* content =  luaL_checkstring(L, 2);
-    bool useBakedAnimations = lua_toboolean(L, 3);
+    dmGameObject::HInstance obj = dmScript::CheckGOInstance(L, 3);
+    bool useBakedAnimations = lua_toboolean(L, 4);
 
     BinaryFile* binary;
     if (auto search = files.find(path); search != files.end()) {
@@ -167,7 +156,7 @@ static int Load(lua_State* L) {
         binary = files[path];
     }
 
-    Instance* instance = binary->CreateInstance(useBakedAnimations);
+    Instance* instance = binary->CreateInstance(obj, useBakedAnimations);
     lua_newtable(L);
     lua_pushstring(L, "instance");
     lua_pushlightuserdata(L, instance);
@@ -180,7 +169,6 @@ static int Load(lua_State* L) {
     static const luaL_Reg f[] =
     {
         {"reset_root_transform", ResetRootTransform},
-        {"set_root_object", SetRootObject},
         {"set_root_transform", SetRootTransform},
         {"add_animation_track", AddAnimationTrack},
         {"set_animation_track_weight", SetAnimationTrackWeight},

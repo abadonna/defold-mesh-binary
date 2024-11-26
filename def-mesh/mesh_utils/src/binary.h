@@ -12,7 +12,7 @@ class BinaryFile
 	public:
 		int instances = 0;
 
-		Instance* CreateInstance(bool useBakedAnimations);
+		Instance* CreateInstance(dmGameObject::HInstance obj, bool useBakedAnimations);
 	
 		BinaryFile(const char* file);
 		~BinaryFile();
