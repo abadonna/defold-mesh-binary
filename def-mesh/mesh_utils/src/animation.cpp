@@ -16,7 +16,16 @@ void Animation::SetTransform(Matrix4* matrix, int frame) {
 	
 	Matrix4 m = this->armature->frames[frame][this->armature->rootBoneIdx];
 	Matrix4 local = this->armature->localBones[this->armature->rootBoneIdx];
-	this->root_transform = this->transform * Transpose(Inverse(local) * m * local) * Inverse(this->transform);
+	m = Transpose(Inverse(local) * m * local);
+
+	Vector4 v = this->transform * m.getCol3();
+	this->position = Vector3(v.getX(), 0, -v.getY());
+	Quat rotation = dmGameObject::GetRotation(this->root);
+	this->position = dmVMath::Rotate(rotation, this->position);
+	
+	m = this->transform * m * Inverse(this->transform);
+	this->angle = QuatToEuler(Quat(m.getUpper3x3())).getZ();
+	
 }
 
 bool Animation::IsBlending() {
@@ -86,52 +95,51 @@ void Animation::CalculateBones(bool applyRotation, bool applyPosition) {
 			Matrix4 worldRootBone = this->transform * m * Inverse(this->transform);
 
 			Quat rotation = dmGameObject::GetRotation(this->root);
+
 			
 			if (applyRotation) {
-				//Matrix4 m = worldRootBone * Inverse(this->root_transform);
-				//Quat q = Quat(m.getUpper3x3());
-				//Quat diff = Quat(q.getX(), q.getZ(), -q.getY(), q.getW());
 
+				float angle = QuatToEuler(Quat(worldRootBone.getUpper3x3())).getZ();
 				
-				Vector4 v1 = Vector4(1, 0, 0, 0);
-				Vector4 v2 = worldRootBone * v1;
-				Vector4 v3 = this->root_transform * v1;
-				v2 = Vector4(v2[0], v2[1], 0, 0); //projected on horizontal plane
-				v3 = Vector4(v3[0], v3[1], 0, 0); //projected
-				float angle1 = acos(dmVMath::Dot(v1, v2)/ dmVMath::Length(v2));
-				float angle2 = acos(dmVMath::Dot(v1, v3)/ dmVMath::Length(v3));
-
-				//dmLogInfo("%f, %f", angle1, angle2);
-
-				Quat diff = Quat::rotationY(angle2 - angle1);
-				rotation = rotation * diff;
+				//dmLogInfo("%d, %f, %f, %f", this->GetFrameIdx(), angle1, angle2, angle1 - angle2)
+				
+				Quat diff = Quat::rotationY(angle - this->angle);
+				rotation = diff * rotation;
 				dmGameObject::SetRotation(this->root, rotation);
 
-				Matrix4 mm = Matrix4::rotation(angle1, Vector3(0,0,-1));
-				mm = worldRootBone * Inverse(mm);
+				Matrix4 mm = Matrix4::rotationZ(angle);
+				mm =  worldRootBone * Inverse(mm);
 				mm = Inverse(this->transform) * mm * this->transform;
 				
 				Matrix3 mXZ = mm.getUpper3x3();
 				this->cumulative[idx].setUpper3x3(Transpose(mXZ));
+
+				mm = Matrix4::rotationZ(-angle);
+				mm = Inverse(this->transform) * mm * this->transform;
+				posePosition = mm * posePosition;
 				
-				//this->cumulative[idx].setUpper3x3(Matrix3::identity());
+				this->cumulative[idx].setRow(3, posePosition);
+				this->angle = angle;
 			} 
 
 			if (applyPosition) {
-				Vector4 v = worldRootBone.getCol3() - this->root_transform.getCol3();
-				Vector3 diff = Vector3(v.getX(), v.getZ(), -v.getY());
-				diff = dmVMath::Rotate(rotation, diff);
 
-				//Vector4 t = worldRootBone.getCol3();
-				//dmLogInfo("%d, %f, %f, %f", this->GetFrameIdx(), t[0], t[1], t[2]);
+				Vector4 v = this->transform * posePosition;
+				Vector3 position = Vector3(v.getX(), v.getZ(), -v.getY());
+				position = dmVMath::Rotate(rotation, position);
 
-				Point3 position = dmGameObject::GetPosition(this->root);
-
-				dmGameObject::SetPosition(this->root, position + diff);
-				this->cumulative[idx].setRow(3, Vector4(0));
+				//------------remove Y ---------
+				v = Inverse(this->transform) * Vector4(0, 0, position[1], 0);
+				position[1] = 0;
+				//------------------------------
+				
+				Point3 p = dmGameObject::GetPosition(this->root);
+				dmGameObject::SetPosition(this->root, p + position - this->position);
+				
+				this->cumulative[idx].setRow(3, v);
+				this->position = position;
 			}
 
-			this->root_transform = worldRootBone; //for the next frame
 			
 		}
 		has_parent_transforms[idx] = false;

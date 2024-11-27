@@ -1,4 +1,5 @@
 - убрать лишние Transpose. Траспонировать сразу при чтении 1 раз?
+- убрать трансформы с арматур.. 
 - рефакторинг привязки go к костям
 - https://github.com/jkuhlmann/cgltf/blob/master/cgltf.h
 - additive треки?

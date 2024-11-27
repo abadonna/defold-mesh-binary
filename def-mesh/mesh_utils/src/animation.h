@@ -14,7 +14,9 @@ class Animation
 		vector<AnimationTrack> tracks;
 
 		Matrix4 transform;
-		Matrix4 root_transform;
+		float angle;
+		Vector3 position;
+		
 		dmGameObject::HInstance root = 0;
 
 		void CalculateBones(bool applyRotation, bool applyPosition);
