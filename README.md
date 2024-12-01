@@ -31,10 +31,11 @@ Export mesh of any complexity from Blender to Defold game engine.
 * Blend shape animations
 * Transparent materials
 * Animation tracks
+* Animations baked in textures (for performance)
 * Editor script to generate animation masks
 
 ## Experimental
-* animations baked into textures
+* root motion (only on based track, and I'm not 100% happy with result)
 * GameObjects can be attached to bones
 
 ## Drawbacks

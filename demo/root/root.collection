@@ -73,6 +73,7 @@ embedded_instances {
   "}\n"
   ""
   position {
+    x: 0.05
     y: -1.5
   }
   scale3 {

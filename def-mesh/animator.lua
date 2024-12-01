@@ -21,15 +21,6 @@ local function animation_update(self, dt)
 		self.is_completed = true
 	end
 
-	if (frame == self.start) and (self.need_reset) then
-		self.need_reset = false
-		self.reset_root_motion()
-	end
-
-	if (frame > self.start and self.motion > 0) then
-		self.need_reset = true
-	end
-
 	if self.blend then
 		self.blend.factor = math.max(0, 1.0 - self.time / self.blend.duration)
 		if self.blend.factor == 0 then
@@ -46,6 +37,11 @@ local function animation_update(self, dt)
 		self.frame = frame
 		self.changed = true
 	end
+
+	if ((frame == self.start) or (full >=1) ) and (self.changed) and (self.motion > 0) then
+		self.reset_root_motion()
+	end
+
 end
 
 M.create = function(binary)
@@ -112,7 +108,6 @@ M.create = function(binary)
 		animation.playback = config.playback or go.PLAYBACK_ONCE_FORWARD
 		--so far supported only PLAYBACK_LOOP_FORWARD & PLAYBACK_ONCE_FORWARD
 		animation.motion = config.root_motion or 0
-		animation.need_reset = animation.motion > 0
 		animation.primary = true
 
 		animation.reset_root_motion = function() 

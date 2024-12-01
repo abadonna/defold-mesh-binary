@@ -20,11 +20,12 @@ void Animation::ResetRootMotion(int frameIdx, bool isPrimary) {
 	Matrix4 m = this->armature->frames[frameIdx][bi];
 	m = Transpose(Inverse(local) * m * local);
 
-	//Vector4 v = this->transform * Vector4(0, 0, 0, 1);
-	//data->position = Vector3(v[0], v[2], -v[1]); 
-
 	Vector4 v = this->transform * m.getCol3();
 	data->position = Vector3(v.getX(), 0, -v.getY());
+
+	//this is more correct, but has some visual issues restarting loop
+	//Vector4 v = this->transform * Vector4(0, 0, 0, 1);
+	//data->position = Vector3(v[0], 0, -v[1]);
 
 	m = this->transform * m * Inverse(this->transform);
 	data->angle = QuatToEuler(Quat(m.getUpper3x3())).getZ();
@@ -195,7 +196,7 @@ void Animation::SetFrame(int trackIdx,  int idx1, int idx2, float factor, RootMo
 
 	if (hasChanged) {
 		this->needUpdate = true;
-		//dmLogInfo("setframe: %d, %d", track->frame1, track->frame2);
+
 		if (idx2 > -1) {
 			track->Interpolate(this->armature);
 		} else {
@@ -213,8 +214,6 @@ void Animation::GetRootMotionForFrame(int idx, RootMotionType rm, Matrix4& rootB
 	rootBone = Inverse(local) * armature->frames[idx][bi] * local;
 	Vector4 posePosition = rootBone.getRow(3);
 	Matrix4 worldRootBone = this->transform * Transpose(rootBone) * Inverse(this->transform);
-
-	//Quat rotation = dmGameObject::GetRotation(this->root);
 
 	if ((rm == RootMotionType::Rotation) || (rm == RootMotionType::Both)) {
 
@@ -240,7 +239,7 @@ void Animation::GetRootMotionForFrame(int idx, RootMotionType rm, Matrix4& rootB
 		position = Vector3(v.getX(), v.getZ(), -v.getY());
 
 		//------------remove Y ---------
-		v = Inverse(this->transform) * Vector4(0, 0, position[1], 0);
+		v = Inverse(this->transform) * Vector4(0, 0, position[1], 1);
 		position[1] = 0;
 		//------------------------------
 

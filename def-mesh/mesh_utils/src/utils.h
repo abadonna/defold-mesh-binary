@@ -9,8 +9,8 @@ using namespace std;
 using namespace dmVMath;
 
 struct RootMotionData {
-	float angle;
-	Vector3 position;
+	float angle = 0;
+	Vector3 position = Vector3(0);
 };
 
 struct Face {
