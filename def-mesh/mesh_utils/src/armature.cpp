@@ -20,9 +20,12 @@ Armature::Armature(Reader* reader) {
 	
 	for (int i = 0; i < boneCount; i++) {
 		this->boneNames.push_back(reader->ReadString());
-		//dmLogInfo("%s", this->boneNames[i].c_str());
-		this->boneParents.push_back(reader->ReadInt());
+		int parentIdx = reader->ReadInt();
+		this->boneParents.push_back(parentIdx);
 		this->localBones.push_back(reader->ReadMatrix());
+		if (parentIdx == -1) {
+			this->rootBoneIdx = i;
+		}
 	}
 
 	int frameCount = reader->ReadInt();

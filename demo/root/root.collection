@@ -1,0 +1,84 @@
+name: "root"
+instances {
+  id: "model"
+  prototype: "/def-mesh/binary.go"
+  children: "go2"
+  position {
+    y: -1.5
+  }
+}
+scale_along_z: 1
+embedded_instances {
+  id: "go"
+  children: "base"
+  children: "model"
+  data: "components {\n"
+  "  id: \"script\"\n"
+  "  component: \"/demo/root/root.script\"\n"
+  "}\n"
+  "components {\n"
+  "  id: \"demo\"\n"
+  "  component: \"/main/demo.script\"\n"
+  "}\n"
+  ""
+  scale3 {
+    x: 0.5
+    y: 0.5
+    z: 0.5
+  }
+}
+embedded_instances {
+  id: "go2"
+  data: "embedded_components {\n"
+  "  id: \"model\"\n"
+  "  type: \"model\"\n"
+  "  data: \"mesh: \\\"/builtins/assets/meshes/cube.dae\\\"\\n"
+  "name: \\\"{{NAME}}\\\"\\n"
+  "materials {\\n"
+  "  name: \\\"default\\\"\\n"
+  "  material: \\\"/builtins/materials/model.material\\\"\\n"
+  "  textures {\\n"
+  "    sampler: \\\"tex0\\\"\\n"
+  "    texture: \\\"/builtins/assets/images/logo/logo_256.png\\\"\\n"
+  "  }\\n"
+  "}\\n"
+  "\"\n"
+  "}\n"
+  ""
+  position {
+    y: 1.0
+  }
+  scale3 {
+    x: 0.4
+    y: 0.4
+    z: 0.4
+  }
+}
+embedded_instances {
+  id: "base"
+  data: "embedded_components {\n"
+  "  id: \"model\"\n"
+  "  type: \"model\"\n"
+  "  data: \"mesh: \\\"/builtins/assets/meshes/cube.dae\\\"\\n"
+  "name: \\\"{{NAME}}\\\"\\n"
+  "materials {\\n"
+  "  name: \\\"default\\\"\\n"
+  "  material: \\\"/builtins/materials/model.material\\\"\\n"
+  "  textures {\\n"
+  "    sampler: \\\"tex0\\\"\\n"
+  "    texture: \\\"/def-mesh/checker_256_32.png\\\"\\n"
+  "  }\\n"
+  "}\\n"
+  "\"\n"
+  "}\n"
+  ""
+  position {
+    x: 0.05
+    y: -1.5
+  }
+  scale3 {
+    x: 10.0
+    y: 0.1
+    z: 10.0
+  }
+}

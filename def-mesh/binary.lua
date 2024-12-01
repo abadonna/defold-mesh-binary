@@ -124,7 +124,7 @@ M.load = function(url, path, config)
 
 	local models
 	local data = sys.load_resource(path)
-	instance.binary, models = mesh_utils.load(path, data, config.bake or false)
+	instance.binary, models = mesh_utils.load(path, data, go.get_id(url), config.bake or false)
 	instance.animator = ANIMATOR.create(instance.binary)
 	
 	for name, model in pairs(models) do 

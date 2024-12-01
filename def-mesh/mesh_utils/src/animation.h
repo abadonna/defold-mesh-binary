@@ -4,6 +4,8 @@
 
 using namespace std;
 
+enum class RootMotionType { None, Rotation, Position, Both };
+
 class Animation
 {
 	private:
@@ -12,13 +14,22 @@ class Animation
 		vector<string> boneNames;
 		vector<Matrix4> cumulative;
 		vector<AnimationTrack> tracks;
+
+		Matrix4 transform;
+		dmGameObject::HInstance root = 0;
+
+		void CalculateBones(bool applyRotation, bool applyPosition);
+		void ExtractRootMotion(RootMotionType rm1, RootMotionType rm2);
+		void GetRootMotionForFrame(int idx, RootMotionType rm, Matrix4& rootBone, Vector3& position, float& angle);
 	
 	public:
 		vector<Matrix4>* bones = NULL;
 
-		void SetFrame(int trackIdx, int idx1, int idx2, float factor, bool useBakedAnimations, bool hasAttachaments);
+		RootMotionData rmdata1;
+		RootMotionData rmdata2;
+		
+		void SetFrame(int trackIdx, int idx1, int idx2, float factor, RootMotionType rm1, RootMotionType rm2);
 		void Update();
-		void CalculateBones();
 		int AddAnimationTrack(vector<string>* mask);
 		void SetTrackWeight(int idx, float weight);
 		int GetTextureBuffer(lua_State* L);
@@ -28,8 +39,10 @@ class Animation
 		int FindBone(string bone);
 		int GetFrameIdx();
 		bool IsBlending();
+		void SetTransform(Matrix4* matrix);
+		void ResetRootMotion(int frameIdx, bool isPrimary);
 		
-		Animation(Armature* armature);
+		Animation(Armature* armature, dmGameObject::HInstance obj);
 };
 
 class BoneGO {
@@ -48,7 +61,7 @@ class BoneGO {
 			Vector4 v3 = m.getCol2();
 
 			m = Transpose(m);
-			Quat q = MatToQuat(m);
+			Quat q = Quat(m.getUpper3x3());
 			dmGameObject::SetRotation(this->gameObject, Quat(q.getX(), q.getZ(), -q.getY(), q.getW()));
 			dmGameObject::SetPosition(this->gameObject, dmVMath::Point3(v1.getW(), v3.getW(), -v2.getW()));
 		}

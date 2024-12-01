@@ -12,6 +12,22 @@ using namespace Vectormath::Aos;
 
 std::unordered_map<std::string, BinaryFile*> files;
 
+static int SwitchRootMotion(lua_State* L) {
+    lua_getfield(L, 1, "instance");
+    Instance* instance = (Instance*)lua_touserdata(L, -1);
+    instance->SwitchRootMotion();
+    return 0;
+}
+
+static int ResetRootMotion(lua_State* L) {
+    lua_getfield(L, 1, "instance");
+    Instance* instance = (Instance*)lua_touserdata(L, -1);
+    bool isPrimary = lua_toboolean(L, 2);
+    int frame = luaL_checknumber(L, 3);
+    instance->ResetRootMotion(isPrimary, frame);
+    return 0;
+}
+
 static int AddAnimationTrack(lua_State* L) {
     lua_getfield(L, 1, "instance");
     Instance* instance = (Instance*)lua_touserdata(L, -1);
@@ -98,8 +114,10 @@ static int SetFrame(lua_State* L) {
     int frame1 = luaL_checknumber(L, 3);
     int frame2 = (count > 3) ? luaL_checknumber(L, 4) : -1;
     float factor = (count > 4) ? luaL_checknumber(L, 5) : 0;
+    RootMotionType rm1 = (count > 5) ? static_cast<RootMotionType>(luaL_checknumber(L, 6)) : RootMotionType::None;
+    RootMotionType rm2 = (count > 6) ? static_cast<RootMotionType>(luaL_checknumber(L, 7)) : RootMotionType::None;
 
-    instance->SetFrame(track, frame1, frame2, factor);
+    instance->SetFrame(track, frame1, frame2, factor, rm1, rm2);
     return 0;
 }
 
@@ -127,7 +145,8 @@ static int Delete(lua_State* L) {
 static int Load(lua_State* L) {
     std::string path = string(luaL_checkstring(L, 1));
     const char* content =  luaL_checkstring(L, 2);
-    bool useBakedAnimations = lua_toboolean(L, 3);
+    dmGameObject::HInstance obj = dmScript::CheckGOInstance(L, 3);
+    bool useBakedAnimations = lua_toboolean(L, 4);
 
     BinaryFile* binary;
     if (auto search = files.find(path); search != files.end()) {
@@ -137,7 +156,7 @@ static int Load(lua_State* L) {
         binary = files[path];
     }
 
-    Instance* instance = binary->CreateInstance(useBakedAnimations);
+    Instance* instance = binary->CreateInstance(obj, useBakedAnimations);
     lua_newtable(L);
     lua_pushstring(L, "instance");
     lua_pushlightuserdata(L, instance);
@@ -149,6 +168,8 @@ static int Load(lua_State* L) {
 
     static const luaL_Reg f[] =
     {
+        {"switch_root_motion", SwitchRootMotion},
+        {"reset_root_motion", ResetRootMotion},
         {"add_animation_track", AddAnimationTrack},
         {"set_animation_track_weight", SetAnimationTrackWeight},
         {"attach_bone_go", AttachBoneGO},

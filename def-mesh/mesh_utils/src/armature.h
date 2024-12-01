@@ -14,6 +14,8 @@ class Armature
 		vector<Matrix4> localBones;
 		vector<int> boneParents;
 
+		int rootBoneIdx = 0;
+
 		int animationTextureWidth = 0;
 		int animationTextureHeight = 0;
 		

@@ -8,6 +8,11 @@
 using namespace std;
 using namespace dmVMath;
 
+struct RootMotionData {
+	float angle = 0;
+	Vector3 position = Vector3(0);
+};
+
 struct Face {
 	int v[3];
 	bool isFlat = false;
@@ -33,7 +38,7 @@ struct Transform3d {
 	Vector3 position;
 	Vector3 scale;
 	Quat rotation;
-	//Matrix4 matrix;
+	Matrix4 matrix;
 };
 
 struct Ramp {
@@ -66,8 +71,9 @@ bool CONTAINS(unordered_map<K, T>* map, K key){
 	return map->find(key) != map->end();
 }
 
-Quat MatToQuat(Matrix4 m);
-void MatrixBlend (vector<Matrix4>* dst, vector<Matrix4>* src, vector<Matrix4>* result, int idx, float factor);
+Vector3 QuatToEuler(Quat q);
+
+void MatrixBlend (Matrix4* m1, Matrix4* m2, Matrix4* result, float factor);
 
 struct Material {
 	string name;
