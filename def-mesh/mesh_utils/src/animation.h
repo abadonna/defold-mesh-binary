@@ -4,6 +4,8 @@
 
 using namespace std;
 
+enum class RootMotion { None, Rotation, Position, Both };
+
 class Animation
 {
 	private:
@@ -14,18 +16,17 @@ class Animation
 		vector<AnimationTrack> tracks;
 
 		Matrix4 transform;
-		float angle;
-		Vector3 position;
-		
 		dmGameObject::HInstance root = 0;
 
 		void CalculateBones(bool applyRotation, bool applyPosition);
+		void ExtractRootMotion(RootMotion rm1, RootMotion rm2);
+		void GetRootMotionForFrame(int idx, RootMotion rm, Matrix4& rootBone, Vector3& position, float& angle);
 	
 	public:
 		vector<Matrix4>* bones = NULL;
 		
-		void SetFrame(int trackIdx, int idx1, int idx2, float factor, bool useBakedAnimations, bool hasAttachaments);
-		void Update(bool rotation, bool position);
+		void SetFrame(int trackIdx, int idx1, int idx2, float factor, RootMotion rm1, RootMotion rm2);
+		void Update();
 		int AddAnimationTrack(vector<string>* mask);
 		void SetTrackWeight(int idx, float weight);
 		int GetTextureBuffer(lua_State* L);
@@ -35,9 +36,15 @@ class Animation
 		int FindBone(string bone);
 		int GetFrameIdx();
 		bool IsBlending();
-		void SetTransform(Matrix4* matrix, int frame);
+		void SetTransform(Matrix4* matrix, int frame1, int frame2);
 		
 		Animation(Armature* armature, dmGameObject::HInstance obj);
+
+		//---------- TODO: refactor this --------
+		float angle1;
+		Vector3 position1;
+		float angle2;
+		Vector3 position2;
 };
 
 class BoneGO {

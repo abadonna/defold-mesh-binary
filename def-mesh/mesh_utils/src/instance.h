@@ -35,7 +35,7 @@ class ModelInstance {
 		~ModelInstance();
 		
 		void CreateLuaProxy(lua_State* L);
-		void SetFrame(int trackIdx, int idx1, int idx2, float factor);
+		void SetFrame(int trackIdx, int idx1, int idx2, float factor, RootMotion rm1, RootMotion rm2);
 		void Update(lua_State* L);
 		void SetShapes(lua_State* L, unordered_map<string, float>* values);
 		
@@ -50,19 +50,16 @@ class Instance{
 		bool useBakedAnimations = false;
 
 	public:
-		
-		bool rootTransformPosition = false;
-		bool rootTransformRotation = false;
-	
 		void SetShapes(lua_State* L, unordered_map<string, float>* values);
 		void CreateLuaProxy(lua_State* L);
-		void SetFrame(int trackIdx, int idx1, int idx2, float factor);
+		void SetFrame(int trackIdx, int idx1, int idx2, float factor, RootMotion rm1, RootMotion rm2);
 		void Update(lua_State* L);
 		URL* AttachGameObject(dmGameObject::HInstance go, string bone);
 		int AddAnimationTrack(vector<string>* mask);
 		void SetAnimationTrackWeight(int idx, float weight);
 
-		void ResetRootTransform(int frame);
+		void ResetRootMotion(bool isPrimary, int frame);
+		void SwitchRootMotion();
 		
 		Instance(vector<Model*>* models, vector<Armature*>* armatures, dmGameObject::HInstance obj, bool useBakedAnimations);
 		~Instance();

@@ -12,21 +12,19 @@ using namespace Vectormath::Aos;
 
 std::unordered_map<std::string, BinaryFile*> files;
 
-static int ResetRootTransform(lua_State* L) {
+static int SwitchRootMotion(lua_State* L) {
     lua_getfield(L, 1, "instance");
     Instance* instance = (Instance*)lua_touserdata(L, -1);
-    int frame = luaL_checknumber(L, 2);
-    instance->ResetRootTransform(frame);
+    instance->SwitchRootMotion();
     return 0;
 }
 
-static int SetRootTransform(lua_State* L) {
+static int ResetRootMotion(lua_State* L) {
     lua_getfield(L, 1, "instance");
     Instance* instance = (Instance*)lua_touserdata(L, -1);
-
-    instance->rootTransformRotation = lua_toboolean(L, 2);
-    instance->rootTransformPosition = lua_toboolean(L, 3); //xz
-    
+    bool isPrimary = lua_toboolean(L, 2);
+    int frame = luaL_checknumber(L, 3);
+    instance->ResetRootMotion(isPrimary, frame);
     return 0;
 }
 
@@ -116,8 +114,10 @@ static int SetFrame(lua_State* L) {
     int frame1 = luaL_checknumber(L, 3);
     int frame2 = (count > 3) ? luaL_checknumber(L, 4) : -1;
     float factor = (count > 4) ? luaL_checknumber(L, 5) : 0;
+    RootMotion rm1 = (count > 5) ? static_cast<RootMotion>(luaL_checknumber(L, 6)) : RootMotion::None;
+    RootMotion rm2 = (count > 6) ? static_cast<RootMotion>(luaL_checknumber(L, 7)) : RootMotion::None;
 
-    instance->SetFrame(track, frame1, frame2, factor);
+    instance->SetFrame(track, frame1, frame2, factor, rm1, rm2);
     return 0;
 }
 
@@ -168,8 +168,8 @@ static int Load(lua_State* L) {
 
     static const luaL_Reg f[] =
     {
-        {"reset_root_transform", ResetRootTransform},
-        {"set_root_transform", SetRootTransform},
+        {"switch_root_motion", SwitchRootMotion},
+        {"reset_root_motion", ResetRootMotion},
         {"add_animation_track", AddAnimationTrack},
         {"set_animation_track_weight", SetAnimationTrackWeight},
         {"attach_bone_go", AttachBoneGO},

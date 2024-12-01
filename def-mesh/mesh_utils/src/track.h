@@ -9,9 +9,11 @@ class Armature;
 
 class AnimationTrack {
 	private:
-		vector<Matrix4> interpolated;
 
 	public:
+
+		vector<Matrix4> interpolated;
+	
 		int frame1 = -1;
 		int frame2 = -1;
 		float factor = 0.0;
