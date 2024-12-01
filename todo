@@ -4,5 +4,6 @@
 - проверить производительность текстур при блендинге, может стоит выкинуть рантайм текстуры
 - блендить root motion по всем трекам
 - убрать трансформы с арматур.. 
+- https://www.youtube.com/watch?v=Jkv0pbp0ckQ&t=6007s
 - https://github.com/jkuhlmann/cgltf/blob/master/cgltf.h
 - additive треки?

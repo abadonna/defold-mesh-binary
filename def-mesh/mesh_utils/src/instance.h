@@ -35,7 +35,7 @@ class ModelInstance {
 		~ModelInstance();
 		
 		void CreateLuaProxy(lua_State* L);
-		void SetFrame(int trackIdx, int idx1, int idx2, float factor, RootMotion rm1, RootMotion rm2);
+		void SetFrame(int trackIdx, int idx1, int idx2, float factor, RootMotionType rm1, RootMotionType rm2);
 		void Update(lua_State* L);
 		void SetShapes(lua_State* L, unordered_map<string, float>* values);
 		
@@ -52,7 +52,7 @@ class Instance{
 	public:
 		void SetShapes(lua_State* L, unordered_map<string, float>* values);
 		void CreateLuaProxy(lua_State* L);
-		void SetFrame(int trackIdx, int idx1, int idx2, float factor, RootMotion rm1, RootMotion rm2);
+		void SetFrame(int trackIdx, int idx1, int idx2, float factor, RootMotionType rm1, RootMotionType rm2);
 		void Update(lua_State* L);
 		URL* AttachGameObject(dmGameObject::HInstance go, string bone);
 		int AddAnimationTrack(vector<string>* mask);

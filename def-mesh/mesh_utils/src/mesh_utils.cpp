@@ -114,8 +114,8 @@ static int SetFrame(lua_State* L) {
     int frame1 = luaL_checknumber(L, 3);
     int frame2 = (count > 3) ? luaL_checknumber(L, 4) : -1;
     float factor = (count > 4) ? luaL_checknumber(L, 5) : 0;
-    RootMotion rm1 = (count > 5) ? static_cast<RootMotion>(luaL_checknumber(L, 6)) : RootMotion::None;
-    RootMotion rm2 = (count > 6) ? static_cast<RootMotion>(luaL_checknumber(L, 7)) : RootMotion::None;
+    RootMotionType rm1 = (count > 5) ? static_cast<RootMotionType>(luaL_checknumber(L, 6)) : RootMotionType::None;
+    RootMotionType rm2 = (count > 6) ? static_cast<RootMotionType>(luaL_checknumber(L, 7)) : RootMotionType::None;
 
     instance->SetFrame(track, frame1, frame2, factor, rm1, rm2);
     return 0;

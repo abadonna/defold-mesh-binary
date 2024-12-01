@@ -1,0 +1,71 @@
+local binary = require "def-mesh.binary" 
+
+local WALK = {start = 78, finish = 107}
+local TURN = {start = 108, finish = 138}
+
+
+function init(self)
+
+	
+	self.model = binary.load("/model", "/assets/tracks.bin")
+	
+	self.walk = function()
+		self.model.animator.play(WALK, {root_motion = RM_POSITION, blend_duration= .2, fps2=15}, self.turn)
+	end
+
+	self.turn = function()
+		self.model.animator.play(TURN, {root_motion = RM_BOTH, blend_duration = .2, fps2 = 15}, self.walk)
+	end
+
+	self.walk()
+
+	--go.set_rotation(vmath.quat_rotation_y(math.pi * .5) , "/model")
+	--self.model.animator.play(WALK, {fps = 5, root_motion = RM_POSITION, blend_duration2 = 2, playback = go.PLAYBACK_LOOP_FORWARD})
+	--self.model.animator.play({start = 0, finish = 50}, {fps = 5, playback2 = go.PLAYBACK_LOOP_FORWARD})
+
+
+	--[[
+	self.model.animator.play(WALK, {root_motion2 = RM_POSITION, fps=15, playback2 = go.PLAYBACK_LOOP_FORWARD}, function()
+		go.set_position(vmath.vector3(0, -1.5, 1.62), "/model")
+		self.model.animator.set_frame(0, 78)
+		self.model.animator.update_tracks()
+		self.model.animator.play(WALK, { root_motion2 = RM_POSITION, blend_duration2= .5, fps=5})
+	end)
+	--]]
+
+
+	--[[
+	self.model.animator.binary:reset_root_motion(true, 78)
+	self.model.animator.set_frame(0, 78, -1, 1, 2)
+	self.model.animator.update_tracks()
+
+	timer.delay(2, false, function()
+		self.model.animator.set_frame(0, 107, -1, 1, 2)
+		self.model.animator.update_tracks()
+	end);
+
+	timer.delay(4, false, function()
+		self.model.animator.set_frame(0, 78, -1, 1, 0)
+		self.model.animator.update_tracks()
+	end);
+
+	--]]
+
+
+	--self.model.animator.play(TURN, {root_motion = RM_BOTH, fps=10, playback = go.PLAYBACK_LOOP_FORWARD}, function()
+		
+	--	self.model.animator.play(WALK, { root_motion2 = RM_POSITION, blend_duration2= .5, fps=5})
+	--end)
+
+
+
+end
+
+
+function update(self, dt)
+	if self.model then self.model.animator.update(dt) end
+	if self.model2 then self.model2.animator.update(dt) end
+
+	
+	
+end

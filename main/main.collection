@@ -77,5 +77,11 @@ embedded_instances {
   "  data: \"collection: \\\"/demo/layers/layers.collection\\\"\\n"
   "\"\n"
   "}\n"
+  "embedded_components {\n"
+  "  id: \"root\"\n"
+  "  type: \"collectionproxy\"\n"
+  "  data: \"collection: \\\"/demo/root/root.collection\\\"\\n"
+  "\"\n"
+  "}\n"
   ""
 }

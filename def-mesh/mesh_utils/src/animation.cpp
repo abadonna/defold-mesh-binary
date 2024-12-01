@@ -6,42 +6,36 @@ Animation::Animation(Armature* armature, dmGameObject::HInstance obj) {
 	AnimationTrack base;
 	this->tracks.reserve(8); //to avoid losing pointers to calculated bones
 	this->tracks.push_back(base);
-	this->SetFrame(0, 0, -1, 0, RootMotion::None, RootMotion::None);
+	this->SetFrame(0, 0, -1, 0, RootMotionType::None, RootMotionType::None);
 	this->Update();
 
 }
 
-void Animation::SetTransform(Matrix4* matrix, int frame1, int frame2) {
-	this->transform = (matrix != NULL) ? *matrix : this->transform;
-
+void Animation::ResetRootMotion(int frameIdx, bool isPrimary) {
+	RootMotionData* data = isPrimary ? &this->rmdata1 : &this->rmdata2;
+	
 	int bi = this->armature->rootBoneIdx;
-
 	Matrix4 local = this->armature->localBones[bi];
-	Quat rotation = dmGameObject::GetRotation(this->root);
 	
-	if (frame1 > -1) {
-		Matrix4 m = this->armature->frames[frame1][bi];
-		m = Transpose(Inverse(local) * m * local);
+	Matrix4 m = this->armature->frames[frameIdx][bi];
+	m = Transpose(Inverse(local) * m * local);
 
-		Vector4 v = this->transform * m.getCol3();
-		this->position1 = Vector3(v.getX(), 0, -v.getY());
-		this->position1 = dmVMath::Rotate(rotation, this->position1);
-		
-		m = this->transform * m * Inverse(this->transform);
-		this->angle1 = QuatToEuler(Quat(m.getUpper3x3())).getZ();
-	}
+	//Vector4 v = this->transform * Vector4(0, 0, 0, 1);
+	//data->position = Vector3(v[0], v[2], -v[1]); 
+
+	Vector4 v = this->transform * m.getCol3();
+	data->position = Vector3(v.getX(), 0, -v.getY());
+
+	m = this->transform * m * Inverse(this->transform);
+	data->angle = QuatToEuler(Quat(m.getUpper3x3())).getZ();
+}
+
+void Animation::SetTransform(Matrix4* matrix) {
+	this->transform = *matrix;
 	
-	if (frame2 > -1) {
-		Matrix4 m = this->armature->frames[frame2][bi];
-		m = Transpose(Inverse(local) * m * local);
-
-		Vector4 v = this->transform * m.getCol3();
-		this->position2 = Vector3(v.getX(), 0, -v.getY());
-		this->position2 = dmVMath::Rotate(rotation, this->position2);
-
-		m = this->transform * m * Inverse(this->transform);
-		this->angle2 = QuatToEuler(Quat(m.getUpper3x3())).getZ();
-	}
+	this->ResetRootMotion(0, true);
+	this->ResetRootMotion(0, false);
+	
 }
 
 bool Animation::IsBlending() {
@@ -182,7 +176,7 @@ void Animation::CalculateBones(bool applyRotation, bool applyPosition) {
 	this->needUpdate = false;
 }
 
-void Animation::SetFrame(int trackIdx,  int idx1, int idx2, float factor, RootMotion rm1, RootMotion rm2) {
+void Animation::SetFrame(int trackIdx,  int idx1, int idx2, float factor, RootMotionType rm1, RootMotionType rm2) {
 	if (trackIdx >= this->tracks.size()) { return; }
 
 	int last_frame = this->armature->frames.size() - 1;
@@ -190,6 +184,8 @@ void Animation::SetFrame(int trackIdx,  int idx1, int idx2, float factor, RootMo
 
 	idx1 = (idx1 < last_frame) ? idx1 : last_frame;
 	idx2 = (idx2 < last_frame) ? idx2 : last_frame;
+
+	factor = (idx2 > -1) ? factor : 0;
 
 	bool hasChanged = ((track->frame1 != idx1) || (track->frame2 != idx2) || fabs(track->factor - factor) > 0.00001);
 
@@ -210,7 +206,7 @@ void Animation::SetFrame(int trackIdx,  int idx1, int idx2, float factor, RootMo
 	} 
 }
 
-void Animation::GetRootMotionForFrame(int idx, RootMotion rm, Matrix4& rootBone, Vector3& position, float& angle) {
+void Animation::GetRootMotionForFrame(int idx, RootMotionType rm, Matrix4& rootBone, Vector3& position, float& angle) {
 	int bi = this->armature->rootBoneIdx;
 	
 	Matrix4 local = this->armature->localBones[bi];
@@ -220,7 +216,7 @@ void Animation::GetRootMotionForFrame(int idx, RootMotion rm, Matrix4& rootBone,
 
 	//Quat rotation = dmGameObject::GetRotation(this->root);
 
-	if ((rm == RootMotion::Rotation) || (rm == RootMotion::Both)) {
+	if ((rm == RootMotionType::Rotation) || (rm == RootMotionType::Both)) {
 
 		angle = QuatToEuler(Quat(worldRootBone.getUpper3x3())).getZ();
 	
@@ -233,18 +229,15 @@ void Animation::GetRootMotionForFrame(int idx, RootMotion rm, Matrix4& rootBone,
 
 		mm = Matrix4::rotationZ(-angle);
 		mm = Inverse(this->transform) * mm * this->transform;
-		posePosition = mm * posePosition;
+		Vector4 pPosition = mm * posePosition;
 
-		rootBone.setRow(3, posePosition);
+		rootBone.setRow(3, pPosition);
 	} 
 	
-	if ((rm == RootMotion::Position) || (rm == RootMotion::Both)) {
+	if ((rm == RootMotionType::Position) || (rm == RootMotionType::Both)) {
 
 		Vector4 v = this->transform * posePosition;
 		position = Vector3(v.getX(), v.getZ(), -v.getY());
-
-		/*
-		position = dmVMath::Rotate(rotation, position);
 
 		//------------remove Y ---------
 		v = Inverse(this->transform) * Vector4(0, 0, position[1], 0);
@@ -252,28 +245,28 @@ void Animation::GetRootMotionForFrame(int idx, RootMotion rm, Matrix4& rootBone,
 		//------------------------------
 
 		rootBone.setRow(3, v);
-		*/
+
 	}
 
 	rootBone = local * rootBone * Inverse(local);
 }
 
-void Animation::ExtractRootMotion(RootMotion rm1, RootMotion rm2) {
-	if (rm1 == RootMotion::None && rm2 == RootMotion::None) return;
+void Animation::ExtractRootMotion(RootMotionType rm1, RootMotionType rm2) {
+	if (rm1 == RootMotionType::None && rm2 == RootMotionType::None) return;
 	
 	auto track = &this->tracks[0];
 	int bi = this->armature->rootBoneIdx;
 	
 	Matrix4 rootBone1, rootBone2;
-	Vector3 position1 = this->position1;
-	Vector3 position2 = this->position2;
-	float angle1 = this->angle1;
-	float angle2 = this->angle2;
+	Vector3 position1 = Vector3(0);
+	Vector3 position2 = Vector3(0);
+	float angle1 = this->rmdata1.angle;
+	float angle2 = this->rmdata2.angle;
 
-	bool applyRotation1 = (rm1 == RootMotion::Rotation) || (rm1 == RootMotion::Both);
-	bool applyPosition1 = (rm1 == RootMotion::Position) || (rm1 == RootMotion::Both);
-	bool applyRotation2 = (track->frame2 > -1) && ((rm2 == RootMotion::Rotation) || (rm2 == RootMotion::Both));
-	bool applyPosition2 = (track->frame2 > -1) && ((rm2 == RootMotion::Position) || (rm2 == RootMotion::Both));
+	bool applyRotation1 = (rm1 == RootMotionType::Rotation) || (rm1 == RootMotionType::Both);
+	bool applyPosition1 = (rm1 == RootMotionType::Position) || (rm1 == RootMotionType::Both);
+	bool applyRotation2 = (track->frame2 > -1) && ((rm2 == RootMotionType::Rotation) || (rm2 == RootMotionType::Both));
+	bool applyPosition2 = (track->frame2 > -1) && ((rm2 == RootMotionType::Position) || (rm2 == RootMotionType::Both));
 
 
 	Matrix4* bone1 = &this->armature->frames[track->frame1][bi];
@@ -282,22 +275,21 @@ void Animation::ExtractRootMotion(RootMotion rm1, RootMotion rm2) {
 	Quat r1 = Quat::identity();
 	Quat r2 = Quat::identity();
 	
-	if (rm1 != RootMotion::None) {
+	if (rm1 != RootMotionType::None) {
 		this->GetRootMotionForFrame(track->frame1, rm1, rootBone1, position1, angle1);
 		bone1 = &rootBone1;
 
-		r1 = Quat::rotationY(angle1 - this->angle1);
-		this->angle1 = angle1;
+		r1 = Quat::rotationY(angle1 - this->rmdata1.angle);
+		this->rmdata1.angle = angle1;
 
-		//dmLogInfo("setframe: %d, %f, %f, %f", track->frame1, position1[0],position1[1],position1[2]);
 	}
 
 	if (applyPosition2 || applyRotation2) {
 		this->GetRootMotionForFrame(track->frame2, rm2, rootBone2, position2, angle2);
 		bone2 = &rootBone2;
 		
-		r2 = Quat::rotationY(angle2 - this->angle2);
-		this->angle2 = angle2;
+		r2 = Quat::rotationY(angle2 - this->rmdata2.angle);
+		this->rmdata2.angle = angle2;
 	}
 
 	Quat rotation = dmGameObject::GetRotation(this->root);
@@ -311,73 +303,55 @@ void Animation::ExtractRootMotion(RootMotion rm1, RootMotion rm2) {
 
 
 	Matrix4 local = this->armature->localBones[bi];
-	
+
 	if (applyPosition1) {
-		position1 = dmVMath::Rotate(rotation, position1);
 
-		//------------remove Y ---------
-		Vector4 v = Inverse(this->transform) * Vector4(0, 0, position1[1], 0);
-		position1[1] = 0;
-		//------------------------------
+		Vector3 velocity = position1 - this->rmdata1.position;
+		this->rmdata1.position = position1;
 
-		rootBone1 = Inverse(local) * rootBone1 * local;
-		rootBone1.setRow(3, v);
-		//rootBone1.setRow(3, Vector4(0));
-		rootBone1 = local * rootBone1 * Inverse(local);
+		if (applyRotation1) {
+			Matrix3 mm = Matrix3::rotationY(-angle1);
+			velocity = mm * velocity;
+		}
+		
+		position1 = dmVMath::Rotate(rotation, velocity);	
+		//dmLogInfo("%d, %f, %f, %f", this->GetFrameIdx(), position1[0], position1[1], position1[2]);
 		
 	}
+
 
 	if (applyPosition2) {
-		position2 = dmVMath::Rotate(rotation, position2);
+		Vector3 velocity = position2 - this->rmdata2.position;
+		this->rmdata2.position = position2;
 
-		//------------remove Y ---------
-		Vector4 v = Inverse(this->transform) * Vector4(0, 0, position2[1], 0);
-		position2[1] = 0;
-		//------------------------------
+		if (applyRotation2) {
+			Matrix3 mm = Matrix3::rotationY(-angle2);
+			velocity = mm * velocity;
+		}
 
-		
-		rootBone2 = Inverse(local) * rootBone2 * local;
-		rootBone2.setRow(3, v);
-		//rootBone2.setRow(3, Vector4(0));
-		rootBone2 = local * rootBone2 * Inverse(local);
+		position2 = dmVMath::Rotate(rotation, velocity);
 
 	}
 
-	/*
-	if (applyPosition1) {
-		Point3 p = dmGameObject::GetPosition(this->root);
-		dmGameObject::SetPosition(this->root, p + position1 - this->position1);
-		this->position1 = position1;
-		
-	}*/
 
-	
 	if (applyPosition1 || applyPosition2) 
 	{
-		Vector3 position = Slerp(track->factor, position1 - this->position1, position2 - this->position2);
-		this->position1 = position1;
-		this->position2 = position2;
-		
-		//Vector4 v1 = bone1->getRow(3);
-		//Vector4 v2 = bone2 != NULL ? bone2->getRow(3) : Vector4(0);
-		
-		//dmLogInfo("%d, %d, position 1, %f, %f, %f", track->frame1, track->frame2, v1[0], v1[1], v1[2] );
-		//dmLogInfo("%d, %d, position 2, %f, %f, %f", track->frame1, track->frame2, v2[0], v2[1], v2[2] );
-		
 		Point3 p = dmGameObject::GetPosition(this->root);
+		Vector3 position = Slerp(track->factor, position1, position2);
+
 		dmGameObject::SetPosition(this->root, p + position);
 
 	}
-
 	
 	if (track->frame2 == -1) {
 		track->interpolated = armature->frames[track->frame1]; //copy
 		track->bones = &track->interpolated;
 		track->interpolated[bi] = *bone1;
+		Vector4 v = bone1->getRow(3);
+		
 	}else {
 		MatrixBlend(bone1, bone2, &track->interpolated[bi], track->factor);
 	}
-
 
 
 }

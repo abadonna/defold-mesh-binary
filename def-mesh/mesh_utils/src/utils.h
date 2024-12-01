@@ -8,6 +8,11 @@
 using namespace std;
 using namespace dmVMath;
 
+struct RootMotionData {
+	float angle;
+	Vector3 position;
+};
+
 struct Face {
 	int v[3];
 	bool isFlat = false;

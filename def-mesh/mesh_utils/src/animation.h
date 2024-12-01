@@ -4,7 +4,7 @@
 
 using namespace std;
 
-enum class RootMotion { None, Rotation, Position, Both };
+enum class RootMotionType { None, Rotation, Position, Both };
 
 class Animation
 {
@@ -19,13 +19,16 @@ class Animation
 		dmGameObject::HInstance root = 0;
 
 		void CalculateBones(bool applyRotation, bool applyPosition);
-		void ExtractRootMotion(RootMotion rm1, RootMotion rm2);
-		void GetRootMotionForFrame(int idx, RootMotion rm, Matrix4& rootBone, Vector3& position, float& angle);
+		void ExtractRootMotion(RootMotionType rm1, RootMotionType rm2);
+		void GetRootMotionForFrame(int idx, RootMotionType rm, Matrix4& rootBone, Vector3& position, float& angle);
 	
 	public:
 		vector<Matrix4>* bones = NULL;
+
+		RootMotionData rmdata1;
+		RootMotionData rmdata2;
 		
-		void SetFrame(int trackIdx, int idx1, int idx2, float factor, RootMotion rm1, RootMotion rm2);
+		void SetFrame(int trackIdx, int idx1, int idx2, float factor, RootMotionType rm1, RootMotionType rm2);
 		void Update();
 		int AddAnimationTrack(vector<string>* mask);
 		void SetTrackWeight(int idx, float weight);
@@ -36,15 +39,10 @@ class Animation
 		int FindBone(string bone);
 		int GetFrameIdx();
 		bool IsBlending();
-		void SetTransform(Matrix4* matrix, int frame1, int frame2);
+		void SetTransform(Matrix4* matrix);
+		void ResetRootMotion(int frameIdx, bool isPrimary);
 		
 		Animation(Armature* armature, dmGameObject::HInstance obj);
-
-		//---------- TODO: refactor this --------
-		float angle1;
-		Vector3 position1;
-		float angle2;
-		Vector3 position2;
 };
 
 class BoneGO {

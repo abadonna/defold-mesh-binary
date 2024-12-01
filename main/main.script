@@ -16,11 +16,11 @@ function init(self)
 	self.font = imgui.font_add_ttf_data(data, #data, 32, 32)
 	imgui.set_ini_filename()
 
-	load_scene(self, "layers")
+	load_scene(self, "root")
 end
 
 function update(self, dt)
-	imgui.set_next_window_size(500, 230)
+	imgui.set_next_window_size(500, 270)
 	
 	imgui.begin_window("Blender export demo")
 	imgui.font_push(self.font)
@@ -43,6 +43,11 @@ function update(self, dt)
 	changed, checked = imgui.checkbox("tracks", self.demo == "layers")
 	if changed and checked then
 		load_scene(self, "layers")
+	end
+
+	changed, checked = imgui.checkbox("root motion", self.demo == "root")
+	if changed and checked then
+		load_scene(self, "root")
 	end
 	
 	imgui.font_pop()

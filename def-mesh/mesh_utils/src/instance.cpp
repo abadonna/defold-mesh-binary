@@ -16,7 +16,7 @@ Instance::Instance(vector<Model*>* models, vector<Armature*>* armatures, dmGameO
 		Animation* animation = NULL;
 		if(model->armatureIdx > -1) { 
 			animation = this->animations[model->armatureIdx];
-			animation->SetTransform(&model->world.matrix, 0, 0);
+			animation->SetTransform(&model->world.matrix);
 		}
 		ModelInstance* mi = new ModelInstance(model, animation, useBakedAnimations);
 		this->models.push_back(mi);
@@ -41,7 +41,7 @@ void Instance::CreateLuaProxy(lua_State* L) {
 	}
 }
 
-void Instance::SetFrame(int trackIdx, int idx1, int idx2, float factor, RootMotion rm1, RootMotion rm2) {
+void Instance::SetFrame(int trackIdx, int idx1, int idx2, float factor, RootMotionType rm1, RootMotionType rm2) {
 	for(auto & animation : this->animations) {
 		animation->SetFrame(trackIdx, idx1, idx2, factor, rm1, rm2);
 	}
@@ -49,14 +49,13 @@ void Instance::SetFrame(int trackIdx, int idx1, int idx2, float factor, RootMoti
 
 void Instance::ResetRootMotion(bool isPrimary, int frame) {
 	if (this->animations.size() > 0) {
-		this->animations[0]->SetTransform(NULL, isPrimary ? frame : -1, isPrimary ? -1 : frame);
+		this->animations[0]->ResetRootMotion(frame, isPrimary);
 	}
 }
 
 void Instance::SwitchRootMotion() {
 	if (this->animations.size() > 0) {
-		std::swap(this->animations[0]->angle1, this->animations[0]->angle2);
-		std::swap(this->animations[0]->position1, this->animations[0]->position2);		
+		std::swap(this->animations[0]->rmdata1, this->animations[0]->rmdata2);
 	}
 }
 
