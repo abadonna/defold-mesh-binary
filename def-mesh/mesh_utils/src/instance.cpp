@@ -61,16 +61,13 @@ void Instance::SwitchRootMotion() {
 
 void Instance::Update(lua_State* L) {
 	for(auto & animation : this->animations) {
-		if (!this->useBakedAnimations || animation->IsBlending()) {
+		if (!this->useBakedAnimations || animation->IsBlending() || animation->HasAttachments()) {
 			animation->Update();
 		}
 	}
 	
 	for(auto & mi : this->models) {
 		mi->Update(L);
-	}
-	for(auto & obj : this->boneObjects) {
-		obj.ApplyTransform();
 	}
 }
 
@@ -81,15 +78,10 @@ void Instance::SetShapes(lua_State* L, unordered_map<string, float>* values) {
 }
 
 URL* Instance::AttachGameObject(dmGameObject::HInstance go, string bone) {
-
-	BoneGO obj;
-	obj.gameObject = go;
 	
 	for(auto & mi : this->models) {
-		URL* url = mi->AttachGameObject(&obj, bone);
+		URL* url = mi->AttachGameObject(go, bone);
 		if (url != NULL) {
-			this->boneObjects.push_back(obj);
-			obj.ApplyTransform();
 			return url;
 		}
 	}

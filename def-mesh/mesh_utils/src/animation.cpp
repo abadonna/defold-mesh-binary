@@ -80,6 +80,9 @@ void Animation::Update() {
 
 	this->CalculateBones(false, false);
 
+	for(auto & obj : this->boneObjects) {
+		obj.ApplyTransform(this->bones);
+	}
 }
 
 
@@ -492,4 +495,15 @@ void Animation::SetTrackWeight(int idx, float weight) {
 
 int Animation::GetFrameIdx() {
 	return this->tracks[0].frame1;
+}
+
+bool Animation::HasAttachments() {
+	return this->boneObjects.size() > 0;
+}
+
+
+void Animation::CreateBoneGO(dmGameObject::HInstance go, int idx) {
+	BoneGameObject obj = BoneGameObject(go, idx);
+	this->boneObjects.push_back(obj);
+	obj.ApplyTransform(this->bones);
 }

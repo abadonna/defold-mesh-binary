@@ -1,6 +1,7 @@
 #include "utils.h"
 #include "armature.h"
 #include "track.h"
+#include "bonego.h"
 
 using namespace std;
 
@@ -17,6 +18,8 @@ class Animation
 
 		Matrix4 transform;
 		dmGameObject::HInstance root = 0;
+
+		vector<BoneGameObject> boneObjects;
 
 		void CalculateBones(bool applyRotation, bool applyPosition);
 		void ExtractRootMotion(RootMotionType rm1, RootMotionType rm2);
@@ -39,30 +42,10 @@ class Animation
 		int FindBone(string bone);
 		int GetFrameIdx();
 		bool IsBlending();
+		bool HasAttachments();
 		void SetTransform(Matrix4* matrix);
 		void ResetRootMotion(int frameIdx, bool isPrimary);
+		void CreateBoneGO(dmGameObject::HInstance go, int idx);
 		
 		Animation(Armature* armature, dmGameObject::HInstance obj);
-};
-
-class BoneGO {
-	public:
-	
-		int boneIdx;
-		Animation* animation;
-		dmGameObject::HInstance gameObject;
-		void ApplyTransform() {
-
-			Matrix4 m = this->animation->bones->at(this->boneIdx);
-			m.setCol3(Vector4(1));
-
-			Vector4 v1 = m.getCol0();
-			Vector4 v2 = m.getCol1();
-			Vector4 v3 = m.getCol2();
-
-			m = Transpose(m);
-			Quat q = Quat(m.getUpper3x3());
-			dmGameObject::SetRotation(this->gameObject, Quat(q.getX(), q.getZ(), -q.getY(), q.getW()));
-			dmGameObject::SetPosition(this->gameObject, dmVMath::Point3(v1.getW(), v3.getW(), -v2.getW()));
-		}
 };

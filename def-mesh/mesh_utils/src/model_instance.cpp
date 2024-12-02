@@ -361,12 +361,11 @@ void ModelInstance::ApplyShapes(lua_State* L) {
 	}
 }
 
-URL* ModelInstance::AttachGameObject(BoneGO* obj, string bone) {
+URL* ModelInstance::AttachGameObject(dmGameObject::HInstance go, string bone) {
 	int idx = this->animation->FindBone(bone);
 	if (idx > -1) {
-		obj->boneIdx = idx;
-		obj->animation = this->animation;
-		return &this->urls[0]; //TODO refactor
+		this->animation->CreateBoneGO(go, idx);
+		return &this->urls[0];
 	}
 	return NULL;
 }

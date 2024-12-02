@@ -7,7 +7,6 @@ class Model;
 
 class Instance{
 	private:
-		vector<BoneGO> boneObjects;
 		vector<ModelInstance*> models;
 		vector<Animation*> animations;
 		bool useBakedAnimations = false;

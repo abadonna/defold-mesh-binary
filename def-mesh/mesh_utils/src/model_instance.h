@@ -19,7 +19,6 @@ class ModelInstance {
 		void CalculateShapes(vector<string>* shapeNames);
 		void ApplyShapes(lua_State* L);
 		void ApplyArmature(lua_State* L, int meshIdx);
-		void ApplyTransform(BoneGO* obj);
 		void SetShapeFrame(lua_State* L, int idx1);
 	
 	public:
@@ -39,5 +38,5 @@ class ModelInstance {
 		void Update(lua_State* L);
 		void SetShapes(lua_State* L, unordered_map<string, float>* values);
 		
-		URL* AttachGameObject(BoneGO* obj, string bone);
+		URL* AttachGameObject(dmGameObject::HInstance go, string bone);
 };
