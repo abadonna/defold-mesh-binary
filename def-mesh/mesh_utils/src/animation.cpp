@@ -3,7 +3,7 @@
 Animation::Animation(Armature* armature, dmGameObject::HInstance obj) {
 	this->armature = armature;
 	this->root = obj;
-	AnimationTrack base;
+	AnimationTrack base = AnimationTrack(armature, NULL);
 	this->tracks.reserve(8); //to avoid losing pointers to calculated bones
 	this->tracks.push_back(base);
 	this->SetFrame(0, 0, -1, 0, RootMotionType::None, RootMotionType::None);
@@ -11,32 +11,17 @@ Animation::Animation(Armature* armature, dmGameObject::HInstance obj) {
 
 }
 
-void Animation::ResetRootMotion(int frameIdx, bool isPrimary) {
-	RootMotionData* data = isPrimary ? &this->rmdata1 : &this->rmdata2;
-	
-	int bi = this->armature->rootBoneIdx;
-	Matrix4 local = this->armature->localBones[bi];
-	
-	Matrix4 m = this->armature->frames[frameIdx][bi];
-	m = local * m * Inverse(local);
-	data->rotation = m;
-
-	Vector4 v = this->transform * m.getCol3();
-	data->position = Vector3(v[0], v[2], -v[1]);
-
-	data->offset = m.getCol3();
-
-	//m = this->transform * m * Inverse(this->transform);
-	data->angle = 0; // QuatToEuler(Quat(m.getUpper3x3())).getZ();	
-	
+void Animation::SwitchRootMotion() {
+	this->tracks[0].SwitchRootMotion();
 }
 
-void Animation::SetTransform(Matrix4* matrix) {
-	this->transform = *matrix;
-	
-	this->ResetRootMotion(0, true);
-	this->ResetRootMotion(0, false);
-	
+void Animation::ResetRootMotion(int frameIdx, bool isPrimary) {
+	this->tracks[0].ResetRootMotion(frameIdx, isPrimary);
+}
+
+void Animation::SetTransform(Matrix4 matrix) {
+	this->transform = matrix;
+	this->tracks[0].SetTransform(matrix);
 }
 
 bool Animation::IsBlending() {
@@ -143,168 +128,15 @@ void Animation::SetFrame(int trackIdx,  int idx1, int idx2, float factor, RootMo
 		this->needUpdate = true;
 
 		if (idx2 > -1) {
-			track->Interpolate(this->armature);
+			track->Interpolate();
 		} else {
 			track->bones = &this->armature->frames[idx1];
 		}
 
-		if (trackIdx == 0) {ExtractRootMotion(rm1, rm2);} //TODO: for all tracks
+		if (trackIdx == 0) {track->ExtractRootMotion(this->root, rm1, rm2);} //TODO: for all tracks
 	} 
 }
 
-void Animation::GetRootMotionForFrame(int idx, RootMotionData* data, RootMotionType rm, Matrix4& rootBone, Vector3& position, float& angle) {
-	int bi = this->armature->rootBoneIdx;
-	
-	Matrix4 local = this->armature->localBones[bi];
-	rootBone = local * armature->frames[idx][bi] * Inverse(local);
-
-	Vector4 posePosition = rootBone.getCol3();
-	Matrix4 worldRootBone = this->transform * rootBone * Inverse(data->rotation) * Inverse(this->transform);
-
-	if ((rm == RootMotionType::Rotation) || (rm == RootMotionType::Both)) {
-
-		angle = QuatToEuler(Quat(worldRootBone.getUpper3x3())).getZ();
-	
-		Matrix4 mm = Matrix4::rotationZ(angle);
-		mm =  worldRootBone * Inverse(mm);
-		mm = Inverse(this->transform) * mm * this->transform;
-
-		mm = mm * (data->rotation);
-
-		Matrix3 mXZ = mm.getUpper3x3();
-		rootBone.setUpper3x3(mXZ);
-	
-		mm = Matrix4::rotationZ(-angle);
-		mm = Inverse(this->transform) * mm * this->transform;
-		//posePosition = data->rotation * posePosition;
-		Vector4 pPosition = mm * posePosition;
-
-		rootBone.setCol3(pPosition);
-	} 
-	
-	if ((rm == RootMotionType::Position) || (rm == RootMotionType::Both)) {
-		
-		Vector4 v = this->transform * posePosition;
-		position = Vector3(v.getX(), v.getZ(), -v.getY());
-
-		//------------remove Y ---------
-		//v = Inverse(this->transform) * Vector4(0, 0, poition[1], 1) + data->offset;
-		//position[1] = 0;
-		//------------------------------
-
-		v = data->offset;
-
-		rootBone.setCol3(v);
-
-	}
-
-	rootBone = Inverse(local) * rootBone * local;
-}
-
-void Animation::ExtractRootMotion(RootMotionType rm1, RootMotionType rm2) {
-	if (rm1 == RootMotionType::None && rm2 == RootMotionType::None) return;
-	
-	auto track = &this->tracks[0];
-	int bi = this->armature->rootBoneIdx;
-	
-	Matrix4 rootBone1, rootBone2;
-	Vector3 position1 = Vector3(0);
-	Vector3 position2 = Vector3(0);
-	float angle1 = this->rmdata1.angle;
-	float angle2 = this->rmdata2.angle;
-
-	bool applyRotation1 = (rm1 == RootMotionType::Rotation) || (rm1 == RootMotionType::Both);
-	bool applyPosition1 = (rm1 == RootMotionType::Position) || (rm1 == RootMotionType::Both);
-	bool applyRotation2 = (track->frame2 > -1) && ((rm2 == RootMotionType::Rotation) || (rm2 == RootMotionType::Both));
-	bool applyPosition2 = (track->frame2 > -1) && ((rm2 == RootMotionType::Position) || (rm2 == RootMotionType::Both));
-
-
-	Matrix4* bone1 = &this->armature->frames[track->frame1][bi];
-	Matrix4* bone2 = track->frame2 > -1 ? &this->armature->frames[track->frame2][bi] : NULL;
-
-	Quat r1 = Quat::identity();
-	Quat r2 = Quat::identity();
-	
-	if (rm1 != RootMotionType::None) {
-		this->GetRootMotionForFrame(track->frame1, &this->rmdata1, rm1, rootBone1, position1, angle1);
-		bone1 = &rootBone1;
-
-		r1 = Quat::rotationY(angle1 - this->rmdata1.angle);
-		this->rmdata1.angle = angle1;
-
-	}
-
-	if (applyPosition2 || applyRotation2) {
-		this->GetRootMotionForFrame(track->frame2, &this->rmdata2, rm2, rootBone2, position2, angle2);
-		bone2 = &rootBone2;
-		
-		r2 = Quat::rotationY(angle2 - this->rmdata2.angle);
-		this->rmdata2.angle = angle2;
-	}
-
-	Quat rotation = dmGameObject::GetRotation(this->root);
-
-	if (applyRotation1 || applyRotation2) 
-	{
-		Quat diff = Slerp(track->factor, r1, r2);
-		rotation = diff * rotation;
-		dmGameObject::SetRotation(this->root, rotation);
-	}
-
-
-	Matrix4 local = this->armature->localBones[bi];
-
-	if (applyPosition1) {
-
-		Vector3 velocity = position1 - this->rmdata1.position;
-		this->rmdata1.position = position1;
-
-		if (applyRotation1) {
-			Matrix3 mm = Matrix3::rotationY(-angle1);
-			velocity = mm * velocity;
-		}
-
-		position1 = dmVMath::Rotate(rotation, velocity);	
-		//dmLogInfo("%d, %f, %f, %f", this->GetFrameIdx(), position1[0], position1[1], position1[2]);
-		
-	}
-
-
-	if (applyPosition2) {
-		Vector3 velocity = position2 - this->rmdata2.position;
-		this->rmdata2.position = position2;
-
-		if (applyRotation2) {
-			Matrix3 mm = Matrix3::rotationY(-angle2);
-			velocity = mm * velocity;
-		}
-
-		position2 = dmVMath::Rotate(rotation, velocity);
-
-	}
-
-
-	if (applyPosition1 || applyPosition2) 
-	{
-		Point3 p = dmGameObject::GetPosition(this->root);
-		Vector3 position = Slerp(track->factor, position1, position2);
-
-		dmGameObject::SetPosition(this->root, p + position);
-
-	}
-	
-	if (track->frame2 == -1) {
-		track->interpolated = armature->frames[track->frame1]; //copy
-		track->bones = &track->interpolated;
-		track->interpolated[bi] = *bone1;
-		Vector4 v = bone1->getRow(3);
-		
-	}else {
-		MatrixBlend(bone1, bone2, &track->interpolated[bi], track->factor);
-	}
-
-
-}
 
 int Animation::GetRuntimeBuffer(lua_State* L) {	
 
@@ -420,16 +252,7 @@ int Animation::GetFramesCount() {
 }
 
 int Animation::AddAnimationTrack(vector<string>* mask) {
-
-	AnimationTrack track;
-
-	for (auto & bone : *mask) {
-		int idx = this->armature->FindBone(bone);
-		if (idx > -1) {
-			track.mask.push_back(idx);
-		}
-	}
-
+	AnimationTrack track = AnimationTrack(this->armature, mask);
 	this->tracks.push_back(track);
 	return this->tracks.size() - 1;
 }

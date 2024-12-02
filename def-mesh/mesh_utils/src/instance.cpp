@@ -16,7 +16,7 @@ Instance::Instance(vector<Model*>* models, vector<Armature*>* armatures, dmGameO
 		Animation* animation = NULL;
 		if(model->armatureIdx > -1) { 
 			animation = this->animations[model->armatureIdx];
-			animation->SetTransform(&model->world.matrix);
+			animation->SetTransform(model->world.matrix);
 		}
 		ModelInstance* mi = new ModelInstance(model, animation, useBakedAnimations);
 		this->models.push_back(mi);
@@ -55,7 +55,7 @@ void Instance::ResetRootMotion(bool isPrimary, int frame) {
 
 void Instance::SwitchRootMotion() {
 	if (this->animations.size() > 0) {
-		std::swap(this->animations[0]->rmdata1, this->animations[0]->rmdata2);
+		this->animations[0]->SwitchRootMotion();
 	}
 }
 

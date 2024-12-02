@@ -5,8 +5,6 @@
 
 using namespace std;
 
-enum class RootMotionType { None, Rotation, Position, Both };
-
 class Animation
 {
 	private:
@@ -22,14 +20,9 @@ class Animation
 		vector<BoneGameObject> boneObjects;
 
 		void CalculateBones();
-		void ExtractRootMotion(RootMotionType rm1, RootMotionType rm2);
-		void GetRootMotionForFrame(int idx, RootMotionData* data, RootMotionType rm, Matrix4& rootBone, Vector3& position, float& angle);
-	
+		
 	public:
 		vector<Matrix4>* bones = NULL;
-
-		RootMotionData rmdata1;
-		RootMotionData rmdata2;
 		
 		void SetFrame(int trackIdx, int idx1, int idx2, float factor, RootMotionType rm1, RootMotionType rm2);
 		void Update();
@@ -43,7 +36,8 @@ class Animation
 		int GetFrameIdx();
 		bool IsBlending();
 		bool HasAttachments();
-		void SetTransform(Matrix4* matrix);
+		void SetTransform(Matrix4 matrix);
+		void SwitchRootMotion();
 		void ResetRootMotion(int frameIdx, bool isPrimary);
 		void CreateBoneGO(dmGameObject::HInstance go, int idx);
 		
