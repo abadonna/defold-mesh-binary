@@ -3,7 +3,7 @@
 bl_info = {
     "name": "Defold Mesh Binary Export",
     "author": "",
-    "version": (2, 2),
+    "version": (2, 3),
     "blender": (3, 0, 0),
     "location": "File > Export > Defold Binary Mesh (.bin)",
     "description": "Export to Defold .mesh format",
@@ -109,6 +109,27 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
             if bones_map[bone.name]:
                 proxy['bones'].append(bone)
     
+#-----------------------get-frames-------------------------
+    
+#    def collect_frame_data():
+#        for proxy in armatures:
+#            data = []
+#            for pbone in proxy['bones']:
+#                matrix = pbone.matrix_basis
+#                data.append(matrix)
+#            proxy['frames'].append(data)
+#                
+#    current_frame = context.scene.frame_current
+#    if export_anim_setting:
+#        for frame in range(1, context.scene.frame_end):
+#            set_frame(context, frame)
+#            collect_frame_data()
+#            
+#        set_frame(context, current_frame) 
+#    else:
+#        collect_frame_data()
+
+
     #---------------------write-armatures-----------------------
     
     f.write(struct.pack('i', len(armatures)))
@@ -224,6 +245,11 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
             #print("--------------------------")
             #print("material", m.name, m.blend_method)
             
+            if m == None: #create default material
+                material = {'name': 'default', 'col':  [0.7, 0.7, 0.7, 1], 'method': 'OPAQUE', 'spec_power': 0.0, 'roughness': 0.0, 'normal_strength': 1.0}
+                materials.append(material)
+                continue
+            
             material = {'name': m.name, 'col':  m.diffuse_color, 'method': m.blend_method, 'spec_power': 0.0, 'roughness': 0.0, 'normal_strength': 1.0}
             materials.append(material)
             
@@ -276,6 +302,11 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                         #print(material['texture'])
                         break #TODO objects with combined shaders
         
+        
+        if len(materials) == 0: #create default material
+            material = {'name': 'default', 'col':  [0.7, 0.7, 0.7, 1], 'method': 'OPAQUE', 'spec_power': 0.0, 'roughness': 0.0, 'normal_strength': 1.0}
+            materials.append(material)
+            
         #---------------------write-geometry------------------------
         
         f.write(struct.pack('i', len(mesh.vertices)))
@@ -331,7 +362,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                 
         f.write(struct.pack('f' * len(uv), *uv))
         
-        f.write(struct.pack('i', len(mesh.materials)))
+        f.write(struct.pack('i', len(materials)))
         
         #---------------------write-materials------------------------
         for material in materials:
