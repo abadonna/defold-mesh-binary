@@ -11,6 +11,8 @@ using namespace dmVMath;
 struct RootMotionData {
 	float angle = 0;
 	Vector3 position = Vector3(0);
+	Vector4 offset = Vector4(0);
+	Matrix4 rotation = Matrix4::identity();
 };
 
 struct Face {

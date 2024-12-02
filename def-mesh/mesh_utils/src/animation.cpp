@@ -19,15 +19,16 @@ void Animation::ResetRootMotion(int frameIdx, bool isPrimary) {
 	
 	Matrix4 m = this->armature->frames[frameIdx][bi];
 	m = local * m * Inverse(local);
+	data->rotation = m;
 
 	Vector4 v = this->transform * m.getCol3();
-	data->position = Vector3(v.getX(), 0, -v.getY());
+	data->position = Vector3(v[0], v[2], -v[1]);
 
-	//this is more correct, but has some visual issues restarting loop
-	//Vector4 v = this->transform * Vector4(0, 0, 0, 1);
-	//data->position = Vector3(v[0], 0, -v[1]);
+	data->offset = m.getCol3();
 
-	data->angle = 0;
+	//m = this->transform * m * Inverse(this->transform);
+	data->angle = 0; // QuatToEuler(Quat(m.getUpper3x3())).getZ();	
+	
 }
 
 void Animation::SetTransform(Matrix4* matrix) {
@@ -151,13 +152,14 @@ void Animation::SetFrame(int trackIdx,  int idx1, int idx2, float factor, RootMo
 	} 
 }
 
-void Animation::GetRootMotionForFrame(int idx, RootMotionType rm, Matrix4& rootBone, Vector3& position, float& angle) {
+void Animation::GetRootMotionForFrame(int idx, RootMotionData* data, RootMotionType rm, Matrix4& rootBone, Vector3& position, float& angle) {
 	int bi = this->armature->rootBoneIdx;
 	
 	Matrix4 local = this->armature->localBones[bi];
 	rootBone = local * armature->frames[idx][bi] * Inverse(local);
+
 	Vector4 posePosition = rootBone.getCol3();
-	Matrix4 worldRootBone = this->transform * rootBone * Inverse(this->transform);
+	Matrix4 worldRootBone = this->transform * rootBone * Inverse(data->rotation) * Inverse(this->transform);
 
 	if ((rm == RootMotionType::Rotation) || (rm == RootMotionType::Both)) {
 
@@ -167,25 +169,30 @@ void Animation::GetRootMotionForFrame(int idx, RootMotionType rm, Matrix4& rootB
 		mm =  worldRootBone * Inverse(mm);
 		mm = Inverse(this->transform) * mm * this->transform;
 
+		mm = mm * (data->rotation);
+
 		Matrix3 mXZ = mm.getUpper3x3();
 		rootBone.setUpper3x3(mXZ);
-
+	
 		mm = Matrix4::rotationZ(-angle);
 		mm = Inverse(this->transform) * mm * this->transform;
+		//posePosition = data->rotation * posePosition;
 		Vector4 pPosition = mm * posePosition;
 
 		rootBone.setCol3(pPosition);
 	} 
 	
 	if ((rm == RootMotionType::Position) || (rm == RootMotionType::Both)) {
-
+		
 		Vector4 v = this->transform * posePosition;
 		position = Vector3(v.getX(), v.getZ(), -v.getY());
 
 		//------------remove Y ---------
-		v = Inverse(this->transform) * Vector4(0, 0, position[1], 1);
-		position[1] = 0;
+		//v = Inverse(this->transform) * Vector4(0, 0, poition[1], 1) + data->offset;
+		//position[1] = 0;
 		//------------------------------
+
+		v = data->offset;
 
 		rootBone.setCol3(v);
 
@@ -219,7 +226,7 @@ void Animation::ExtractRootMotion(RootMotionType rm1, RootMotionType rm2) {
 	Quat r2 = Quat::identity();
 	
 	if (rm1 != RootMotionType::None) {
-		this->GetRootMotionForFrame(track->frame1, rm1, rootBone1, position1, angle1);
+		this->GetRootMotionForFrame(track->frame1, &this->rmdata1, rm1, rootBone1, position1, angle1);
 		bone1 = &rootBone1;
 
 		r1 = Quat::rotationY(angle1 - this->rmdata1.angle);
@@ -228,7 +235,7 @@ void Animation::ExtractRootMotion(RootMotionType rm1, RootMotionType rm2) {
 	}
 
 	if (applyPosition2 || applyRotation2) {
-		this->GetRootMotionForFrame(track->frame2, rm2, rootBone2, position2, angle2);
+		this->GetRootMotionForFrame(track->frame2, &this->rmdata2, rm2, rootBone2, position2, angle2);
 		bone2 = &rootBone2;
 		
 		r2 = Quat::rotationY(angle2 - this->rmdata2.angle);
@@ -256,7 +263,7 @@ void Animation::ExtractRootMotion(RootMotionType rm1, RootMotionType rm2) {
 			Matrix3 mm = Matrix3::rotationY(-angle1);
 			velocity = mm * velocity;
 		}
-		
+
 		position1 = dmVMath::Rotate(rotation, velocity);	
 		//dmLogInfo("%d, %f, %f, %f", this->GetFrameIdx(), position1[0], position1[1], position1[2]);
 		
