@@ -180,9 +180,9 @@ void ModelInstance::ApplyArmature(lua_State* L, int meshIdx) {
 		Matrix4* m = &this->animation->bones->at(idx);
 
 		Vector4 data[3] = {
-			m->getCol0(), 
-			m->getCol1(), 
-			m->getCol2()
+			m->getRow(0), 
+			m->getRow(1), 
+			m->getRow(2)
 		};
 		
 		//alternative - dmGameObject::SetProperty - defold/engine/gameobject/src/gameobject/gameobject.h

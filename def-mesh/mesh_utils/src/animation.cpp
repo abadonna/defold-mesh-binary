@@ -18,14 +18,14 @@ void Animation::ResetRootMotion(int frameIdx, bool isPrimary) {
 	Matrix4 local = this->armature->localBones[bi];
 	
 	Matrix4 m = this->armature->frames[frameIdx][bi];
-	m = Transpose(Inverse(local) * m * local);
+	m = local * m * Inverse(local);
 
-	Vector4 v = this->transform * m.getCol3();
-	data->position = Vector3(v.getX(), 0, -v.getY());
+	//Vector4 v = this->transform * m.getCol3();
+	//data->position = Vector3(v.getX(), 0, -v.getY());
 
 	//this is more correct, but has some visual issues restarting loop
-	//Vector4 v = this->transform * Vector4(0, 0, 0, 1);
-	//data->position = Vector3(v[0], 0, -v[1]);
+	Vector4 v = this->transform * Vector4(0, 0, 0, 1);
+	data->position = Vector3(v[0], 0, -v[1]);
 
 	m = this->transform * m * Inverse(this->transform);
 	data->angle = QuatToEuler(Quat(m.getUpper3x3())).getZ();
@@ -78,7 +78,7 @@ void Animation::Update() {
 		}
 	}
 
-	this->CalculateBones(false, false);
+	this->CalculateBones();
 
 	for(auto & obj : this->boneObjects) {
 		obj.ApplyTransform(this->bones);
@@ -86,7 +86,7 @@ void Animation::Update() {
 }
 
 
-void Animation::CalculateBones(bool applyRotation, bool applyPosition) {
+void Animation::CalculateBones() {
 	if (this->bones == NULL) return;
 
 	int size = this->bones->size();
@@ -98,66 +98,8 @@ void Animation::CalculateBones(bool applyRotation, bool applyPosition) {
 
 	for (int idx = 0; idx < size; idx ++) { //precalculate parent transforms
 		Matrix4 local = this->armature->localBones[idx];
-		this->cumulative[idx] = Inverse(local) * this->bones->at(idx) * local;
+		this->cumulative[idx] = local * this->bones->at(idx) * Inverse(local);
 
-/*
-		if ((applyRotation || applyPosition) && (this->armature->rootBoneIdx == idx)) {
-
-			Matrix4 m = Transpose(this->cumulative[idx]);
-			
-			Vector4 posePosition = this->cumulative[idx].getRow(3);
-			Matrix4 worldRootBone = this->transform * m * Inverse(this->transform);
-
-			Quat rotation = dmGameObject::GetRotation(this->root);
-
-			
-			if (applyRotation) {
-
-				float angle = QuatToEuler(Quat(worldRootBone.getUpper3x3())).getZ();
-				
-				//dmLogInfo("%d, %f, %f, %f", this->GetFrameIdx(), angle1, angle2, angle1 - angle2)
-				
-				Quat diff = Quat::rotationY(angle - this->angle1);
-				rotation = diff * rotation;
-				dmGameObject::SetRotation(this->root, rotation);
-
-				Matrix4 mm = Matrix4::rotationZ(angle);
-				mm =  worldRootBone * Inverse(mm);
-				mm = Inverse(this->transform) * mm * this->transform;
-				
-				Matrix3 mXZ = mm.getUpper3x3();
-				this->cumulative[idx].setUpper3x3(Transpose(mXZ));
-
-				mm = Matrix4::rotationZ(-angle);
-				mm = Inverse(this->transform) * mm * this->transform;
-				posePosition = mm * posePosition;
-				
-				this->cumulative[idx].setRow(3, posePosition);
-				this->angle1 = angle;
-			} 
-
-			if (applyPosition) {
-
-				Vector4 v = this->transform * posePosition;
-				Vector3 position = Vector3(v.getX(), v.getZ(), -v.getY());
-				position = dmVMath::Rotate(rotation, position);
-
-				//------------remove Y ---------
-				v = Inverse(this->transform) * Vector4(0, 0, position[1], 0);
-				position[1] = 0;
-				//------------------------------
-				
-				Point3 p = dmGameObject::GetPosition(this->root);
-				dmGameObject::SetPosition(this->root, p + position - this->position1);
-				
-				this->cumulative[idx].setRow(3, v);
-				this->position1 = position;
-
-				//dmLogInfo("%d, %f, %f, %f", this->GetFrameIdx(), position[0],  position[1],  position[2]);
-			}
-
-			
-		}*/
 		has_parent_transforms[idx] = false;
 	}
 
@@ -167,7 +109,7 @@ void Animation::CalculateBones(bool applyRotation, bool applyPosition) {
 
 		int parent = this->armature->boneParents[idx];
 		while (parent > -1) {
-			bone = bone * this->cumulative[parent];
+			bone = this->cumulative[parent] * bone;
 			if (has_parent_transforms[parent]) break; //optimization
 			parent = this->armature->boneParents[parent];
 		}
@@ -214,9 +156,9 @@ void Animation::GetRootMotionForFrame(int idx, RootMotionType rm, Matrix4& rootB
 	int bi = this->armature->rootBoneIdx;
 	
 	Matrix4 local = this->armature->localBones[bi];
-	rootBone = Inverse(local) * armature->frames[idx][bi] * local;
-	Vector4 posePosition = rootBone.getRow(3);
-	Matrix4 worldRootBone = this->transform * Transpose(rootBone) * Inverse(this->transform);
+	rootBone = local * armature->frames[idx][bi] * Inverse(local);
+	Vector4 posePosition = rootBone.getCol3();
+	Matrix4 worldRootBone = this->transform * rootBone * Inverse(this->transform);
 
 	if ((rm == RootMotionType::Rotation) || (rm == RootMotionType::Both)) {
 
@@ -227,13 +169,13 @@ void Animation::GetRootMotionForFrame(int idx, RootMotionType rm, Matrix4& rootB
 		mm = Inverse(this->transform) * mm * this->transform;
 
 		Matrix3 mXZ = mm.getUpper3x3();
-		rootBone.setUpper3x3(Transpose(mXZ));
+		rootBone.setUpper3x3(mXZ);
 
 		mm = Matrix4::rotationZ(-angle);
 		mm = Inverse(this->transform) * mm * this->transform;
 		Vector4 pPosition = mm * posePosition;
 
-		rootBone.setRow(3, pPosition);
+		rootBone.setCol3(pPosition);
 	} 
 	
 	if ((rm == RootMotionType::Position) || (rm == RootMotionType::Both)) {
@@ -246,11 +188,11 @@ void Animation::GetRootMotionForFrame(int idx, RootMotionType rm, Matrix4& rootB
 		position[1] = 0;
 		//------------------------------
 
-		rootBone.setRow(3, v);
+		rootBone.setCol3(v);
 
 	}
 
-	rootBone = local * rootBone * Inverse(local);
+	rootBone = Inverse(local) * rootBone * local;
 }
 
 void Animation::ExtractRootMotion(RootMotionType rm1, RootMotionType rm2) {
@@ -380,11 +322,11 @@ int Animation::GetRuntimeBuffer(lua_State* L) {
 
 	if (this->bones == NULL) {
 		this->bones = &this->armature->frames[0];
-		this->CalculateBones(false, false);
+		this->CalculateBones();
 	}
 
 	for(auto & bone : *this->bones) {
-		Vector4 data[3] = {bone.getCol0(), bone.getCol1(), bone.getCol2()};
+		Vector4 data[3] = {bone.getRow(0), bone.getRow(1), bone.getRow(2)};
 			for (int i = 0; i < 3; i++) {
 				stream[0] = data[i].getX();
 				stream[1] = data[i].getY();
@@ -427,10 +369,10 @@ int Animation::GetTextureBuffer(lua_State* L) {
 	for (int f = 0; f < height; f++) {
 		if (f < frameCount) {
 			this->bones = &this->armature->frames[f];
-			this->CalculateBones(false, false);
+			this->CalculateBones();
 
 			for(auto & bone : *this->bones) {
-				Vector4 data[3] = {bone.getCol0(), bone.getCol1(), bone.getCol2()};
+				Vector4 data[3] = {bone.getRow(0), bone.getRow(1), bone.getRow(2)};
 				for (int i = 0; i < 3; i++) {
 					stream[0] = data[i].getX();
 					stream[1] = data[i].getY();
@@ -445,7 +387,7 @@ int Animation::GetTextureBuffer(lua_State* L) {
 	}
 
 	this->bones = &this->armature->frames[0];
-	this->CalculateBones(false, false); // return to first frame
+	this->CalculateBones(); // return to first frame
 
 	lua_pushnumber(L, width);
 	lua_pushnumber(L, height);

@@ -9,14 +9,14 @@ void MatrixBlend (Matrix4* m1, Matrix4* m2, Matrix4* result, float factor) {
 	//https://github.com/chinedufn/skeletal-animation-system/blob/master/src/blend-dual-quaternions.js
 	//https://github.com/Achllle/dual_quaternions/blob/master/src/dual_quaternions/dual_quaternions.py
 
-	Vector4 t = Lerp(factor, m1->getRow(3), m2->getRow(3));
+	Vector4 t = Lerp(factor, m1->getCol3(), m2->getCol3());
 
 	Quat q1 = Quat(m1->getUpper3x3());
 	Quat q2 = Quat(m2->getUpper3x3());
 	Quat q = Slerp(factor, q1, q2);
 
 	result->setUpper3x3(Matrix3::rotation(q));
-	result->setRow(3, t);
+	result->setCol3(t);
 }
 
 Vector3 QuatToEuler(Quat q) {

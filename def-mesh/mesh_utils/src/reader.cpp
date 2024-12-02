@@ -63,9 +63,9 @@ Vector4 Reader::ReadVector4() {
 
 Matrix4 Reader::ReadMatrix() { //3x4
 	Matrix4 m = Matrix4::identity();
-	m.setCol0(this->ReadVector4());
-	m.setCol1(this->ReadVector4());
-	m.setCol2(this->ReadVector4());
+	m.setRow(0, this->ReadVector4());
+	m.setRow(1, this->ReadVector4());
+	m.setRow(2, this->ReadVector4());
 	return m;
 }
 

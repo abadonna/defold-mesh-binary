@@ -21,7 +21,7 @@ class Animation
 
 		vector<BoneGameObject> boneObjects;
 
-		void CalculateBones(bool applyRotation, bool applyPosition);
+		void CalculateBones();
 		void ExtractRootMotion(RootMotionType rm1, RootMotionType rm2);
 		void GetRootMotionForFrame(int idx, RootMotionType rm, Matrix4& rootBone, Vector3& position, float& angle);
 	
