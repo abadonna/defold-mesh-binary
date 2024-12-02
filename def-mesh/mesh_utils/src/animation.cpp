@@ -20,15 +20,14 @@ void Animation::ResetRootMotion(int frameIdx, bool isPrimary) {
 	Matrix4 m = this->armature->frames[frameIdx][bi];
 	m = local * m * Inverse(local);
 
-	//Vector4 v = this->transform * m.getCol3();
-	//data->position = Vector3(v.getX(), 0, -v.getY());
+	Vector4 v = this->transform * m.getCol3();
+	data->position = Vector3(v.getX(), 0, -v.getY());
 
 	//this is more correct, but has some visual issues restarting loop
-	Vector4 v = this->transform * Vector4(0, 0, 0, 1);
-	data->position = Vector3(v[0], 0, -v[1]);
+	//Vector4 v = this->transform * Vector4(0, 0, 0, 1);
+	//data->position = Vector3(v[0], 0, -v[1]);
 
-	m = this->transform * m * Inverse(this->transform);
-	data->angle = QuatToEuler(Quat(m.getUpper3x3())).getZ();
+	data->angle = 0;
 }
 
 void Animation::SetTransform(Matrix4* matrix) {
