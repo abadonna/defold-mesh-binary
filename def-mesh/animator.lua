@@ -1,5 +1,6 @@
 local M = {}
 
+RM_NONE = 0
 RM_ROTATION = 1
 RM_POSITION = 2
 RM_BOTH = 3
@@ -38,7 +39,7 @@ local function animation_update(self, dt)
 		self.changed = true
 	end
 
-	if ((frame == self.start) or (full >=1) ) and (self.changed) and (self.motion > 0) then
+	if ((frame == self.start) or (full >=1) ) and (self.changed) and (self.motion > RM_NONE) then
 		self.reset_root_motion()
 	end
 
@@ -49,14 +50,14 @@ M.create = function(binary)
 		binary = binary,
 		list = {},
 		animations = {},
-		frame = {[0]= {idx = 0, motion = 0} },
+		frame = {[0]= {idx = 0, motion = RM_NONE} },
 		tracks = {[0]={weight=1}}
 	}
 
 	animator.set_frame = function(track, frame1, frame2, blend, rm1, rm2)
-		animator.frame[track] = {idx = frame1, motion = rm1}
+		animator.frame[track] = {idx = frame1, motion = rm1 or RM_NONE}
 		--pprint(frame1 .. ":" .. frame2 .. ", rm: " .. rm1 ..  ", " .. rm2)
-		animator.binary:set_frame(track, frame1, frame2 == nil and -1 or frame2, blend or 0, rm1 or 0, rm2 or 0)
+		animator.binary:set_frame(track, frame1, frame2 == nil and -1 or frame2, blend or 0, rm1 or RM_NONE, rm2 or RM_NONE)
 	end
  
 	animator.update_tracks = function()
@@ -107,7 +108,7 @@ M.create = function(binary)
 		animation.duration = animation.length / animation.fps
 		animation.playback = config.playback or go.PLAYBACK_ONCE_FORWARD
 		--so far supported only PLAYBACK_LOOP_FORWARD & PLAYBACK_ONCE_FORWARD
-		animation.motion = config.root_motion or 0
+		animation.motion = config.root_motion or RM_NONE
 		animation.primary = true
 
 		animation.reset_root_motion = function() 
@@ -155,7 +156,7 @@ M.create = function(binary)
 			if a.changed then
 				a.changed = false
 				local blend_frame_idx = -1
-				local blend_motion = 0
+				local blend_motion = RM_NONE
 				if a.blend then
 					blend_frame_idx = a.blend.frame and a.blend.frame.idx or a.blend.animation.frame
 					blend_motion = a.blend.frame and a.blend.frame.motion or a.blend.animation.motion
