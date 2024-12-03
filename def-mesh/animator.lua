@@ -4,6 +4,7 @@ RM_NONE = 0
 RM_ROTATION = 1
 RM_POSITION = 2
 RM_BOTH = 3
+RM_FORWARD = 4
 
 local function animation_update(self, dt)
 	if self.is_completed then return end

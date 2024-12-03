@@ -96,18 +96,20 @@ void AnimationTrack::GetRootMotionForFrame(int idx, RootMotionData* data, RootMo
 		rootBone.setCol3(pPosition);
 	} 
 
-	if ((rm == RootMotionType::Position) || (rm == RootMotionType::Both)) {
+	if ((rm == RootMotionType::Position) || (rm == RootMotionType::Both) || (rm == RootMotionType::Forward)) {
 
 		Vector4 v = this->transform * posePosition;
 		position = Vector3(v.getX(), v.getZ(), -v.getY());
 
-		//------------remove Y ---------
-		//v = Inverse(this->transform) * Vector4(0, 0, poition[1], 1) + data->offset;
-		//position[1] = 0;
-		//------------------------------
-
-		v = data->offset;
-
+		if (rm == RootMotionType::Forward) { // bake Y & X into pose, move game object only along Z
+			v = Inverse(this->transform) * Vector4(v[0], 0, v[2], 1) + Vector4(0, data->offset[1], 0, 0);
+			Vector4 t = this->transform * data->offset;
+			position[0] = t[0];
+			position[1] = t[2];
+		} else {
+			v = data->offset;
+		}
+		
 		rootBone.setCol3(v);
 	}
 
@@ -126,9 +128,9 @@ void AnimationTrack::ExtractRootMotion(dmGameObject::HInstance root, RootMotionT
 	float angle2 = this->rmdata2.angle;
 
 	bool applyRotation1 = (rm1 == RootMotionType::Rotation) || (rm1 == RootMotionType::Both);
-	bool applyPosition1 = (rm1 == RootMotionType::Position) || (rm1 == RootMotionType::Both);
+	bool applyPosition1 = (rm1 == RootMotionType::Position) || (rm1 == RootMotionType::Both) || (rm1 == RootMotionType::Forward);
 	bool applyRotation2 = (this->frame2 > -1) && ((rm2 == RootMotionType::Rotation) || (rm2 == RootMotionType::Both));
-	bool applyPosition2 = (this->frame2 > -1) && ((rm2 == RootMotionType::Position) || (rm2 == RootMotionType::Both));
+	bool applyPosition2 = (this->frame2 > -1) && ((rm2 == RootMotionType::Position) || (rm2 == RootMotionType::Both) || (rm2 == RootMotionType::Forward));
 
 
 	Matrix4* bone1 = &this->armature->frames[this->frame1][bi];

@@ -7,7 +7,7 @@ using namespace std;
 class Model;
 class Armature;
 
-enum class RootMotionType { None, Rotation, Position, Both };
+enum class RootMotionType { None, Rotation, Position, Both, Forward };
 
 class AnimationTrack {
 	private:
