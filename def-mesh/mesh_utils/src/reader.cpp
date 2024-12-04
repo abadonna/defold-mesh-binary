@@ -90,7 +90,6 @@ Transform3d Reader::ReadTransform() {
 	mS[1][1] = s.getY();
 	mS[2][2] = s.getZ();
 
-	//res.matrix = Transpose(mT * mR * mS);
 	res.matrix = mT * mR * mS;
 	
 	return res;
