@@ -10,7 +10,7 @@ function init(self)
 	self.model = binary.load("/model", "/assets/tracks.bin")
 	
 	self.walk = function()
-		self.model.animator.play(WALK, {root_motion = RM_FORWARD, blend_duration= .2}, self.turn)
+		self.model.animator.play(WALK, {root_motion = RM_POSITION, blend_duration= .2}, self.turn)
 	end
 
 	self.turn = function()
@@ -20,8 +20,6 @@ function init(self)
 	self.walk()
 
 	--self.model.animator.play(WALK, {root_motion = RM_FORWARD, fps=15, playback = go.PLAYBACK_LOOP_FORWARD})
-
-
 
 end
 

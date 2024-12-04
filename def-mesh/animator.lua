@@ -9,15 +9,17 @@ RM_FORWARD = 4
 local function animation_update(self, dt)
 	if self.is_completed then return end
 
-	self.time = self.time + dt
 	local a = self.time / self.duration
 	local full, part = math.modf(a)
 
+	local frame = self.start + math.floor(self.length * part)
+	
 	if full >= 1 then --TODO loop
-		self.time = self.time - self.duration * full
+		frame = self.start + 1 -- skip first frame on loop
+		self.time = 2 / self.fps -- self.time - self.duration * full
 	end
 
-	local frame = self.start + math.floor(self.length * part)
+	
 
 	if (frame == self.finish or full >= 1) and self.playback == go.PLAYBACK_ONCE_FORWARD then
 		self.is_completed = true
@@ -44,6 +46,7 @@ local function animation_update(self, dt)
 		self.reset_root_motion()
 	end
 
+	self.time = self.time + dt
 end
 
 M.create = function(binary)
