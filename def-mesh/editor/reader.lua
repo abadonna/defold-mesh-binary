@@ -10,6 +10,8 @@ end
 
 M.read_materials = function()
 	local materials = {}
+
+	M.half_precision = M.read_int() == 1
 	
 	--skip armatures
 	for i = 1, M.read_int()  do
@@ -50,8 +52,8 @@ M.read_model = function(materials)
 
 	local vert_count = M.read_int()
 	for vertex = 1, vert_count do --vertices
-		M.read_vec3()
-		M.read_vec3()
+		M.read_vec3_hp()
+		M.read_vec3_hp()
 	end
 
 	local shape_count = M.read_int()
@@ -142,6 +144,8 @@ M.read_model = function(materials)
 end
 
 M.read_bones = function()
+	M.half_precision = M.read_int() == 1
+	
 	local count = M.read_int() -- number of armatures
 	count = M.read_int()  -- number of bones in first armature
 
@@ -186,6 +190,11 @@ M.read_int = function()
 	return n
 end
 
+M.read_float_hp = function()
+	M.index = M.index + 2
+	return 0
+end
+
 --http://lua-users.org/lists/lua-l/2010-03/msg00910.html
 M.read_float = function()
 	local sign = 1
@@ -201,6 +210,13 @@ M.read_float = function()
 end
 
 M.read_vec3 = function()
+	return {M.read_float(), M.read_float(), M.read_float()}
+end
+
+M.read_vec3_hp = function()
+	if M.half_precision then
+		return {M.read_float_hp(), M.read_float_hp(), M.read_float_hp()}
+	end
 	return {M.read_float(), M.read_float(), M.read_float()}
 end
 

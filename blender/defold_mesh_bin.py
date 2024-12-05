@@ -3,7 +3,7 @@
 bl_info = {
     "name": "Defold Mesh Binary Export",
     "author": "",
-    "version": (2, 3),
+    "version": (2, 4),
     "blender": (3, 0, 0),
     "location": "File > Export > Defold Binary Mesh (.bin)",
     "description": "Export to Defold .mesh format",
@@ -15,6 +15,23 @@ bl_info = {
 
 import bpy, sys, struct, time, mathutils
 from pathlib import Path
+
+def compress(float32):
+    bits =  struct.unpack("I", struct.pack('f', float32))[0]
+    sign = (bits >> 31) & 1
+    exponent = ((bits >> 23) & 0xff) - 127
+    fraction = bits & 0x7fffff
+
+    if exponent > 15:
+        exponent = 0x1e
+        fraction = 0x3ff << 13
+    elif exponent < -15:
+        exponent = 1
+        fraction = 0
+    else:
+        exponent += 15
+    return sign << 15 | exponent << 10 | fraction>>13
+
      
 def write_shape_values(mesh, shapes, f):
     for shape in shapes:
@@ -36,9 +53,11 @@ def set_frame(context, frame):
     depsgraph = context.evaluated_depsgraph_get()
     
 
-def write_some_data(context, filepath, export_anim_setting, export_hidden_settings):
+def write_some_data(context, filepath, export_anim_setting, export_hidden_settings, export_hp_settings):
     
     f = open(filepath, 'wb')
+    
+    f.write(struct.pack('i', 1 if export_hp_settings else 0))
     
     armatures = []
     armature_map = {}
@@ -179,6 +198,15 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         
     #---------------------write-models-----------------------
     
+    def write_floats(num, values):
+        if export_hp_settings:
+            for i in range (num):
+                f16 = compress(values[i])
+                f.write(struct.pack('>H',f16))
+        else:
+            f.write(struct.pack('f' * num, *values))
+            
+    
     for obj in objects:
         print(obj.name)
         
@@ -314,9 +342,10 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         for vert in mesh.vertices:
                 v = obj.matrix_local @ vert.co #apply local transform, 
                 #or we have to deal with it calculating bones
-                f.write(struct.pack('fff', *v))
+                
+                write_floats(3, v)
                 v = (obj.matrix_local @ vert.normal).normalized()
-                f.write(struct.pack('fff', *v))
+                write_floats(3, v)
                 
         shapes = []
         if mesh.shape_keys and len(mesh.shape_keys.key_blocks) > 0:
@@ -523,10 +552,16 @@ class DefoldExport(Operator, ExportHelper):
         description="",
         default=False,
     )
+    
+    export_halfprecision: BoolProperty(
+        name="Half precision floats",
+        description="So far only for mesh geometry",
+        default=False,
+    )
 
 
     def execute(self, context):
-        return write_some_data(context, self.filepath, self.export_anim, self.export_hidden)
+        return write_some_data(context, self.filepath, self.export_anim, self.export_hidden, self.export_halfprecision)
 
 
 # Only needed if you want to add into a dynamic menu

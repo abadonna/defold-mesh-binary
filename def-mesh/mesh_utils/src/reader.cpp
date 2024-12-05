@@ -2,6 +2,7 @@
 
 Reader::Reader(const char* file) {
 	this->data = file;
+	this->halfPrecision = (this->ReadInt() == 1);
 }
 
 Reader::~Reader() {
@@ -44,6 +45,37 @@ float Reader::ReadFloat() {
 
 	this->data += 4;
 	return *((float *) &temp);
+}
+
+float Reader::ReadFloatHP() {
+	char t[2] = {this->data[1], this->data[0]};
+	short* b = (short *)t;
+
+	int sign = (*b >> 15) & 1;
+	int exponent = (*b >> 10) & 0x1f;
+	int fraction = *b & 0x3ff;
+	
+	float sum = 1.0;
+	int mul = sign == 1 ? -1 : 1;
+	exponent = exponent - (pow(2, 4) - 1);
+
+	for (int i = 9; i >= -1; i--) {
+		if ((fraction >> i) & 1 > 0) {
+			sum += 1.0 / pow(2 , (10 - i));
+		}
+	}
+
+	this->data += 2;
+	return mul * sum * pow(2, exponent);
+}
+
+Vector3 Reader::ReadVector3HP() {
+	if (!this->halfPrecision) return this->ReadVector3();
+	
+	float x = ReadFloatHP();
+	float y = ReadFloatHP();
+	float z = ReadFloatHP();
+	return Vector3(x, y, z);
 }
 
 Vector3 Reader::ReadVector3() {
