@@ -15,23 +15,6 @@ bl_info = {
 
 import bpy, sys, struct, time, mathutils
 from pathlib import Path
-
-def compress(float32):
-    bits =  struct.unpack("I", struct.pack('f', float32))[0]
-    sign = (bits >> 31) & 1
-    exponent = ((bits >> 23) & 0xff) - 127
-    fraction = bits & 0x7fffff
-
-    if exponent > 15:
-        exponent = 0x1e
-        fraction = 0x3ff << 13
-    elif exponent < -15:
-        exponent = 1
-        fraction = 0
-    else:
-        exponent += 15
-    return sign << 15 | exponent << 10 | fraction>>13
-
      
 def write_shape_values(mesh, shapes, f):
     for shape in shapes:
@@ -200,9 +183,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
     
     def write_floats(num, values):
         if export_hp_settings:
-            for i in range (num):
-                f16 = compress(values[i])
-                f.write(struct.pack('>H',f16))
+            f.write(struct.pack('e' * num, *values))
         else:
             f.write(struct.pack('f' * num, *values))
             

@@ -48,8 +48,7 @@ float Reader::ReadFloat() {
 }
 
 float Reader::ReadFloatHP() {
-	char t[2] = {this->data[1], this->data[0]};
-	short* b = (short *)t;
+	short* b = (short *)this->data;
 
 	int sign = (*b >> 15) & 1;
 	int exponent = (*b >> 10) & 0x1f;
