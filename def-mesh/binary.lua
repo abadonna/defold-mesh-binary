@@ -68,7 +68,9 @@ local function set_texture(self, url, slot, file, texel)
 	self.textures[texture_id] = true
 	go.set(url, slot, texture_id)
 	if texel then
-		go.set(url, texel, vmath.vector4(1./img.header.width, 1./img.header.height, 0, 0))
+		pcall(function()
+			go.set(url, texel, vmath.vector4(1./img.header.width, 1./img.header.height, 0, 0))
+		end)
 	end
 	return true
 end
@@ -211,9 +213,11 @@ M.load = function(url, path, config)
 				end
 			end
 
-			go.set(mesh_url, "base_color", mesh.material and mesh.material.color or vmath.vector4(0.8,0.8,0.8,1))
-			go.set(mesh_url, "options", options)
-			go.set(mesh_url, "options_specular", options_specular)
+			pcall(function()
+				go.set(mesh_url, "base_color", mesh.material and mesh.material.color or vmath.vector4(0.8,0.8,0.8,1))
+				go.set(mesh_url, "options", options)
+				go.set(mesh_url, "options_specular", options_specular)
+			end)
 		end
 
 	end	
