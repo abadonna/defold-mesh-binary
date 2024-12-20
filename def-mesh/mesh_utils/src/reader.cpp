@@ -35,6 +35,8 @@ string Reader::ReadString() {
 
 //https://stackoverflow.com/questions/3991478/building-a-32-bit-float-out-of-its-4-composite-bytes
 float Reader::ReadFloat() {
+	if (this->halfPrecision) return this->ReadFloatHP();
+	
 	const unsigned char *b = (const unsigned char *)this->data;
 	uint32_t temp = 0;
 
@@ -48,6 +50,7 @@ float Reader::ReadFloat() {
 }
 
 float Reader::ReadFloatHP() {
+	/*
 	short* b = (short *)this->data;
 
 	int sign = (*b >> 15) & 1;
@@ -65,16 +68,18 @@ float Reader::ReadFloatHP() {
 	}
 
 	this->data += 2;
-	return mul * sum * pow(2, exponent);
-}
+	return mul * sum * pow(2, exponent);*/
 
-Vector3 Reader::ReadVector3HP() {
-	if (!this->halfPrecision) return this->ReadVector3();
+	uint16_t* x = (uint16_t *)this->data;
+	this->data += 2;
+
+	const uint32_t e = (*x&0x7C00)>>10; // exponent
+	const uint32_t m = (*x&0x03FF)<<13; // mantissa
+	const float f = (float)m;
+	const uint32_t v = *(uint32_t*)&f >>23; // evil log2 bit hack to count leading zeros in denormalized format
 	
-	float x = ReadFloatHP();
-	float y = ReadFloatHP();
-	float z = ReadFloatHP();
-	return Vector3(x, y, z);
+	const uint32_t result = (*x&0x8000)<<16 | (e!=0)*((e+112)<<23|m) | ((e==0)&(m!=0))*((v-37)<<23|((m<<(150-v))&0x007FE000));
+	return *(float*)&result;
 }
 
 Vector3 Reader::ReadVector3() {

@@ -13,7 +13,6 @@ class Reader
 		float ReadFloat();
 		float ReadFloatHP();
 		Vector3 ReadVector3();
-		Vector3 ReadVector3HP();
 		Vector4 ReadVector4();
 		Matrix4 ReadMatrix();
 		string ReadString();

@@ -3,7 +3,7 @@
 bl_info = {
     "name": "Defold Mesh Binary Export",
     "author": "",
-    "version": (2, 4),
+    "version": (2, 5),
     "blender": (3, 0, 0),
     "location": "File > Export > Defold Binary Mesh (.bin)",
     "description": "Export to Defold .mesh format",
@@ -16,13 +16,13 @@ bl_info = {
 import bpy, sys, struct, time, mathutils
 from pathlib import Path
      
-def write_shape_values(mesh, shapes, f):
+def write_shape_values(mesh, shapes, f, ff):
     for shape in shapes:
         s = mesh.shape_keys.key_blocks.get(shape['name'])
         value = float("{:.2f}".format(s.value))
         f.write(struct.pack('i', len(shape['name'])))
         f.write(bytes(shape['name'], "ascii"))
-        f.write(struct.pack('f', value))
+        f.write(struct.pack(ff, value))
                 
 def sort_weights(vg):
     return -vg.weight
@@ -41,6 +41,8 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
     f = open(filepath, 'wb')
     
     f.write(struct.pack('i', 1 if export_hp_settings else 0))
+    
+    float_format = 'e' if export_hp_settings else 'f'
     
     armatures = []
     armature_map = {}
@@ -137,6 +139,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
     f.write(struct.pack('i', len(armatures)))
     
     current_frame = context.scene.frame_current
+    f4 = float_format * 4
     
     for proxy in armatures:
             
@@ -153,9 +156,9 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
             f.write(struct.pack('i', parent))
                 
             matrix = pbone.bone.matrix_local
-            f.write(struct.pack('ffff', *matrix[0]))
-            f.write(struct.pack('ffff', *matrix[1]))
-            f.write(struct.pack('ffff', *matrix[2]))
+            f.write(struct.pack(f4, *matrix[0]))
+            f.write(struct.pack(f4, *matrix[1]))
+            f.write(struct.pack(f4, *matrix[2]))
         
         if export_anim_setting:
             f.write(struct.pack('i', context.scene.frame_end - 1))
@@ -164,9 +167,9 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                 set_frame(context, frame)
                 for pbone in proxy['bones']:
                     matrix = pbone.matrix_basis
-                    f.write(struct.pack('ffff', *matrix[0]))
-                    f.write(struct.pack('ffff', *matrix[1]))
-                    f.write(struct.pack('ffff', *matrix[2]))
+                    f.write(struct.pack(f4, *matrix[0]))
+                    f.write(struct.pack(f4, *matrix[1]))
+                    f.write(struct.pack(f4, *matrix[2]))
                
                 set_frame(context, current_frame) #as we work with object's global matrix in particular frame
 
@@ -174,19 +177,14 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
             f.write(struct.pack('i', 1)) #single frame flag
             for pbone in proxy['bones']:
                 matrix = pbone.matrix_basis
-                f.write(struct.pack('ffff', *matrix[0]))
-                f.write(struct.pack('ffff', *matrix[1]))
-                f.write(struct.pack('ffff', *matrix[2]))
+                f.write(struct.pack(f4, *matrix[0]))
+                f.write(struct.pack(f4, *matrix[1]))
+                f.write(struct.pack(f4, *matrix[2]))
                
         
     #---------------------write-models-----------------------
     
-    def write_floats(num, values):
-        if export_hp_settings:
-            f.write(struct.pack('e' * num, *values))
-        else:
-            f.write(struct.pack('f' * num, *values))
-            
+    f3 = float_format * 3
     
     for obj in objects:
         print(obj.name)
@@ -206,9 +204,9 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         t = obj.matrix_world @ obj.matrix_local.inverted() #to remove local transfrom - we will apply it to vertices
         
         (translation, rotation, scale) = t.decompose()
-        f.write(struct.pack('fff', *translation))
-        f.write(struct.pack('fff', *rotation.to_euler()))
-        f.write(struct.pack('fff', *scale))
+        f.write(struct.pack(f3, *translation))
+        f.write(struct.pack(f3, *rotation.to_euler()))
+        f.write(struct.pack(f3, *scale))
         
         
         #---------------------read-materials-----------------------
@@ -321,12 +319,13 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
         f.write(struct.pack('i', len(mesh.vertices)))
         
         for vert in mesh.vertices:
-                v = obj.matrix_local @ vert.co #apply local transform, 
-                #or we have to deal with it calculating bones
+            v = obj.matrix_local @ vert.co #apply local transform, 
+            #or we have to deal with it calculating bones
                 
-                write_floats(3, v)
-                v = (obj.matrix_local @ vert.normal).normalized()
-                write_floats(3, v)
+            f.write(struct.pack(f3, *v))
+                
+            v = (obj.matrix_local @ vert.normal).normalized()
+            f.write(struct.pack(f3, *v))
                 
         shapes = []
         if mesh.shape_keys and len(mesh.shape_keys.key_blocks) > 0:
@@ -349,8 +348,8 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
              f.write(struct.pack('i', len(shape['deltas'])))
              for vert in shape['deltas']:
                  f.write(struct.pack('i', vert['idx']))
-                 f.write(struct.pack('fff', *vert['p']))
-                 f.write(struct.pack('fff', *vert['n']))
+                 f.write(struct.pack(f3, *vert['p']))
+                 f.write(struct.pack(f3, *vert['n']))
            
         f.write(struct.pack('i', len(mesh.loop_triangles)))
         
@@ -366,11 +365,11 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
             if not face.use_smooth:
                 f.write(struct.pack('i', 1))
                 v = (obj.matrix_local @ face.normal).normalized()
-                f.write(struct.pack('fff', *v))
+                f.write(struct.pack(f3, *v))
             else:
                  f.write(struct.pack('i', 0))
                 
-        f.write(struct.pack('f' * len(uv), *uv))
+        f.write(struct.pack(float_format * len(uv), *uv))
         
         f.write(struct.pack('i', len(materials)))
         
@@ -388,9 +387,9 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                 method = 2
             
             f.write(struct.pack('i', method))
-            f.write(struct.pack('ffff', *material['col']))
-            f.write(struct.pack('f', material['spec_power']))
-            f.write(struct.pack('f', material['roughness']))
+            f.write(struct.pack(float_format * 4, *material['col']))
+            f.write(struct.pack(float_format, material['spec_power']))
+            f.write(struct.pack(float_format, material['roughness']))
             
             if material.get('texture') == None:
                 f.write(struct.pack('i', 0)) #no texture flag
@@ -403,7 +402,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
             else:
                 f.write(struct.pack('i', len(material['normal'])))
                 f.write(bytes(material['normal'], "ascii"))
-                f.write(struct.pack('f', material['normal_strength']))
+                f.write(struct.pack(float_format, material['normal_strength']))
                 
             if material.get('specular') == None:
                 f.write(struct.pack('i', 0)) #no texture flag
@@ -415,10 +414,10 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                     f.write(struct.pack('i', 0)) #no ramp flag
                 else:
                     f.write(struct.pack('i', 1))
-                    f.write(struct.pack('f', material['specular_ramp']['p1']))
-                    f.write(struct.pack('f', material['specular_ramp']['v1']))
-                    f.write(struct.pack('f', material['specular_ramp']['p2']))
-                    f.write(struct.pack('f', material['specular_ramp']['v2']))
+                    f.write(struct.pack(float_format, material['specular_ramp']['p1']))
+                    f.write(struct.pack(float_format, material['specular_ramp']['v1']))
+                    f.write(struct.pack(float_format, material['specular_ramp']['p2']))
+                    f.write(struct.pack(float_format, material['specular_ramp']['v2']))
                 
             if material.get('roughness_tex') == None:
                 f.write(struct.pack('i', 0)) #no roughbess texture flag
@@ -429,10 +428,10 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                     f.write(struct.pack('i', 0)) #no ramp flag
                 else:
                     f.write(struct.pack('i', 1))
-                    f.write(struct.pack('f', material['roughness_ramp']['p1']))
-                    f.write(struct.pack('f', material['roughness_ramp']['v1']))
-                    f.write(struct.pack('f', material['roughness_ramp']['p2']))
-                    f.write(struct.pack('f', material['roughness_ramp']['v2']))
+                    f.write(struct.pack(float_format, material['roughness_ramp']['p1']))
+                    f.write(struct.pack(float_format, material['roughness_ramp']['v1']))
+                    f.write(struct.pack(float_format, material['roughness_ramp']['p2']))
+                    f.write(struct.pack(float_format, material['roughness_ramp']['v2']))
                         
             
         #f.close()
@@ -472,7 +471,7 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
                     group = obj.vertex_groups[wgrp.group]
                     bone_idx = bones_map[group.name]
                     f.write(struct.pack('i', bone_idx))
-                    f.write(struct.pack('f', wgrp.weight))
+                    f.write(struct.pack(float_format, wgrp.weight))
                     
             #f.write(struct.pack('i', 1 if export_precompute_setting else 0))
         else:
@@ -485,13 +484,13 @@ def write_some_data(context, filepath, export_anim_setting, export_hidden_settin
             for frame in range(1, context.scene.frame_end):
                 set_frame(context, frame)
                     
-                write_shape_values(mesh, shapes, f)
+                write_shape_values(mesh, shapes, f, float_format)
 
             set_frame(context, current_frame) #as we work with object's global matrix in particular frame
         
         elif len(shapes) > 0:
             f.write(struct.pack('i', 1)) #single frame flag
-            write_shape_values(mesh, shapes, f)
+            write_shape_values(mesh, shapes, f, float_format)
         
         else:
             f.write(struct.pack('i', 0)) #no shape animations
@@ -536,7 +535,7 @@ class DefoldExport(Operator, ExportHelper):
     
     export_halfprecision: BoolProperty(
         name="Half precision floats",
-        description="So far only for mesh geometry",
+        description="2 bytes float numbers",
         default=False,
     )
 

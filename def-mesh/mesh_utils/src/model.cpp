@@ -23,8 +23,8 @@ Model::Model(Reader* reader, bool verbose){
 
 	this->vertices = new Vertex[vertexCount];
 	for (int i = 0; i < vertexCount; i++) {
-		this->vertices[i].p = reader->ReadVector3HP();
-		this->vertices[i].n = reader->ReadVector3HP();
+		this->vertices[i].p = reader->ReadVector3();
+		this->vertices[i].n = reader->ReadVector3();
 	}
 
 	int shapeCount = reader->ReadInt();
