@@ -20,7 +20,7 @@ class Model
 		vector< unordered_map<string, float> > shapeFrames;
 		vector<SkinData>* skin = NULL;
 		
-		Model(Reader* reader);
+		Model(Reader* reader, bool verbose);
 		~Model();
 
 		vector<int> boneParents;

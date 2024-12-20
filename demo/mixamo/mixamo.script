@@ -2,7 +2,7 @@ local binary = require "def-mesh.binary"
 local list = require "demo.mixamo.animations" 
 
 function init(self)
-	self.instance = binary.load("/model", "/assets/mixamo.bin", {textures = "/textures/mixamo/"})
+	self.instance = binary.load("/model", "/assets/mixamo.bin", {verbose = true, textures = "/textures/mixamo/"})
 	self.instance.attach("mixamorig:Head", "/hat")
 	self.instance.animator.list = list
 	

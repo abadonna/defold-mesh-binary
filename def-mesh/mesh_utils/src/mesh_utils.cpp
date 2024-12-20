@@ -147,12 +147,13 @@ static int Load(lua_State* L) {
     const char* content =  luaL_checkstring(L, 2);
     dmGameObject::HInstance obj = dmScript::CheckGOInstance(L, 3);
     bool useBakedAnimations = lua_toboolean(L, 4);
+    bool verbose = lua_toboolean(L, 5);
 
     BinaryFile* binary;
     if (auto search = files.find(path); search != files.end()) {
         binary = search->second;
     } else {
-        files[path] = new BinaryFile(content);
+        files[path] = new BinaryFile(content, verbose);
         binary = files[path];
     }
 

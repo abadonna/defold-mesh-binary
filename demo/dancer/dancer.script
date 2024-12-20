@@ -4,7 +4,11 @@ local binary = require "def-mesh.binary"
 
 function init(self)
 	self.instance = binary.load("/model", "/assets/dancer.bin", 
-		{bake = true, materials = {["Pants"] = self.Pants}}) -- override material example
+	{
+		verbose = true, 
+		bake = true, 
+		materials = {["Pants"] = self.Pants}
+	}) -- override material example
 
 	self.instance.set("light", vmath.vector4(0,.5,1,0))
 	

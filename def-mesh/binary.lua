@@ -97,6 +97,7 @@ end
 url - url to binary.go instance
 path - path to .bin file in custom assets
 config = {
+	verbose - true to get models info
 	textures - path to folder with textures
 	bake -  true to bake animations into texture
 	materials - table of materials to replace, 
@@ -126,7 +127,7 @@ M.load = function(url, path, config)
 
 	local models
 	local data = sys.load_resource(path)
-	instance.binary, models = mesh_utils.load(path, data, go.get_id(url), config.bake or false)
+	instance.binary, models = mesh_utils.load(path, data, go.get_id(url), config.bake or false, config.verbose or false)
 	instance.animator = ANIMATOR.create(instance.binary)
 	
 	for name, model in pairs(models) do 

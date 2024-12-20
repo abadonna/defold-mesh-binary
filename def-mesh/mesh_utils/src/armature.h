@@ -22,6 +22,6 @@ class Armature
 		int FindBone(string bone);
 		int GetFramesCount();
 		
-		Armature(Reader* reader);
+		Armature(Reader* reader, bool verbose);
 		~Armature();
 };

@@ -14,7 +14,7 @@ function init(self)
 	math.random()
 	math.random()
 
-	self.instance = binary.load("/model", "/assets/joy.bin", {textures = "textures/complex"})
+	self.instance = binary.load("/model", "/assets/joy.bin", {textures = "textures/complex", verbose = true})
 	blink(self)
 
 end

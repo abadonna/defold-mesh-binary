@@ -1,17 +1,17 @@
 #include "binary.h"
 
-BinaryFile::BinaryFile(const char* file) {
+BinaryFile::BinaryFile(const char* file, bool verbose) {
 	Reader* reader = new Reader(file);
 
 	int count = reader->ReadInt();
 	this->armatures.reserve(count);
 	for (int i = 0; i < count; i++) {
-		Armature* armature = new Armature(reader);
+		Armature* armature = new Armature(reader, verbose);
 		this->armatures.push_back(armature);
 	}
 
 	while (!reader->IsEOF()) {
-		Model* model = new Model(reader);
+		Model* model = new Model(reader, verbose);
 		this->models.push_back(model);
 	}
 

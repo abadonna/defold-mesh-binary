@@ -1,11 +1,14 @@
 #include "model.h"
 
-Model::Model(Reader* reader){
+Model::Model(Reader* reader, bool verbose){
 	this->meshes.emplace_back();
 
 	this->name = reader->ReadString();
-	dmLogInfo("-------------");
-	dmLogInfo("%s", this->name.c_str());
+
+	if (verbose) {
+		dmLogInfo("-------------");
+		dmLogInfo("%s", this->name.c_str());
+	}
 
 	int parentFlag = reader->ReadInt();
 
@@ -16,7 +19,7 @@ Model::Model(Reader* reader){
 	this->world = reader->ReadTransform();
 
 	this->vertexCount = reader->ReadInt();
-	dmLogInfo("vertices: %d", this->vertexCount);
+	if (verbose) dmLogInfo("vertices: %d", this->vertexCount);
 
 	this->vertices = new Vertex[vertexCount];
 	for (int i = 0; i < vertexCount; i++) {
@@ -25,7 +28,7 @@ Model::Model(Reader* reader){
 	}
 
 	int shapeCount = reader->ReadInt();
-	dmLogInfo("shapes: %d", shapeCount);
+	if (verbose) dmLogInfo("shapes: %d", shapeCount);
 
 	for (int j = 0; j < shapeCount; j++) {
 		string name = reader->ReadString();
@@ -47,7 +50,7 @@ Model::Model(Reader* reader){
 	int faceCount = reader->ReadInt();
 	int faceMap[faceCount];
 	
-	dmLogInfo("faces: %d", faceCount);
+	if (verbose) dmLogInfo("faces: %d", faceCount);
 	
 	for (int i = 0; i < faceCount; i++) {
 		Face face;
@@ -86,7 +89,7 @@ Model::Model(Reader* reader){
 
 	int materialCount = reader->ReadInt();
 
-	dmLogInfo("materials: %d", materialCount);
+	if (verbose) dmLogInfo("materials: %d", materialCount);
 
 	Mesh notUsedMaterialMesh; //? still needed ?
 	
@@ -138,7 +141,7 @@ Model::Model(Reader* reader){
 	}
 
 	this->armatureIdx = reader->ReadInt();
-	dmLogInfo("armature: %d", armatureIdx);
+	if (verbose) dmLogInfo("armature: %d", armatureIdx);
 	
 	if (armatureIdx > -1) {
 
@@ -156,7 +159,7 @@ Model::Model(Reader* reader){
 	}
 
 	int frameCount = reader->ReadInt();
-	dmLogInfo("frames: %d", frameCount);
+	if (verbose) dmLogInfo("frames: %d", frameCount);
 
 	this->shapeFrames.reserve(frameCount);
 

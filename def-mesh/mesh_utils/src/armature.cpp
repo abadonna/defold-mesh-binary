@@ -9,10 +9,10 @@ unsigned nextPOT(unsigned x) {
 	return power;
 }
 
-Armature::Armature(Reader* reader) {
+Armature::Armature(Reader* reader, bool verbose) {
 
 	int boneCount = reader->ReadInt();
-	dmLogInfo("reading armature, bones: %d", boneCount);
+	if (verbose) dmLogInfo("reading armature, bones: %d", boneCount);
 	
 	this->boneNames.reserve(boneCount);
 	this->boneParents.reserve(boneCount);
@@ -29,7 +29,7 @@ Armature::Armature(Reader* reader) {
 	}
 
 	int frameCount = reader->ReadInt();
-	dmLogInfo("frames: %d", frameCount);
+	if (verbose) dmLogInfo("frames: %d", frameCount);
 
 	this->frames.reserve(frameCount);
 

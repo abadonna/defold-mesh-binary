@@ -14,6 +14,6 @@ class BinaryFile
 
 		Instance* CreateInstance(dmGameObject::HInstance obj, bool useBakedAnimations);
 	
-		BinaryFile(const char* file);
+		BinaryFile(const char* file, bool verbose);
 		~BinaryFile();
 };

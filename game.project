@@ -9,7 +9,6 @@ shared_state = 1
 width = 960
 height = 640
 high_dpi = 1
-display_device_info = 1
 vsync = 0
 update_frequency = 0
 
