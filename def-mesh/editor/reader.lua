@@ -52,8 +52,8 @@ M.read_model = function(materials)
 
 	local vert_count = M.read_int()
 	for vertex = 1, vert_count do --vertices
-		M.read_vec3_hp()
-		M.read_vec3_hp()
+		M.read_vec3()
+		M.read_vec3()
 	end
 
 	local shape_count = M.read_int()
@@ -197,6 +197,8 @@ end
 
 --http://lua-users.org/lists/lua-l/2010-03/msg00910.html
 M.read_float = function()
+	if M.half_precision then return M.read_float_hp() end
+	
 	local sign = 1
 
 	local mantissa = string.byte(M.content, M.index + 2) % 128
@@ -210,13 +212,6 @@ M.read_float = function()
 end
 
 M.read_vec3 = function()
-	return {M.read_float(), M.read_float(), M.read_float()}
-end
-
-M.read_vec3_hp = function()
-	if M.half_precision then
-		return {M.read_float_hp(), M.read_float_hp(), M.read_float_hp()}
-	end
 	return {M.read_float(), M.read_float(), M.read_float()}
 end
 
