@@ -101,8 +101,8 @@ config = {
 	textures - path to folder with textures
 	bake -  true to bake animations into texture
 	materials - table of materials to replace, 
-		use editor script "Add materials from model" to generate properties
-	}
+	use editor script "Add materials from model" to generate properties
+}
 --]]
 M.load = function(url, path, config)
 	local instance = {
@@ -127,9 +127,11 @@ M.load = function(url, path, config)
 
 	local models
 	local data = sys.load_resource(path)
-	instance.binary, models = mesh_utils.load(path, data, go.get_id(url), config.bake or false, config.verbose or false)
+
+	url = type(url) == "string" and msg.url(nil, url, nil) or url
+	instance.binary, models = mesh_utils.load(path, data, url, config.bake or false, config.verbose or false)
 	instance.animator = ANIMATOR.create(instance.binary)
-	
+
 	for name, model in pairs(models) do 
 
 		instance.total_frames = model.frames
@@ -143,20 +145,22 @@ M.load = function(url, path, config)
 		end
 
 		for i, mesh in ipairs(model.meshes) do
-			
+
 			--local f = mesh.material.type == 0 and "#factory" or "#factory_trans"
 			--local id = factory.create(url .. f, model.position, model.rotation, {}, model.scale)
-			
-			local id = factory.create(url .. "#factory", model.position, model.rotation, {}, model.scale)
+
+			local id = factory.create(msg.url(nil, url.path, "factory"), model.position, model.rotation, {}, model.scale)
 			local mesh_url = msg.url(nil, id, "mesh")
 			mesh:set_url(mesh_url);
 
 			if config.materials and config.materials[mesh.material.name] then
 				go.set(mesh_url, "material", config.materials[mesh.material.name])
-			elseif mesh.material.type > 0 then
-				go.set(mesh_url, "material", go.get(url .. "#binary", "transparent"))
+			elseif mesh.material.type == 0 then
+				go.set(mesh_url, "material", go.get(msg.url(nil, url.path, "binary"), "opaque"))
+			else
+				go.set(mesh_url, "material", go.get(msg.url(nil, url.path, "binary"), "transparent"))
 			end
-			
+
 			local v, bpath = create_buffer(mesh.buffer)
 			go.set(mesh_url, "vertices", v)
 
@@ -242,7 +246,7 @@ M.load = function(url, path, config)
 		if with_objects then
 			go.delete(instance.url, true)
 		end
-		
+
 		for key, mesh in pairs(instance.game_objects) do
 			resource.release(mesh.path)
 		end
