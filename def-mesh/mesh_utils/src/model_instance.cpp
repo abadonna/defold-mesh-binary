@@ -35,7 +35,7 @@ static int SetRuntimeTexture(lua_State* L) {
 }
 
 
-ModelInstance::ModelInstance(Model* model, Animation* animation, bool useBakedAnimations) {
+ModelInstance::ModelInstance(Model* model, Animation* animation, bool useBakedAnimations, float scaleAABB) {
 	this->useBakedAnimations = useBakedAnimations && (animation != NULL) && (animation->GetFramesCount() > 1);
 	this->model = model;
 	this->animation = animation;
@@ -44,7 +44,7 @@ ModelInstance::ModelInstance(Model* model, Animation* animation, bool useBakedAn
 	this->buffers.reserve(this->model->meshes.size());
 
 	for(auto & mesh : this->model->meshes) {
-		auto buffer = mesh.CreateBuffer(this);
+		auto buffer = mesh.CreateBuffer(this, scaleAABB);
 		this->buffers.push_back(buffer);
 	}
 

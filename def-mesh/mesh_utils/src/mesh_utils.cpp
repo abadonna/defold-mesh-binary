@@ -148,6 +148,7 @@ static int Load(lua_State* L) {
     dmGameObject::HInstance obj = dmScript::CheckGOInstance(L, 3);
     bool useBakedAnimations = lua_toboolean(L, 4);
     bool verbose = lua_toboolean(L, 5);
+    float scaleAABB = luaL_checknumber(L, 6);
 
     BinaryFile* binary;
     if (auto search = files.find(path); search != files.end()) {
@@ -157,7 +158,7 @@ static int Load(lua_State* L) {
         binary = files[path];
     }
 
-    Instance* instance = binary->CreateInstance(obj, useBakedAnimations);
+    Instance* instance = binary->CreateInstance(obj, useBakedAnimations, scaleAABB);
     lua_newtable(L);
     lua_pushstring(L, "instance");
     lua_pushlightuserdata(L, instance);

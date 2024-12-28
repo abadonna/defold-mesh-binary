@@ -17,7 +17,7 @@ class Mesh
 		unordered_map< int, vector<int> > vertexMap;
 		Material material;
 
-		dmScript::LuaHBuffer CreateBuffer(ModelInstance* model);
+		dmScript::LuaHBuffer CreateBuffer(ModelInstance* model, float scaleAABB);
 		
 		Mesh();
 		~Mesh();

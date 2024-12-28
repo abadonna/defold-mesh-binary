@@ -23,6 +23,6 @@ class Instance{
 		void ResetRootMotion(bool isPrimary, int frame);
 		void SwitchRootMotion();
 		
-		Instance(vector<Model*>* models, vector<Armature*>* armatures, dmGameObject::HInstance obj, bool useBakedAnimations);
+		Instance(vector<Model*>* models, vector<Armature*>* armatures, dmGameObject::HInstance obj, bool useBakedAnimations, float scaleAABB);
 		~Instance();
 };

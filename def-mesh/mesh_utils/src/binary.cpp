@@ -28,8 +28,8 @@ BinaryFile::~BinaryFile() {
 	}
 }
 
-Instance* BinaryFile::CreateInstance(dmGameObject::HInstance obj, bool useBakedAnimations) {
-	Instance* instance = new Instance(&this->models, &this->armatures, obj, useBakedAnimations);
+Instance* BinaryFile::CreateInstance(dmGameObject::HInstance obj, bool useBakedAnimations, float scaleAABB) {
+	Instance* instance = new Instance(&this->models, &this->armatures, obj, useBakedAnimations, scaleAABB);
 	this->instances ++;
 	return instance;
 }

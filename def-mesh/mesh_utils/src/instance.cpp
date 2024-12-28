@@ -1,7 +1,7 @@
 #include "instance.h"
 #include "model.h"
 
-Instance::Instance(vector<Model*>* models, vector<Armature*>* armatures, dmGameObject::HInstance obj, bool useBakedAnimations) {
+Instance::Instance(vector<Model*>* models, vector<Armature*>* armatures, dmGameObject::HInstance obj, bool useBakedAnimations, float scaleAABB) {
 	this->useBakedAnimations = useBakedAnimations;
 	
 	this->animations.reserve(armatures->size());
@@ -18,7 +18,7 @@ Instance::Instance(vector<Model*>* models, vector<Armature*>* armatures, dmGameO
 			animation = this->animations[model->armatureIdx];
 			animation->SetTransform(model->world.matrix);
 		}
-		ModelInstance* mi = new ModelInstance(model, animation, useBakedAnimations);
+		ModelInstance* mi = new ModelInstance(model, animation, useBakedAnimations, scaleAABB);
 		this->models.push_back(mi);
 	}
 }

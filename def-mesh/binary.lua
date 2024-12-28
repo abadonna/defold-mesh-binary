@@ -100,8 +100,10 @@ config = {
 	verbose - true to get models info
 	textures - path to folder with textures
 	bake -  true to bake animations into texture
+	aabb - float, scale factor - force aabb creation scaled with this value 
+		(for frustum culling skinned meshes)
 	materials - table of materials to replace, 
-	use editor script "Add materials from model" to generate properties
+		use editor script "Add materials from model" to generate properties
 }
 --]]
 M.load = function(url, path, config)
@@ -129,7 +131,7 @@ M.load = function(url, path, config)
 	local data = sys.load_resource(path)
 
 	url = type(url) == "string" and msg.url(nil, url, nil) or url
-	instance.binary, models = mesh_utils.load(path, data, url, config.bake or false, config.verbose or false)
+	instance.binary, models = mesh_utils.load(path, data, url, config.bake or false, config.verbose or false, config.aabb or 0)
 	instance.animator = ANIMATOR.create(instance.binary)
 
 	for name, model in pairs(models) do 

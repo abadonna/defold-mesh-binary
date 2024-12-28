@@ -10,7 +10,7 @@ Mesh::Mesh() {
 Mesh::~Mesh() {
 }
 
-dmScript::LuaHBuffer Mesh::CreateBuffer(ModelInstance* mi) {
+dmScript::LuaHBuffer Mesh::CreateBuffer(ModelInstance* mi, float scaleAABB) {
 
 	bool hasNormalMap = !this->material.normal.texture.empty();
 
@@ -119,18 +119,28 @@ dmScript::LuaHBuffer Mesh::CreateBuffer(ModelInstance* mi) {
 		tc += stride;
 	}
 
-	if (mi->model->armatureIdx == -1) {
-		
+	if ( (mi->model->armatureIdx == -1) || (scaleAABB > 0)) {
+
+		scaleAABB = (scaleAABB > 0) ? scaleAABB : 1;
 		//min = mi->model->world.matrix * min;
 		//max = mi->model->world.matrix * max;
+
+		if (scaleAABB != 1) {
+			Vector4 center = Vector4( (max[0] + min[0]) / 2, (max[1] + min[1]) / 2, (max[2] + min[2]) / 2, 0);
+			Vector4 offset = (max - center) * scaleAABB;
+			min -= offset;
+			max += offset; 
+		}
 		
 		float aabb[6];
+
 		aabb[0] = min[0];
 		aabb[1] = min[2];
 		aabb[2] = -min[1];
 		aabb[3] = max[0];
 		aabb[4] = max[2];
 		aabb[5] = -max[1];
+		
 			
 		dmBuffer::SetMetaData(buffer, dmHashString64("AABB"), &aabb, 6, dmBuffer::VALUE_TYPE_FLOAT32);
 	}

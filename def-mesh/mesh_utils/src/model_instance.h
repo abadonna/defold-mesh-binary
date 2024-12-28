@@ -30,7 +30,7 @@ class ModelInstance {
 		vector<URL> urls;
 		dmhash_t runtimeTexture;
 
-		ModelInstance(Model* model, Animation* animation, bool useBakedAnimations);
+		ModelInstance(Model* model, Animation* animation, bool useBakedAnimations, float scaleAABB);
 		~ModelInstance();
 		
 		void CreateLuaProxy(lua_State* L);
