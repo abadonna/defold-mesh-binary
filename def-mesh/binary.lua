@@ -178,23 +178,23 @@ M.load = function(url, path, config)
 			if anim_texture then
 				instance.textures[anim_texture] = true;
 				instance.textures[runtime_texture] = true;
-				go.set(mesh_url, "texture3", anim_texture)
+				go.set(mesh_url, "texture0", anim_texture)
 				go.set(mesh_url, "texture4", runtime_texture)
 			end
 
 			if mesh.material.texture then
-				set_texture(instance, mesh_url, "texture0", mesh.material.texture, "texel")
+				set_texture(instance, mesh_url, "texture1", mesh.material.texture, "texel")
 				options.x = 1.0
 			end
 
 			if mesh.material.normal and
-			set_texture(instance, mesh_url, "texture1", mesh.material.normal.texture) 
+			set_texture(instance, mesh_url, "texture2", mesh.material.normal.texture) 
 			then
 				options.y = mesh.material.normal.value
 			end
 
 			if mesh.material.specular.texture and
-			set_texture(instance, mesh_url, "texture2", mesh.material.specular.texture) 
+			set_texture(instance, mesh_url, "texture3", mesh.material.specular.texture) 
 			then
 				options_specular.x = 1.0 + mesh.material.specular.invert
 				if mesh.material.specular.ramp then
@@ -204,7 +204,7 @@ M.load = function(url, path, config)
 			end
 
 			if mesh.material.roughness.texture and
-			set_texture(instance, mesh_url, "texture2", mesh.material.roughness.texture) 
+			set_texture(instance, mesh_url, "texture3", mesh.material.roughness.texture) 
 			then
 				-- roughness and specular are usually the same?
 				options_specular.w = 1.0

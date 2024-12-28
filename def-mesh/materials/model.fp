@@ -7,15 +7,10 @@ in highp vec2 var_texcoord0;
 in vec3 var_light_dir;
 in vec3 var_vh;
 
+uniform sampler2D tex_anim;
 uniform sampler2D tex_diffuse;
 uniform sampler2D tex_normal;
 uniform sampler2D tex_rough;
-uniform sampler2D tex_anim;
-
-uniform sampler2D tex4;
-uniform sampler2D tex5;
-uniform sampler2D tex6;
-uniform sampler2D tex7;
 
 uniform uniforms_fp {
     vec4 texel;
