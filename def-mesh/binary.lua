@@ -80,7 +80,7 @@ local function get_bone_go(self, bone)
 		return self.bones_go[bone]
 	end
 
-	local id = factory.create(self.url .. "#factory_bone")
+	local id = factory.create(msg.url(self.url.socket, self.url.path, "factory_bone"))
 
 	local parent = self.binary:attach_bone_go(id, bone)
 	if parent then
@@ -101,12 +101,14 @@ config = {
 	textures - path to folder with textures
 	bake -  true to bake animations into texture
 	aabb - float, scale factor - force aabb creation scaled with this value 
-		(for frustum culling skinned meshes)
+	(for frustum culling skinned meshes)
 	materials - table of materials to replace, 
-		use editor script "Add materials from model" to generate properties
+	use editor script "Add materials from model" to generate properties
 }
 --]]
 M.load = function(url, path, config)
+	url = type(url) == "string" and msg.url(nil, url, nil) or url
+
 	local instance = {
 		meshes = {},
 		attaches = {},
@@ -130,7 +132,6 @@ M.load = function(url, path, config)
 	local models
 	local data = sys.load_resource(path)
 
-	url = type(url) == "string" and msg.url(nil, url, nil) or url
 	instance.binary, models = mesh_utils.load(path, data, url, config.bake or false, config.verbose or false, config.aabb or 0)
 	instance.animator = ANIMATOR.create(instance.binary)
 
