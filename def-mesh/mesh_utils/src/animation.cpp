@@ -33,9 +33,13 @@ bool Animation::IsBlending() {
 	return count > 1;
 }
 
+bool Animation::HasRootMotion() {
+	return this->hasRootMotion;
+}
+
 void Animation::Update() {
 	if (!this->needUpdate) return;
-	
+
 	this->bones = this->tracks[0].bones; 
 
 	int count = 0;
@@ -133,7 +137,10 @@ void Animation::SetFrame(int trackIdx,  int idx1, int idx2, float factor, RootMo
 			track->bones = &this->armature->frames[idx1];
 		}
 
-		if (trackIdx == 0) {track->ExtractRootMotion(this->root, rm1, rm2);} //TODO: for all tracks
+		if (trackIdx == 0) {
+			track->ExtractRootMotion(this->root, rm1, rm2);
+			this->hasRootMotion = (rm1 != RootMotionType::None) || (rm2 != RootMotionType::None);
+		} //TODO: for all tracks
 	} 
 }
 
@@ -165,14 +172,14 @@ int Animation::GetRuntimeBuffer(lua_State* L) {
 
 	for(auto & bone : *this->bones) {
 		Vector4 data[3] = {bone.getRow(0), bone.getRow(1), bone.getRow(2)};
-			for (int i = 0; i < 3; i++) {
-				stream[0] = data[i].getX();
-				stream[1] = data[i].getY();
-				stream[2] = data[i].getZ();
-				stream[3] = data[i].getW();
-				stream += stride;
-			}
+		for (int i = 0; i < 3; i++) {
+			stream[0] = data[i].getX();
+			stream[1] = data[i].getY();
+			stream[2] = data[i].getZ();
+			stream[3] = data[i].getW();
+			stream += stride;
 		}
+	}
 
 	lua_pushnumber(L, width);
 	lua_pushnumber(L, height);

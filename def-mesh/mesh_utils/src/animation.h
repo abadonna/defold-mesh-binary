@@ -9,6 +9,7 @@ class Animation
 {
 	private:
 		bool needUpdate = true;
+		bool hasRootMotion = false;
 		Armature* armature;
 		vector<string> boneNames;
 		vector<Matrix4> cumulative;
@@ -20,10 +21,10 @@ class Animation
 		vector<BoneGameObject> boneObjects;
 
 		void CalculateBones();
-		
+
 	public:
 		vector<Matrix4>* bones = NULL;
-		
+
 		void SetFrame(int trackIdx, int idx1, int idx2, float factor, RootMotionType rm1, RootMotionType rm2);
 		void Update();
 		int AddAnimationTrack(vector<string>* mask);
@@ -36,10 +37,11 @@ class Animation
 		int GetFrameIdx();
 		bool IsBlending();
 		bool HasAttachments();
+		bool HasRootMotion();
 		void SetTransform(Matrix4 matrix);
 		void SwitchRootMotion();
 		void ResetRootMotion(int frameIdx, bool isPrimary);
 		void CreateBoneGO(dmGameObject::HInstance go, int idx);
-		
+
 		Animation(Armature* armature, dmGameObject::HInstance obj);
 };

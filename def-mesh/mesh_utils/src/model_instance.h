@@ -15,12 +15,14 @@ class ModelInstance {
 		unordered_map<string, float> shapeValues;
 		unordered_map<string, float> directShapeValues;
 		float threshold = 0;
-		
+
 		void CalculateShapes(vector<string>* shapeNames);
 		void ApplyShapes(lua_State* L);
 		void ApplyArmature(lua_State* L, int meshIdx);
 		void SetShapeFrame(lua_State* L, int idx1);
-	
+
+		bool UseBakedAnimations();
+
 	public:
 		Model* model;
 		Animation* animation = NULL;
@@ -32,11 +34,11 @@ class ModelInstance {
 
 		ModelInstance(Model* model, Animation* animation, bool useBakedAnimations, float scaleAABB);
 		~ModelInstance();
-		
+
 		void CreateLuaProxy(lua_State* L);
 		void SetFrame(int trackIdx, int idx1, int idx2, float factor, RootMotionType rm1, RootMotionType rm2);
 		void Update(lua_State* L);
 		void SetShapes(lua_State* L, unordered_map<string, float>* values);
-		
+
 		URL* AttachGameObject(dmGameObject::HInstance go, string bone);
 };

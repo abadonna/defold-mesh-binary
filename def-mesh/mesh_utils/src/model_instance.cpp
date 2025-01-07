@@ -21,7 +21,7 @@ static int GetAnimationTextureBuffer(lua_State* L) {
 
 	bool runtime = lua_toboolean(L, 2);
 	if (runtime) return mi->animation->GetRuntimeBuffer(L);
-	
+
 	return mi->animation->GetTextureBuffer(L);
 }
 
@@ -133,15 +133,19 @@ void ModelInstance::CreateLuaProxy(lua_State* L) {
 
 }
 
+bool ModelInstance::UseBakedAnimations() {
+	if ((this->animation != NULL) && (this->animation->HasRootMotion())) return false;
+	return this->useBakedAnimations;
+}
+
 void ModelInstance::Update(lua_State* L) {
 	if (this->animation == NULL) return;
-	
+
 	int meshCount = this->model->meshes.size();
-	
+
 	this->SetShapeFrame(L, this->animation->GetFrameIdx()); //TODO blending, multi tracks
-	
-	if (this->useBakedAnimations) {
-		
+
+	if (this->UseBakedAnimations()) {
 		if (this->animation->IsBlending()) {
 			//set runtime texture
 			lua_getglobal(L, "native_runtime_texture");
@@ -150,7 +154,7 @@ void ModelInstance::Update(lua_State* L) {
 			this->animation->GetRuntimeBuffer(L);
 			lua_call(L, 4, 0);
 		}
-		
+
 		for (int i = 0; i < meshCount; i++) {
 			lua_getglobal(L, "go");
 			lua_getfield(L, -1, "set");
@@ -161,22 +165,33 @@ void ModelInstance::Update(lua_State* L) {
 			dmScript::PushVector4(L, this->animation->GetBakedUniform());
 			lua_call(L, 3, 0);
 		}
+
+		return;
 	}
 
-	if (!this->useBakedAnimations) {
-		for (int i = 0; i < meshCount; i++) {
-			this->ApplyArmature(L, i);
-		}
+	for (int i = 0; i < meshCount; i++) {
+		this->ApplyArmature(L, i);
 	}
+
 }
 
 void ModelInstance::ApplyArmature(lua_State* L, int meshIdx) {
-	if (this->useBakedAnimations) return;
 	if (this->animation->bones == NULL) return;
+
+	if (this->useBakedAnimations) { // overrride baked settings, e.g. we have root motion
+		lua_getglobal(L, "go");
+		lua_getfield(L, -1, "set");
+		lua_remove(L, -2);
+
+		dmScript::PushURL(L, this->urls[meshIdx]);
+		lua_pushstring(L, "animation");
+		dmScript::PushVector4(L, Vector4(0,0,0,0));
+		lua_call(L, 3, 0);
+	}
 
 	for (int idx : this->model->meshes[meshIdx].usedBonesIndex) { // set only used bones, critical for performance
 		int offset = idx * 3;
-		
+
 		Matrix4* m = &this->animation->bones->at(idx);
 
 		Vector4 data[3] = {
@@ -184,7 +199,7 @@ void ModelInstance::ApplyArmature(lua_State* L, int meshIdx) {
 			m->getRow(1), 
 			m->getRow(2)
 		};
-		
+
 		//alternative - dmGameObject::SetProperty - defold/engine/gameobject/src/gameobject/gameobject.h
 
 		for (int i = 0; i < 3; i ++) {
@@ -215,8 +230,8 @@ void ModelInstance::SetShapes(lua_State* L, unordered_map<string, float>* values
 		float value = it.second;
 		directShapeValues[name] = value;
 		if (CONTAINS(&this->model->shapes, name) && (this->shapeValues[name] != value)) {
-				this->shapeValues[name] = value;
-				modified.emplace_back(name);
+			this->shapeValues[name] = value;
+			modified.emplace_back(name);
 		}
 	}
 
@@ -234,17 +249,17 @@ void ModelInstance::SetShapes(lua_State* L, unordered_map<string, float>* values
 
 void ModelInstance::SetShapeFrame(lua_State* L, int idx1) {
 	//TODO: blending
-	
+
 	if (this->model->shapes.empty() || this->model->shapeFrames.size() < idx1) return;
 
 	vector<string> modified;
-	
+
 	for (auto & it : this->model->shapeFrames[idx1]) {
 		string name = it.first;
 		float value = it.second;
 		if (CONTAINS(&this->directShapeValues, name)) continue;
 		if (this->shapeValues[name] != value 
-			/*&& fabs(this->shapeValues[name] - value) > this->threshold*/) {
+		/*&& fabs(this->shapeValues[name] - value) > this->threshold*/) {
 			this->shapeValues[name] = value;
 			modified.emplace_back(name);
 		}
@@ -260,7 +275,7 @@ void ModelInstance::CalculateShapes(vector<string>* shapeNames) {
 	Quat iq = Quat::identity();
 	this->blended.clear();
 	unordered_map<int, bool> modified;
-	
+
 	for (auto &name : *shapeNames) {
 		for (auto &it: this->model->shapes[name]) {
 			modified[it.first] = true;
@@ -278,7 +293,7 @@ void ModelInstance::CalculateShapes(vector<string>* shapeNames) {
 		for (auto &s : this->shapeValues) {
 			float value = s.second;
 			if (value == 0) continue;
-			
+
 			auto shape = &this->model->shapes[s.first];
 			if (CONTAINS(shape, idx)) {
 				ShapeData* delta = &shape->at(idx);
@@ -290,7 +305,7 @@ void ModelInstance::CalculateShapes(vector<string>* shapeNames) {
 		}
 
 		Vertex vertex = this->model->vertices[idx];
-		
+
 		if (weight > 1) {
 			v.p = vertex.p + v.p / weight;
 			v.n = vertex.n + v.n / weight;
@@ -318,12 +333,12 @@ void ModelInstance::ApplyShapes(lua_State* L) {
 	int size = this->model->meshes.size();
 	for (int i = 0; i < size; i++) {
 		Mesh* mesh = &this->model->meshes[i];
-		
+
 		bool needUpdate = false;
 
 		float* positions = 0x0;
 		float* normals = 0x0;
-		
+
 		uint32_t components = 0;
 		uint32_t stride = 0;
 		uint32_t items_count = 0;
@@ -353,7 +368,7 @@ void ModelInstance::ApplyShapes(lua_State* L) {
 
 		if (needUpdate) {
 			lua_getglobal(L, "native_update_buffer");
-			
+
 			dmScript::PushURL(L, this->urls[i]);
 			dmScript::PushBuffer(L, this->buffers[i]);
 			lua_call(L, 2, 0);
