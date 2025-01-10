@@ -156,12 +156,18 @@ M.load = function(url, path, config)
 			local mesh_url = msg.url(nil, id, "mesh")
 			mesh:set_url(mesh_url);
 
+			local material = nil
+			local materials = msg.url(nil, url.path, "binary")
+			pcall(function() material = go.get(materials, mesh.material.name) end)
+
 			if config.materials and config.materials[mesh.material.name] then
 				go.set(mesh_url, "material", config.materials[mesh.material.name])
+			elseif material then
+				go.set(mesh_url, "material", material)
 			elseif mesh.material.type == 0 then
-				go.set(mesh_url, "material", go.get(msg.url(nil, url.path, "binary"), "opaque"))
+				go.set(mesh_url, "material", go.get(materials, "opaque"))
 			else
-				go.set(mesh_url, "material", go.get(msg.url(nil, url.path, "binary"), "transparent"))
+				go.set(mesh_url, "material", go.get(materials, "transparent"))
 			end
 
 			local v, bpath = create_buffer(mesh.buffer)
