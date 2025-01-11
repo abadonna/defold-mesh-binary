@@ -134,9 +134,11 @@ M.load = function(url, path, config)
 
 	instance.binary, models = mesh_utils.load(path, data, url, config.bake or false, config.verbose or false, config.aabb or 0)
 	instance.animator = ANIMATOR.create(instance.binary)
+	instance.models = {}
 
 	for name, model in pairs(models) do 
 
+		instance.models[name] = {}
 		instance.total_frames = model.frames
 
 		local anim_texture, runtime_texture
@@ -180,6 +182,8 @@ M.load = function(url, path, config)
 				path = bpath,
 				parent = model.parent
 			}
+
+			table.insert(instance.models[name], id)
 
 			local options = vmath.vector4(0.0)
 			local options_specular = vmath.vector4(0.0)
@@ -248,6 +252,21 @@ M.load = function(url, path, config)
 
 	instance.binary:set_frame(0, 0);
 	instance.binary:update();
+
+
+	---------------------------------------------------------------
+	instance.hide = function(name) 
+		for _, id in ipairs(instance.models[name]) do
+			msg.post(id, "disable")
+		end
+	end
+
+	---------------------------------------------------------------
+	instance.show = function(name) 
+		for _, id in ipairs(instance.models[name]) do
+			msg.post(id, "enable")
+		end
+	end
 
 	---------------------------------------------------------------
 

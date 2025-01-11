@@ -8,6 +8,8 @@ function init(self)
 
 	
 	self.model = binary.load("/model", "/assets/tracks.bin")
+
+	--self.model.hide("Beta_Joints")
 	
 	self.walk = function()
 		self.model.animator.play(WALK, {root_motion = RM_POSITION, blend_duration= .2}, self.turn)
