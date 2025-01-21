@@ -5,6 +5,7 @@
 AnimationTrack::AnimationTrack(Armature* armature, vector<string>* bones) {
 	this->armature = armature;
 	this->transform = Matrix4::identity();
+	this->inversed = Matrix4::identity();
 
 	if (bones != NULL) {
 		for (auto & bone : *bones) {
@@ -59,7 +60,8 @@ void AnimationTrack::ResetRootMotion(int frameIdx, bool isPrimary) {
 
 void AnimationTrack::SetTransform(Matrix4 matrix) {
 	this->transform = matrix;
-
+	this->inversed = Inverse(this->transform);
+	
 	this->ResetRootMotion(0, true);
 	this->ResetRootMotion(0, false);
 }
@@ -73,24 +75,23 @@ void AnimationTrack::GetRootMotionForFrame(int idx, RootMotionData* data, RootMo
 	rootBone = local * armature->frames[idx][bi] * Inverse(local);
 
 	Vector4 posePosition = rootBone.getCol3();
-	Matrix4 worldRootBone = this->transform * rootBone * Inverse(data->rotation) * Inverse(this->transform);
+	Matrix4 worldRootBone = this->transform * rootBone * Inverse(data->rotation) * this->inversed;
 
 	if ((rm == RootMotionType::Rotation) || (rm == RootMotionType::Both)) {
 
 		angle = QuatToEuler(Quat(worldRootBone.getUpper3x3())).getZ();
 
-		Matrix4 mm = Matrix4::rotationZ(angle);
-		mm =  worldRootBone * Inverse(mm);
-		mm = Inverse(this->transform) * mm * this->transform;
+		Matrix4 inv = Matrix4::rotationZ(-angle);
+		Matrix4 mm =  worldRootBone * inv;
+		mm = this->inversed * mm * this->transform;
 
 		mm = mm * (data->rotation);
 
 		Matrix3 mXZ = mm.getUpper3x3();
 		rootBone.setUpper3x3(mXZ);
 
-		mm = Matrix4::rotationZ(-angle);
-		mm = Inverse(this->transform) * mm * this->transform;
-		//posePosition = data->rotation * posePosition;
+		mm = this->inversed * inv * this->transform;
+
 		Vector4 pPosition = mm * posePosition;
 
 		rootBone.setCol3(pPosition);
@@ -102,7 +103,7 @@ void AnimationTrack::GetRootMotionForFrame(int idx, RootMotionData* data, RootMo
 		position = Vector3(v.getX(), v.getZ(), -v.getY());
 
 		if (rm == RootMotionType::Forward) { // bake Y & X into pose, move game object only along Z
-			v = Inverse(this->transform) * Vector4(v[0], 0, v[2], 1) + Vector4(0, data->offset[1], 0, 0);
+			v = this->inversed * Vector4(v[0], 0, v[2], 1) + Vector4(0, data->offset[1], 0, 0);
 			Vector4 t = this->transform * data->offset;
 			position[0] = t[0];
 			position[1] = t[2];

@@ -13,6 +13,7 @@ class AnimationTrack {
 	private:
 		Armature* armature;
 		Matrix4 transform;
+		Matrix4 inversed;
 		RootMotionData rmdata1;
 		RootMotionData rmdata2;
 		void GetRootMotionForFrame(int idx, RootMotionData* data, RootMotionType rm, Matrix4& rootBone, Vector3& position, float& angle);
