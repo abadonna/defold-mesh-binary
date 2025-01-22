@@ -6,8 +6,45 @@ RM_POSITION = 2
 RM_BOTH = 3
 RM_FORWARD = 4
 
+local function update_blend(self, dt)
+
+	if self.blend then
+		self.blend.factor = math.max(0, 1.0 - self.total_time / self.blend.duration)
+		if self.blend.factor == 0 then
+			if self.blend.animation and self.blend.animation.callback and not self.blend.animation.is_completed then
+				self.blend.animation.callback(self.blend.animation.frame)
+			end
+			self.blend = nil
+		elseif self.blend.animation then
+			self.blend.animation:update(dt)
+		end
+		self.total_time = self.total_time + dt
+	end
+
+end
+
+local function single_frame_update(self, dt)
+	if self.is_completed then return end
+
+	update_blend(self, dt)
+
+	self.changed = true
+
+	if not self.blend then
+		self.is_completed = true
+	end
+
+	if (self.time == 0) and (self.motion > RM_NONE)  then
+		self.reset_root_motion()
+	end
+
+	self.time = self.time + dt
+end
+
 local function animation_update(self, dt)
 	if self.is_completed then return end
+
+	update_blend(self, dt)
 
 	local a = self.time / self.duration
 	local full, part = math.modf(a)
@@ -20,21 +57,8 @@ local function animation_update(self, dt)
 	end
 
 	
-
 	if (frame == self.finish or full >= 1) and self.playback == go.PLAYBACK_ONCE_FORWARD then
 		self.is_completed = true
-	end
-
-	if self.blend then
-		self.blend.factor = math.max(0, 1.0 - self.time / self.blend.duration)
-		if self.blend.factor == 0 then
-			if self.blend.animation and self.blend.animation.callback and not self.blend.animation.is_completed then
-				self.blend.animation.callback(self.blend.animation.frame)
-			end
-			self.blend = nil
-		elseif self.blend.animation then
-			self.blend.animation:update(dt)
-		end
 	end
 
 	if frame ~= self.frame then
@@ -87,7 +111,7 @@ M.create = function(binary)
 				blend_duration - seconds to blend with previous animation
 				fps - frames per second
 				playback - once or looped
-				root_motion- RM_ROTATION, RM_POSITION, RM_BOTH
+				root_motion- RM_ROTATION, RM_POSITION, RM_BOTH, RM_FORWARD
 
 		--]]
 		if type(animation) == "string" then
@@ -121,13 +145,24 @@ M.create = function(binary)
 		end
 
 		animation.time = 0
+		animation.total_time = 0
 		animation.update = animation_update
+
+		if animation.start == animation.finish then -- just set or blend to frame
+			animation.frame = animation.start
+			animation.update = single_frame_update
+			if animation.track == 0 then
+				animator.binary:switch_root_motion()
+			end
+		end
 
 		for i, a in ipairs(animator.animations) do
 			if a.track == animation.track then
 				a.blend = nil -- blend only 2 animations
 				a.primary = false
-				animator.binary:switch_root_motion()
+				if animation.track == 0 then
+					animator.binary:switch_root_motion()
+				end
 				if blend_duration > 0 then
 					animation.blend = {
 						animation = a,
@@ -141,7 +176,9 @@ M.create = function(binary)
 		end
 
 		if blend_duration > 0 and not animation.blend then --blend with current frame
-			animator.binary:switch_root_motion()
+			if animation.track == 0 then
+				animator.binary:switch_root_motion()
+			end
 			animation.blend = {
 				frame = animator.frame[animation.track] or animator.frame[0],
 				duration = blend_duration
