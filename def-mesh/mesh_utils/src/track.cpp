@@ -84,10 +84,13 @@ void AnimationTrack::GetRootMotionForFrame(int idx, RootMotionData* data, RootMo
 		angle = eulers.getZ();
 
 		Matrix4 inv = Matrix4::rotationZ(-angle);
-		//Matrix4 mm =  worldRootBone * inv; //this way rotation looks wrong
+
+		Matrix4 mm = inv * worldRootBone;
+		/*
 		Matrix4 mX = Matrix4::rotationX(eulers.getX());
 		Matrix4 mY = Matrix4::rotationY(eulers.getY());
-		Matrix4 mm = mX * mY; //probably wrong order?
+		Matrix4 mm = mX * mY; //probably the wrong order?*/
+		
 		mm = this->inversed * mm * this->transform;
 
 		mm = mm * (data->rotation);
