@@ -79,10 +79,15 @@ void AnimationTrack::GetRootMotionForFrame(int idx, RootMotionData* data, RootMo
 
 	if ((rm == RootMotionType::Rotation) || (rm == RootMotionType::Both)) {
 
-		angle = QuatToEuler(Quat(worldRootBone.getUpper3x3())).getZ();
+		Quat q = Quat(worldRootBone.getUpper3x3());
+		Vector3 eulers = QuatToEuler(q);
+		angle = eulers.getZ();
 
 		Matrix4 inv = Matrix4::rotationZ(-angle);
-		Matrix4 mm =  worldRootBone * inv;
+		//Matrix4 mm =  worldRootBone * inv; //this way rotation looks wrong
+		Matrix4 mX = Matrix4::rotationX(eulers.getX());
+		Matrix4 mY = Matrix4::rotationY(eulers.getY());
+		Matrix4 mm = mX * mY; //probably wrong order?
 		mm = this->inversed * mm * this->transform;
 
 		mm = mm * (data->rotation);
