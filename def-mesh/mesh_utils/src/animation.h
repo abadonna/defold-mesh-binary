@@ -14,6 +14,7 @@ class Animation
 		vector<string> boneNames;
 		vector<Matrix4> cumulative;
 		vector<AnimationTrack> tracks;
+		unordered_map<int, Matrix4> overrides;
 
 		Matrix4 transform;
 		dmGameObject::HInstance root = 0;
@@ -42,6 +43,7 @@ class Animation
 		void SwitchRootMotion();
 		void ResetRootMotion(int frameIdx, bool isPrimary);
 		void CreateBoneGO(dmGameObject::HInstance go, int idx);
+		void AddBoneOverride(string bone, Matrix4* m);
 
 		Animation(Armature* armature, dmGameObject::HInstance obj);
 };

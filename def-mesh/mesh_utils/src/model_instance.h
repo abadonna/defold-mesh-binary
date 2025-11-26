@@ -41,4 +41,5 @@ class ModelInstance {
 		void SetShapes(lua_State* L, unordered_map<string, float>* values);
 
 		URL* AttachGameObject(dmGameObject::HInstance go, string bone);
+		void TransformBone(string bone, Matrix4* m);
 };

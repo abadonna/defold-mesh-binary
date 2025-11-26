@@ -1,0 +1,54 @@
+local binary = require "def-mesh.binary" 
+
+
+function init(self)
+	self.model = binary.load("/model", "/assets/rod.bin")
+	self.tip = 0
+	self.mid = 0
+	self.root = 0
+end
+
+
+function update(self, dt)
+
+	imgui.set_next_window_size(400, 300)
+	imgui.set_next_window_pos(1400, 900)
+	imgui.begin_window("bones")
+
+	local changed, value = imgui.slider_float("tip", self.tip, -90, 90, 1)
+	if changed then
+		self.tip = value
+		local m = vmath.matrix4_rotation_x(math.rad(self.tip))
+		if self.model then 
+			self.model.transform("tip", m)
+			self.model.animator.update(dt) 
+		end
+		
+	end
+
+	changed, value = imgui.slider_float("mid", self.mid, -90, 90, 1)
+	if changed then
+		self.mid = value
+		local m = vmath.matrix4_rotation_x(math.rad(self.mid))
+		if self.model then 
+			self.model.transform("mid", m)
+			self.model.animator.update(dt) 
+		end
+
+	end
+
+	changed, value = imgui.slider_float("root", self.root, -90, 90, 1)
+	if changed then
+		self.root = value
+		local m = vmath.matrix4_rotation_x(math.rad(self.root))
+		if self.model then 
+			self.model.transform("root", m)
+			self.model.animator.update(dt) 
+		end
+
+	end
+		
+
+	imgui.end_window()
+	
+end

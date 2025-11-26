@@ -8,7 +8,6 @@ Animation::Animation(Armature* armature, dmGameObject::HInstance obj) {
 	this->tracks.push_back(base);
 	this->SetFrame(0, 0, -1, 0, RootMotionType::None, RootMotionType::None);
 	this->Update();
-
 }
 
 void Animation::SwitchRootMotion() {
@@ -65,6 +64,10 @@ void Animation::Update() {
 			}
 
 		}
+	}
+
+	for (const auto& pair : this->overrides) {
+		(*this->bones)[pair.first] = pair.second;
 	}
 
 	this->CalculateBones();
@@ -279,9 +282,16 @@ bool Animation::HasAttachments() {
 	return this->boneObjects.size() > 0;
 }
 
-
 void Animation::CreateBoneGO(dmGameObject::HInstance go, int idx) {
 	BoneGameObject obj = BoneGameObject(go, idx);
 	this->boneObjects.push_back(obj);
 	obj.ApplyTransform(this->bones);
+}
+
+void Animation::AddBoneOverride(string bone, Matrix4* m) {
+	int idx = FindBone(bone);
+	if (idx > -1) {
+		this->needUpdate = true;
+		this->overrides[idx] = *m;
+	} 
 }

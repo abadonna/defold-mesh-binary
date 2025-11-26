@@ -33,3 +33,6 @@ cssfile = /builtins/manifests/web/dark_theme.css
 [input]
 game_binding = /imgui/bindings/imgui.input_bindingc
 
+[native_extension]
+app_manifest = /opengl.appmanifest
+

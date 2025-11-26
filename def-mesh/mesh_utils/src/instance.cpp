@@ -89,6 +89,12 @@ URL* Instance::AttachGameObject(dmGameObject::HInstance go, string bone) {
 	return NULL;
 }
 
+void Instance::TransformBone(string bone, Matrix4* m) {
+	for(auto & mi : this->models) {
+		mi->TransformBone(bone, m);
+	}
+}
+
 
 int Instance::AddAnimationTrack(vector<string>* mask) {
 	int id = 0;

@@ -299,6 +299,10 @@ M.load = function(url, path, config)
 		go.set_parent(target_url, id, true)
 	end
 
+	instance.transform = function(bone, transform)
+		instance.binary:transform(bone, transform)
+	end
+
 	instance.set_shapes = function(shapes)
 		instance.binary:set_shapes(shapes)
 	end

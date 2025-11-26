@@ -384,3 +384,9 @@ URL* ModelInstance::AttachGameObject(dmGameObject::HInstance go, string bone) {
 	}
 	return NULL;
 }
+
+void ModelInstance::TransformBone(string bone, Matrix4* m) {
+	if (this->animation != NULL) {
+		this->animation->AddBoneOverride(bone, m);
+	}
+}

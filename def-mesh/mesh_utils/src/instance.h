@@ -22,6 +22,8 @@ class Instance{
 
 		void ResetRootMotion(bool isPrimary, int frame);
 		void SwitchRootMotion();
+
+		void TransformBone(string bone, Matrix4* m);
 		
 		Instance(vector<Model*>* models, vector<Armature*>* armatures, dmGameObject::HInstance obj, bool useBakedAnimations, float scaleAABB);
 		~Instance();

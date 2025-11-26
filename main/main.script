@@ -20,7 +20,7 @@ function init(self)
 end
 
 function update(self, dt)
-	imgui.set_next_window_size(500, 270)
+	imgui.set_next_window_size(500, 300)
 	
 	imgui.begin_window("Blender export demo")
 	imgui.font_push(self.font)
@@ -48,6 +48,11 @@ function update(self, dt)
 	changed, checked = imgui.checkbox("root motion", self.demo == "root")
 	if changed and checked then
 		load_scene(self, "root")
+	end
+
+	changed, checked = imgui.checkbox("direct bone transform", self.demo == "direct")
+	if changed and checked then
+		load_scene(self, "direct")
 	end
 	
 	imgui.font_pop()

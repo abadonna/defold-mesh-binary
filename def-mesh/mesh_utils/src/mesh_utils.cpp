@@ -12,6 +12,16 @@ using namespace Vectormath::Aos;
 
 std::unordered_map<std::string, BinaryFile*> files;
 
+
+static int Transform(lua_State* L) {
+    lua_getfield(L, 1, "instance");
+    Instance* instance = (Instance*)lua_touserdata(L, -1);
+    string bone = string(luaL_checkstring(L, 2));
+    dmVMath::Matrix4* m = dmScript::CheckMatrix4(L, 3);
+    instance->TransformBone(bone, m);
+    return 0;
+}
+
 static int SwitchRootMotion(lua_State* L) {
     lua_getfield(L, 1, "instance");
     Instance* instance = (Instance*)lua_touserdata(L, -1);
@@ -175,6 +185,7 @@ static int Load(lua_State* L) {
         {"add_animation_track", AddAnimationTrack},
         {"set_animation_track_weight", SetAnimationTrackWeight},
         {"attach_bone_go", AttachBoneGO},
+        {"transform", Transform},
         {"set_shapes", SetShapes},
         {"set_frame", SetFrame},
         {"update", Update},
