@@ -261,6 +261,15 @@ M.create = function(binary)
 		animator.binary:set_animation_track_weight(track_id, weight)
 	end
 
+	animator.set_fps = function(track, fps)
+		for i, a in ipairs(animator.animations) do
+			if a.track == track then
+				a.fps = fps
+				a.duration = a.length / a.fps
+			end
+		end
+	end
+
 	return animator
 end
 
